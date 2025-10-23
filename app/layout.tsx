@@ -1,12 +1,18 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import Header from '@/components/Header'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AckIndex - Nantucket Project Tracker',
-  description: 'Track current building projects and permits in Nantucket, MA',
+  title: 'Ack Index - Nantucket\'s Civic Intelligence Platform',
+  description: 'AI-powered budget analysis and tax projections for Nantucket',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
@@ -16,7 +22,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <div className="min-h-screen bg-light-gray">
+          <Header />
+          <main>
+            {children}
+          </main>
+        </div>
+      </body>
     </html>
   )
 }
