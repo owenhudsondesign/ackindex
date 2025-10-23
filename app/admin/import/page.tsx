@@ -15,7 +15,8 @@ export default function ImportPage() {
     setUploadStatus('Uploading files...')
 
     try {
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         const formData = new FormData()
         formData.append('file', file)
         formData.append('municipality', 'Nantucket, MA')
