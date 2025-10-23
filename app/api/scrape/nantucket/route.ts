@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { scrapeNantucketData } from '@/lib/simpleScraper'
+import { scrapeRealNantucketData } from '@/lib/realScraper'
 
 export async function GET(req: NextRequest) {
   try {
     console.log('Starting Nantucket data scrape...')
-    const projects = await scrapeNantucketData()
+    const projects = await scrapeRealNantucketData()
     console.log(`Successfully scraped ${projects.length} projects from Nantucket`)
     
     return NextResponse.json({
