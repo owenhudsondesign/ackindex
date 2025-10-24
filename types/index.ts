@@ -2,15 +2,42 @@ export type Category = 'Budget' | 'Real Estate' | 'Town Meeting' | 'Infrastructu
 
 export type VisualizationType = 'bar' | 'line' | 'pie' | 'donut' | 'timeline' | 'table';
 
+export type TrendType = 'up' | 'down' | 'stable';
+
+export type InsightType = 'concern' | 'success' | 'neutral';
+
+export type ImpactLevel = 'high' | 'medium' | 'low';
+
 export interface KeyMetric {
   label: string;
   value: string;
+  trend?: TrendType;
+  change_pct?: number;
 }
 
 export interface Visualization {
   type: VisualizationType;
   labels: string[];
   values: number[];
+  title?: string;
+  insight?: string;
+  highlight_index?: number;
+}
+
+export interface Insight {
+  type: InsightType;
+  title: string;
+  description: string;
+  impact: ImpactLevel;
+}
+
+export interface Comparison {
+  title: string;
+  category_a: string;
+  value_a: string;
+  category_b: string;
+  value_b: string;
+  winner: string;
 }
 
 export interface CivicEntry {
@@ -21,6 +48,8 @@ export interface CivicEntry {
   summary: string;
   key_metrics: KeyMetric[];
   visualizations: Visualization[];
+  insights?: Insight[];
+  comparisons?: Comparison[];
   notable_updates?: string[];
   date_published?: string;
   document_excerpt?: string;
@@ -42,6 +71,8 @@ export interface ParsedCivicData {
   summary: string;
   key_metrics: KeyMetric[];
   visualizations: Visualization[];
+  insights?: Insight[];
+  comparisons?: Comparison[];
   notable_updates?: string[];
   date_published?: string;
   document_excerpt?: string;

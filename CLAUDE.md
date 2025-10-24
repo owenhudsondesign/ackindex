@@ -185,6 +185,13 @@ Ensure environment variables match production Supabase project and API keys.
 
 ## Recent Changes
 
+- **2025-10-24:** Enhanced dashboard with civic intelligence features:
+  - AI parsing now extracts insights, comparisons, and trends
+  - Added InsightCard component (concern/success/neutral alerts)
+  - Added ComparisonCard component (side-by-side data comparisons)
+  - Enhanced MetricChip with trend indicators (↑↓→) and percentage changes
+  - Enhanced ChartBlock with titles, insights, and highlighting
+  - Updated database schema with insights and comparisons columns
 - **2025-10-24:** Fixed Buffer to Uint8Array conversion for `unpdf` library
 - **2025-10-24:** Removed test/debug API routes from production build
 - **2025-10-24:** Fixed Vercel serverless PDF parsing by switching to `unpdf` library (pure JavaScript, no native dependencies)

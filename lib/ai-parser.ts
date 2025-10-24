@@ -6,32 +6,75 @@ Be factual, concise, and neutral. Avoid speculation, political bias, or filler l
 
 Always return valid JSON (UTF-8, no comments, no markdown).`;
 
-const PARSING_INSTRUCTION = `Extract structured data from this document and return ONLY valid JSON with this exact structure:
+const PARSING_INSTRUCTION = `Extract structured data from this document and return ONLY valid JSON with this exact structure.
 
+CRITICAL ANALYSIS REQUIREMENTS:
+1. IDENTIFY TRENDS - Calculate year-over-year changes, growth rates, and patterns
+2. FLAG CONCERNS - Expenses growing >10% annually, declining revenues, budget issues
+3. FIND INSIGHTS - What's the story? What should citizens know? What's notable?
+4. COMPARE CATEGORIES - Which areas growing fastest/slowest? What's changing?
+5. CALCULATE RATIOS - Per capita costs, percentages of total, relative comparisons
+
+Return this JSON structure:
 {
   "title": "string — concise headline-style summary of document",
   "source": "string — name of issuing department or organization",
   "category": "string — one of: Budget | Real Estate | Town Meeting | Infrastructure | General",
-  "summary": "string — 2 short paragraphs (400 words max total) summarizing key points",
+  "summary": "string — 2 short paragraphs (400 words max total) - MUST INCLUDE key insights like 'Healthcare costs up 59%' or 'Fastest growth in 10 years'",
+
   "key_metrics": [
     {
       "label": "string — short name of the metric (e.g. 'Total Budget')",
-      "value": "string — formatted number or percentage (e.g. '$128M' or '5.2% increase')"
+      "value": "string — formatted number or percentage (e.g. '$128M' or '5.2% increase')",
+      "trend": "string — one of: up | down | stable (based on historical context)",
+      "change_pct": "number — percentage change from previous period (if available)"
     }
   ],
+
   "visualizations": [
     {
       "type": "string — one of: bar | line | pie | donut | timeline | table",
+      "title": "string — descriptive title for the chart (e.g. 'Healthcare Cost Growth 2013-2018')",
       "labels": ["array of string — x-axis labels or categories"],
-      "values": ["array of number — corresponding values"]
+      "values": ["array of number — corresponding values"],
+      "insight": "string — what does this chart reveal? The story behind the numbers",
+      "highlight_index": "number — which data point is most significant? (0-based index, optional)"
     }
   ],
+
+  "insights": [
+    {
+      "type": "string — one of: concern | success | neutral",
+      "title": "string — attention-grabbing headline (e.g. 'Healthcare Costs Soaring')",
+      "description": "string — detailed explanation with specific numbers and context",
+      "impact": "string — one of: high | medium | low"
+    }
+  ],
+
+  "comparisons": [
+    {
+      "title": "string — comparison headline (e.g. 'School vs Town Salary Growth')",
+      "category_a": "string — first category name",
+      "value_a": "string — formatted value for first category",
+      "category_b": "string — second category name",
+      "value_b": "string — formatted value for second category",
+      "winner": "string — explanation of which is higher/better and by how much"
+    }
+  ],
+
   "notable_updates": [
-    "string — brief notable changes, decisions, or project statuses (optional)"
+    "string — brief notable changes, decisions, or project statuses"
   ],
   "date_published": "string — if found, in YYYY-MM-DD format, else null",
   "document_excerpt": "string — short quoted excerpt or section title (optional)"
-}`;
+}
+
+EXAMPLES OF GOOD INSIGHTS:
+- "Healthcare costs projected to increase 59% over 5 years ($7.6M to $12.1M) - fastest growing budget item"
+- "Debt service declining from 12.9% to 9.2% of budget, freeing up $1.5M annually"
+- "School salaries growing 46% faster than town salaries (10.8% vs 7.4%)"
+
+Extract ALL available insights, trends, and comparisons - citizens need this context!`;
 
 export async function parseDocumentWithClaude(
   documentText: string,

@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { CivicEntry } from '@/types';
 import MetricChip from './MetricChip';
 import ChartBlock from './ChartBlock';
+import InsightCard from './InsightCard';
+import ComparisonCard from './ComparisonCard';
 
 interface EntryCardProps {
   entry: CivicEntry;
@@ -96,6 +98,30 @@ export default function EntryCard({ entry, index }: EntryCardProps) {
             {entry.visualizations.map((viz, idx) => (
               <ChartBlock key={idx} visualization={viz} />
             ))}
+          </div>
+        )}
+
+        {/* Key Insights */}
+        {entry.insights && entry.insights.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Key Insights</h3>
+            <div className="space-y-3">
+              {entry.insights.map((insight, idx) => (
+                <InsightCard key={idx} insight={insight} index={idx} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Comparisons */}
+        {entry.comparisons && entry.comparisons.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Comparisons</h3>
+            <div className="space-y-3">
+              {entry.comparisons.map((comparison, idx) => (
+                <ComparisonCard key={idx} comparison={comparison} index={idx} />
+              ))}
+            </div>
           </div>
         )}
 

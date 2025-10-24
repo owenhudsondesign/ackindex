@@ -25,7 +25,7 @@ interface ChartBlockProps {
 }
 
 export default function ChartBlock({ visualization }: ChartBlockProps) {
-  const { type, labels, values } = visualization;
+  const { type, labels, values, title, insight, highlight_index } = visualization;
 
   // Transform data for Recharts
   const chartData = labels.map((label, index) => ({
@@ -50,7 +50,14 @@ export default function ChartBlock({ visualization }: ChartBlockProps) {
                   padding: '12px',
                 }}
               />
-              <Bar dataKey="value" fill="#5B8FB9" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={index === highlight_index ? '#DC2626' : '#5B8FB9'}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         );
@@ -147,9 +154,24 @@ export default function ChartBlock({ visualization }: ChartBlockProps) {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm"
+      className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
     >
+      {/* Chart Title */}
+      {title && (
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      )}
+
+      {/* Chart */}
       {renderChart()}
+
+      {/* Insight Caption */}
+      {insight && (
+        <div className="mt-4 p-3 bg-gradient-to-r from-ack-blue/5 to-ack-sand/5 border border-ack-blue/20 rounded-lg">
+          <p className="text-sm text-gray-700">
+            <span className="font-semibold text-ack-blue">💡 Insight:</span> {insight}
+          </p>
+        </div>
+      )}
     </motion.div>
   );
 }

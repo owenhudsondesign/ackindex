@@ -10,6 +10,8 @@ create table if not exists public.entries (
   summary text not null,
   key_metrics jsonb default '[]'::jsonb,
   visualizations jsonb default '[]'::jsonb,
+  insights jsonb default '[]'::jsonb,
+  comparisons jsonb default '[]'::jsonb,
   notable_updates jsonb default '[]'::jsonb,
   date_published date,
   document_excerpt text,
