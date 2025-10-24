@@ -38,24 +38,36 @@ function extractPDFLinks(html: string, baseUrl: string): string[] {
   const $ = cheerio.load(html);
   const pdfLinks: string[] = [];
 
-  // Find all links ending in .pdf
+  // Find all links that might be PDFs
   $('a[href]').each((_, element) => {
     const href = $(element).attr('href');
-    if (href && href.toLowerCase().endsWith('.pdf')) {
-      try {
-        // Convert relative URLs to absolute
-        const absoluteUrl = new URL(href, baseUrl).toString();
+    if (href) {
+      const lowerHref = href.toLowerCase();
 
-        // Only include links from the same domain (or nantucket-ma.gov)
-        const parsedUrl = new URL(absoluteUrl);
-        const baseDomain = new URL(baseUrl).hostname;
+      // Check if it's a direct PDF link or a PDF viewer/download link
+      const isPdfLink =
+        lowerHref.endsWith('.pdf') ||
+        lowerHref.includes('.pdf?') ||
+        lowerHref.includes('/viewfile') ||
+        lowerHref.includes('/download') ||
+        lowerHref.includes('getfile');
 
-        if (parsedUrl.hostname === baseDomain ||
-            parsedUrl.hostname.includes('nantucket-ma.gov')) {
-          pdfLinks.push(absoluteUrl);
+      if (isPdfLink) {
+        try {
+          // Convert relative URLs to absolute
+          const absoluteUrl = new URL(href, baseUrl).toString();
+
+          // Only include links from the same domain (or nantucket-ma.gov)
+          const parsedUrl = new URL(absoluteUrl);
+          const baseDomain = new URL(baseUrl).hostname;
+
+          if (parsedUrl.hostname === baseDomain ||
+              parsedUrl.hostname.includes('nantucket-ma.gov')) {
+            pdfLinks.push(absoluteUrl);
+          }
+        } catch (error) {
+          console.error('Invalid URL:', href, error);
         }
-      } catch (error) {
-        console.error('Invalid URL:', href, error);
       }
     }
   });
@@ -149,6 +161,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         message: 'No PDF links found on this page',
         documentsProcessed: 0,
+        successCount: 0,
+        duplicateCount: 0,
+        errorCount: 0,
         results: [],
       });
     }

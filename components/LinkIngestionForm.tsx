@@ -33,9 +33,9 @@ export default function LinkIngestionForm({ onIngestionSuccess }: LinkIngestionF
   ];
 
   const exampleUrls = [
-    'https://nantucket-ma.gov/AgendaCenter/Select-Board-3',
-    'https://nantucket-ma.gov/DocumentCenter',
-    'https://nantucket-ma.gov/Archive.aspx?AMID=41',
+    'https://nantucket-ma.gov/AgendaCenter/ViewNotice/14895',
+    'https://nantucket-ma.gov/Archive.aspx?ADID=1234',
+    'https://nantucket-ma.gov/1234/Budget-Documents',
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -265,13 +265,24 @@ export default function LinkIngestionForm({ onIngestionSuccess }: LinkIngestionF
       {/* Info Box */}
       <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
         <h4 className="text-sm font-semibold text-blue-900 mb-2">How it works:</h4>
-        <ul className="text-xs text-blue-800 space-y-1">
+        <ul className="text-xs text-blue-800 space-y-1 mb-3">
           <li>• Crawls the provided URL for PDF links</li>
           <li>• Downloads and extracts text from each PDF</li>
           <li>• Uses AI to summarize and extract key insights</li>
           <li>• Automatically skips duplicates</li>
           <li>• Can take 1-5 minutes depending on page size</li>
         </ul>
+        <div className="mt-3 pt-3 border-t border-blue-300">
+          <h4 className="text-sm font-semibold text-blue-900 mb-1">⚠️ Best pages to use:</h4>
+          <ul className="text-xs text-blue-800 space-y-1">
+            <li>• Specific meeting agenda pages (with date/ID)</li>
+            <li>• Archive pages with document listings</li>
+            <li>• Department pages with downloadable reports</li>
+          </ul>
+          <p className="text-xs text-blue-700 mt-2 italic">
+            Note: Index pages (like Document Center home) often don't have direct PDF links
+          </p>
+        </div>
       </div>
     </motion.div>
   );
