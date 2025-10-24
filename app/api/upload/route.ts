@@ -4,6 +4,7 @@ import { extractTextFromPDF, sanitizeFileName, validateFileSize, validateFileTyp
 import { parseDocumentWithClaude } from '@/lib/ai-parser';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Max 60 seconds for parsing
 
 export async function POST(request: NextRequest) {
