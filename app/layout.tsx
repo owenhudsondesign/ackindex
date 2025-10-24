@@ -21,22 +21,31 @@ export default function RootLayout({
       <body className={inter.className}>
         <div className="min-h-screen flex flex-col">
           {/* Navigation */}
-          <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
+          <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-white/95 shadow-sm">
             <div className="container-custom py-4">
               <div className="flex items-center justify-between">
-                <a href="/" className="flex items-center space-x-3">
-                  <div className="text-3xl">🏛️</div>
+                <a href="/" className="flex items-center gap-3 group">
+                  <div className="text-4xl transform group-hover:scale-110 transition-transform">
+                    🏛️
+                  </div>
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900">AckIndex</h1>
-                    <p className="text-xs text-gray-600">Nantucket Civic Intelligence</p>
+                    <h1 className="text-2xl font-bold text-gray-900 group-hover:text-ack-blue transition">
+                      AckIndex
+                    </h1>
+                    <p className="text-xs text-gray-600 -mt-0.5">
+                      Nantucket Civic Intelligence
+                    </p>
                   </div>
                 </a>
-                <a
-                  href="/admin"
-                  className="px-4 py-2 text-sm font-semibold text-ack-blue hover:text-ack-blue/80 transition-colors"
-                >
-                  Admin
-                </a>
+                
+                <div className="flex items-center gap-4">
+                  <a
+                    href="/admin"
+                    className="px-4 py-2 text-sm font-semibold text-ack-blue hover:bg-ack-blue/10 rounded-lg transition-all"
+                  >
+                    Admin Portal
+                  </a>
+                </div>
               </div>
             </div>
           </nav>
@@ -50,13 +59,53 @@ export default function RootLayout({
 
           {/* Footer */}
           <footer className="bg-white border-t border-gray-200 mt-20">
-            <div className="container-custom py-8">
-              <div className="text-center">
+            <div className="container-custom py-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                {/* About */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-3xl">🏛️</span>
+                    <h3 className="text-lg font-bold text-gray-900">AckIndex</h3>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Making Nantucket's civic data accessible and understandable 
+                    through AI-powered analysis.
+                  </p>
+                </div>
+
+                {/* Quick Links */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Quick Links</h4>
+                  <ul className="space-y-2 text-sm">
+                    <li>
+                      <a href="/" className="text-gray-600 hover:text-ack-blue transition">
+                        Dashboard
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/admin" className="text-gray-600 hover:text-ack-blue transition">
+                        Admin Portal
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Contact */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">About This Project</h4>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    An independent civic technology project for transparent, 
+                    accessible government data.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-6 text-center">
                 <p className="text-sm text-gray-600">
-                  An Independent Civic Project for Nantucket, Massachusetts
+                  © {new Date().getFullYear()} AckIndex • Built for Nantucket, Massachusetts
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
-                  Making local government data accessible and transparent
+                  Data sourced from official town documents • Powered by AI
                 </p>
               </div>
             </div>

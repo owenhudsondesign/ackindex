@@ -12,11 +12,16 @@ interface FeedGridProps {
 export default function FeedGrid({ entries, isLoading, isError }: FeedGridProps) {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-ack-blue border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600 font-medium">Loading civic updates...</p>
+      <div className="flex flex-col items-center justify-center py-20">
+        {/* Better loading animation */}
+        <div className="relative mb-6">
+          <div className="w-20 h-20 border-4 border-ack-blue/20 border-t-ack-blue rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-2xl">🏛️</span>
+          </div>
         </div>
+        <p className="text-gray-600 font-medium text-lg">Loading civic data...</p>
+        <p className="text-gray-500 text-sm mt-2">Analyzing documents and generating insights</p>
       </div>
     );
   }

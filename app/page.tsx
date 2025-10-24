@@ -69,14 +69,24 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-12"
       >
-        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
-          AckIndex
+        {/* Visual anchor */}
+        <div className="inline-block mb-4">
+          <div className="text-6xl mb-2">🏛️</div>
+          <div className="h-1 w-16 bg-ack-blue mx-auto rounded-full"></div>
+        </div>
+
+        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4 leading-tight">
+          Nantucket Civic Data,<br />
+          <span className="text-ack-blue">Actually Understandable</span>
         </h1>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-2">
-          Your civic intelligence dashboard for Nantucket
+
+        <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-2">
+          Town budgets, meeting minutes, and infrastructure updates—parsed by AI
+          and presented in plain English. No more searching through PDFs.
         </p>
-        {dashboardData && (
-          <p className="text-sm text-gray-500">
+
+        {dashboardData && dashboardData.totalDocuments > 0 && (
+          <p className="text-sm text-gray-500 mt-4">
             {dashboardData.totalDocuments} documents analyzed • Last updated {formatDate(dashboardData.lastUpdated)}
           </p>
         )}
@@ -94,9 +104,16 @@ export default function Home() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-ack-blue"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard data...</p>
+        <div className="flex flex-col items-center justify-center py-20">
+          {/* Better loading animation */}
+          <div className="relative mb-6">
+            <div className="w-20 h-20 border-4 border-ack-blue/20 border-t-ack-blue rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-2xl">🏛️</span>
+            </div>
+          </div>
+          <p className="text-gray-600 font-medium text-lg">Loading civic data...</p>
+          <p className="text-gray-500 text-sm mt-2">Analyzing documents and generating insights</p>
         </div>
       )}
 
@@ -153,21 +170,166 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-16 bg-white rounded-2xl shadow-md border border-gray-200"
+              className="py-12"
             >
-              <div className="text-6xl mb-4">📄</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                No Documents Yet
-              </h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Upload your first civic document to start building your intelligence dashboard.
-              </p>
-              <a
-                href="/upload"
-                className="inline-block bg-ack-blue text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-600 transition-colors"
-              >
-                Upload Document
-              </a>
+              {/* Hero Message */}
+              <div className="text-center mb-12">
+                <div className="text-8xl mb-6 animate-bounce">📊</div>
+                <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                  Dashboard Coming Soon
+                </h3>
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                  Once civic documents are uploaded, you'll see real-time insights,
+                  trend charts, and AI-powered analysis right here.
+                </p>
+              </div>
+
+              {/* Preview of What's Coming */}
+              <div className="max-w-5xl mx-auto">
+                <h4 className="text-xl font-bold text-gray-900 mb-6 text-center">
+                  What You'll See Here:
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                  {/* Preview Card 1 */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border-2 border-blue-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-3xl">💰</span>
+                      <h5 className="text-lg font-bold text-gray-900">Budget Insights</h5>
+                    </div>
+                    <div className="space-y-2 text-gray-700">
+                      <p className="text-sm">• Total town budget and year-over-year changes</p>
+                      <p className="text-sm">• Spending breakdown by department</p>
+                      <p className="text-sm">• Tax impact analysis</p>
+                    </div>
+                  </div>
+
+                  {/* Preview Card 2 */}
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border-2 border-green-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-3xl">🏘️</span>
+                      <h5 className="text-lg font-bold text-gray-900">Real Estate Data</h5>
+                    </div>
+                    <div className="space-y-2 text-gray-700">
+                      <p className="text-sm">• Median home prices and trends</p>
+                      <p className="text-sm">• Sales volume and inventory</p>
+                      <p className="text-sm">• Market comparisons</p>
+                    </div>
+                  </div>
+
+                  {/* Preview Card 3 */}
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border-2 border-purple-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-3xl">🏗️</span>
+                      <h5 className="text-lg font-bold text-gray-900">Infrastructure Updates</h5>
+                    </div>
+                    <div className="space-y-2 text-gray-700">
+                      <p className="text-sm">• Active construction projects</p>
+                      <p className="text-sm">• Completion timelines</p>
+                      <p className="text-sm">• Budget vs. actual costs</p>
+                    </div>
+                  </div>
+
+                  {/* Preview Card 4 */}
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-6 border-2 border-orange-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-3xl">📋</span>
+                      <h5 className="text-lg font-bold text-gray-900">Town Meetings</h5>
+                    </div>
+                    <div className="space-y-2 text-gray-700">
+                      <p className="text-sm">• Key decisions and votes</p>
+                      <p className="text-sm">• Article summaries</p>
+                      <p className="text-sm">• Upcoming agenda items</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Example of What a Card Will Look Like */}
+                <div className="mb-12">
+                  <h4 className="text-xl font-bold text-gray-900 mb-4 text-center">
+                    Example: How Data Will Appear
+                  </h4>
+
+                  {/* Mock Entry Card */}
+                  <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-6 max-w-3xl mx-auto">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                          FY2026 Town Budget Analysis
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                            Budget
+                          </span>
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                            Town Finance Department
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-700 leading-relaxed mb-4">
+                      The FY2026 budget proposes a 5.2% increase over FY2025, driven primarily by
+                      healthcare costs (up 59% over 5 years) and infrastructure spending. Total budget
+                      of $82.3M represents $7,480 per resident...
+                    </p>
+
+                    {/* Mock Metrics */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                      <div className="bg-gradient-to-br from-ack-blue/10 to-ack-sand/10 rounded-xl px-4 py-3 border border-ack-blue/20">
+                        <p className="text-xs text-ack-gray font-medium mb-1">Total Budget</p>
+                        <p className="text-lg font-semibold text-gray-900">$82.3M</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-ack-blue/10 to-ack-sand/10 rounded-xl px-4 py-3 border border-ack-blue/20">
+                        <p className="text-xs text-ack-gray font-medium mb-1">YoY Increase</p>
+                        <p className="text-lg font-semibold text-gray-900">5.2%</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-ack-blue/10 to-ack-sand/10 rounded-xl px-4 py-3 border border-ack-blue/20">
+                        <p className="text-xs text-ack-gray font-medium mb-1">Per Resident</p>
+                        <p className="text-lg font-semibold text-gray-900">$7,480</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-ack-blue/10 to-ack-sand/10 rounded-xl px-4 py-3 border border-ack-blue/20">
+                        <p className="text-xs text-ack-gray font-medium mb-1">Healthcare</p>
+                        <p className="text-lg font-semibold text-gray-900">↑ 59%</p>
+                      </div>
+                    </div>
+
+                    {/* Mock Chart Placeholder */}
+                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                      <div className="flex items-center justify-center h-32 text-gray-400">
+                        <div className="text-center">
+                          <div className="text-4xl mb-2">📈</div>
+                          <p className="text-sm">Interactive charts will appear here</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Call to Action */}
+                <div className="text-center bg-gradient-to-br from-ack-blue/10 to-ack-sand/10 rounded-2xl p-8 border-2 border-ack-blue/20">
+                  <h4 className="text-2xl font-bold text-gray-900 mb-4">
+                    Ready to Get Started?
+                  </h4>
+                  <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
+                    Town administrators can upload civic documents through the admin portal.
+                    Our AI will automatically parse them and generate insights.
+                  </p>
+
+                  <a
+                    href="/admin"
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-ack-blue text-white font-semibold rounded-xl hover:bg-ack-blue/90 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <span>🔐</span>
+                    <span>Access Admin Portal</span>
+                    <span>→</span>
+                  </a>
+
+                  <p className="mt-4 text-sm text-gray-600">
+                    Need access? Contact your town administrator
+                  </p>
+                </div>
+              </div>
             </motion.div>
           )}
         </>
