@@ -1,37 +1,26 @@
 export async function extractTextFromPDF(file: Buffer): Promise<string> {
   try {
-    // Use pdfjs-dist legacy build for Node.js/serverless environments
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    // Use unpdf - a modern, serverless-friendly PDF text extraction library
+    const { extractText } = await import('unpdf');
 
-    console.log('Starting PDF text extraction...');
+    console.log('Starting PDF text extraction with unpdf...');
 
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(file),
-      useSystemFonts: true,
-      standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/standard_fonts/',
-    });
+    // Extract text from the PDF
+    const { text, totalPages } = await extractText(file);
 
-    const pdfDocument = await loadingTask.promise;
-    const numPages = pdfDocument.numPages;
-    console.log(`PDF loaded with ${numPages} pages`);
+    // unpdf returns an array of strings (one per page), so join them
+    const fullText = Array.isArray(text) ? text.join('\n') : text;
 
-    // Extract text from all pages
-    let fullText = '';
-    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-      const page = await pdfDocument.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n';
+    console.log(`PDF extraction successful: ${totalPages} pages, ${fullText.length} characters`);
+
+    if (!fullText || fullText.trim().length < 50) {
+      throw new Error('Could not extract sufficient text from PDF. The PDF may be image-based or encrypted.');
     }
 
-    console.log('PDF extraction successful, text length:', fullText.length);
     return fullText;
   } catch (error) {
     console.error('PDF parsing error:', error);
-    throw new Error('Failed to extract text from PDF');
+    throw new Error('Failed to extract text from PDF: ' + (error as Error).message);
   }
 }
 

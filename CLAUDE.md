@@ -98,11 +98,12 @@ The AI parsers (`parseDocumentWithClaude` / `parseDocumentWithOpenAI`) extract s
 ## Important Implementation Details
 
 ### PDF Text Extraction
-- Uses `pdfjs-dist` legacy build (for Node.js/serverless compatibility)
-- Import: `const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');`
-- Extracts text page-by-page using `getDocument()` and `getTextContent()`
-- Works in Vercel serverless environment (no DOM dependencies)
-- Located in `lib/pdf-utils.ts:1-36`
+- Uses `unpdf` - a modern, serverless-friendly PDF text extraction library
+- Pure JavaScript implementation with no native dependencies
+- Import: `const { extractText } = await import('unpdf');`
+- Returns an array of strings (one per page) which we join together
+- Works perfectly in Vercel serverless environment (no canvas/DOM dependencies)
+- Located in `lib/pdf-utils.ts:1-25`
 
 ### AI Parsing Strategy
 - **Primary:** Claude 3.5 Sonnet via Anthropic API
@@ -182,7 +183,8 @@ Ensure environment variables match production Supabase project and API keys.
 
 ## Recent Changes
 
-- **2025-10-24:** Fixed Vercel serverless PDF parsing by using pdfjs-dist legacy build (resolves DOMMatrix error)
+- **2025-10-24:** Fixed Vercel serverless PDF parsing by switching to `unpdf` library (pure JavaScript, no native dependencies)
+- **2025-10-24:** Removed `pdf-parse`, `pdfjs-dist`, and `canvas` packages that don't work in serverless environments
 - **2025-10-23:** Added comprehensive debugging to upload API
 - **2025-10-23:** Added test endpoints for upload and Supabase connection
 
