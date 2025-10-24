@@ -19,6 +19,8 @@ export default function LinkIngestionForm({ onIngestionSuccess }: LinkIngestionF
   const [url, setUrl] = useState('');
   const [category, setCategory] = useState<Category>('General');
   const [source, setSource] = useState('Town of Nantucket');
+  const [parseHTML, setParseHTML] = useState(true);
+  const [recursive, setRecursive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState('');
   const [results, setResults] = useState<ParseResult[] | null>(null);
@@ -60,6 +62,9 @@ export default function LinkIngestionForm({ onIngestionSuccess }: LinkIngestionF
           url,
           category,
           source,
+          parseHTML,
+          recursive,
+          maxPages: recursive ? 50 : 1,
         }),
       });
 
@@ -174,6 +179,75 @@ export default function LinkIngestionForm({ onIngestionSuccess }: LinkIngestionF
           />
         </div>
 
+        {/* Advanced Options */}
+        <div className="border border-gray-300 rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Advanced Options</h3>
+
+          <div className="space-y-3">
+            {/* Parse HTML Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label htmlFor="parseHTML" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  Parse HTML Pages
+                </label>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Extract and analyze content from HTML pages, not just PDFs
+                </p>
+              </div>
+              <button
+                type="button"
+                id="parseHTML"
+                onClick={() => setParseHTML(!parseHTML)}
+                disabled={isProcessing}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ack-blue focus:ring-offset-2 disabled:opacity-50 ${
+                  parseHTML ? 'bg-ack-blue' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    parseHTML ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Recursive Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label htmlFor="recursive" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  Recursive Crawling
+                </label>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Follow internal links to discover more pages (max 50 pages)
+                </p>
+              </div>
+              <button
+                type="button"
+                id="recursive"
+                onClick={() => setRecursive(!recursive)}
+                disabled={isProcessing}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ack-blue focus:ring-offset-2 disabled:opacity-50 ${
+                  recursive ? 'bg-ack-blue' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    recursive ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {recursive && (
+            <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <p className="text-xs text-yellow-800">
+                ⚠️ Recursive crawling can process many pages and take several minutes. Use for comprehensive document collection.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Progress Message */}
         {progress && (
           <motion.div
@@ -264,24 +338,22 @@ export default function LinkIngestionForm({ onIngestionSuccess }: LinkIngestionF
 
       {/* Info Box */}
       <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-        <h4 className="text-sm font-semibold text-blue-900 mb-2">How it works:</h4>
+        <h4 className="text-sm font-semibold text-blue-900 mb-2">🚀 Powerful Capabilities:</h4>
         <ul className="text-xs text-blue-800 space-y-1 mb-3">
-          <li>• Crawls the provided URL for PDF links</li>
-          <li>• Downloads and extracts text from each PDF</li>
-          <li>• Uses AI to summarize and extract key insights</li>
-          <li>• Automatically skips duplicates</li>
-          <li>• Can take 1-5 minutes depending on page size</li>
+          <li>• 📄 <strong>PDF Extraction:</strong> Finds and processes all PDF links on the page</li>
+          <li>• 🌐 <strong>HTML Parsing:</strong> Extracts content directly from web pages (not just PDFs!)</li>
+          <li>• 🔗 <strong>Recursive Crawling:</strong> Follows internal links to discover more content</li>
+          <li>• 🤖 <strong>AI Analysis:</strong> Automatically summarizes and extracts key insights</li>
+          <li>• ♻️ <strong>Smart Deduplication:</strong> Skips documents already in database</li>
         </ul>
         <div className="mt-3 pt-3 border-t border-blue-300">
-          <h4 className="text-sm font-semibold text-blue-900 mb-1">⚠️ Best pages to use:</h4>
+          <h4 className="text-sm font-semibold text-blue-900 mb-1">💡 Usage Tips:</h4>
           <ul className="text-xs text-blue-800 space-y-1">
-            <li>• Specific meeting agenda pages (with date/ID)</li>
-            <li>• Archive pages with document listings</li>
-            <li>• Department pages with downloadable reports</li>
+            <li>• <strong>Single Page:</strong> Turn off recursive for one specific page</li>
+            <li>• <strong>Entire Section:</strong> Turn on recursive to crawl entire doc section</li>
+            <li>• <strong>HTML + PDFs:</strong> Parse HTML is on by default - gets everything!</li>
+            <li>• <strong>PDFs Only:</strong> Turn off Parse HTML for just PDF documents</li>
           </ul>
-          <p className="text-xs text-blue-700 mt-2 italic">
-            Note: Index pages (like Document Center home) often don't have direct PDF links
-          </p>
         </div>
       </div>
     </motion.div>
