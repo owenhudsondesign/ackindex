@@ -1,7 +1,7 @@
-import pdf from 'pdf-parse';
-
 export async function extractTextFromPDF(file: Buffer): Promise<string> {
   try {
+    // Dynamic import to avoid build-time issues
+    const pdf = (await import('pdf-parse')).default;
     const data = await pdf(file);
     return data.text;
   } catch (error) {
