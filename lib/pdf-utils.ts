@@ -1,9 +1,28 @@
 export async function extractTextFromPDF(file: Buffer): Promise<string> {
   try {
-    // Dynamic import to avoid build-time issues
-    const pdf = (await import('pdf-parse')).default;
-    const data = await pdf(file);
-    return data.text;
+    // Use pdfjs-dist for better compatibility
+    const pdfjsLib = await import('pdfjs-dist');
+    
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({
+      data: file,
+      useSystemFonts: true,
+    });
+    
+    const pdf = await loadingTask.promise;
+    let fullText = '';
+    
+    // Extract text from all pages
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n';
+    }
+    
+    return fullText.trim();
   } catch (error) {
     console.error('PDF parsing error:', error);
     throw new Error('Failed to extract text from PDF');
