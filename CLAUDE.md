@@ -164,35 +164,58 @@ The AI parser is instructed to:
 
 ### Link-Based Document Ingestion (Automated Crawling)
 
-AckIndex now supports **automated document discovery** - admins can paste any Nantucket government URL and the system will:
+AckIndex supports **comprehensive automated document discovery** - admins can paste ANY Nantucket government URL and parse everything:
 
-1. **Crawl the page** using Cheerio HTML parser
-2. **Find all PDF links** on the page (same-domain only for security)
-3. **Download each PDF** and extract text
-4. **Parse with AI** to generate summaries, insights, and structured data
-5. **Deduplicate** based on URL and title to avoid processing the same document twice
-6. **Store in database** with all metadata
+**🌐 HTML Page Parsing (NEW!):**
+- Extracts text directly from web pages, not just PDFs
+- Intelligent content detection (removes navigation, finds main content)
+- Passes HTML text through same AI parsing pipeline
+- Works on ANY government page (meeting pages, department pages, etc.)
+
+**📄 PDF Discovery & Processing:**
+- Finds all PDF links on page (direct links + viewer/download patterns)
+- Downloads and extracts text from each PDF
+- Parses with AI to generate summaries and insights
+
+**🔗 Recursive Crawling (Optional):**
+- Follows internal links to discover related pages automatically
+- Processes up to 50 pages per submission
+- Smart deduplication skips pages already in database
+- Same-domain only (nantucket-ma.gov) for security
 
 **Key Features:**
-- **Batch processing:** Process multiple PDFs from a single URL submission
-- **Automatic deduplication:** Skips documents already in database
+- **Unified processing:** Both PDFs and HTML use same AI pipeline
+- **Configurable modes:** Toggle HTML parsing and recursive crawling
+- **Batch processing:** Process dozens of documents from single URL
+- **Automatic deduplication:** Checks both URL and title
 - **Progress tracking:** Real-time feedback on crawl progress
-- **Error handling:** Continues processing even if individual PDFs fail
-- **Same-domain restriction:** Only follows links from nantucket-ma.gov for security
+- **Error resilience:** Continues if individual pages fail
+- **URL queue system:** Manages recursive discovery efficiently
 
 **Technical Details:**
-- Uses `cheerio` for HTML parsing (server-side jQuery-like API)
-- Converts relative PDF URLs to absolute URLs automatically
-- Downloads PDFs to memory (no disk storage) for parsing
-- Extracts document titles from URLs as fallback
-- Maximum duration: 5 minutes (configurable via `maxDuration`)
+- `extractTextFromHTML()`: Removes nav/footer/scripts, finds main content
+- `extractInternalLinks()`: Discovers same-domain links (max 20/page)
+- `processDocument()`: Unified function for PDF and HTML
+- While loop + Set prevents infinite loops
+- maxPages limit: 50 for recursive, 1 for single page
+- Maximum duration: 5 minutes (configurable)
 
-**Example URLs:**
-- `https://nantucket-ma.gov/AgendaCenter/Select-Board-3` - Agenda center pages
-- `https://nantucket-ma.gov/DocumentCenter` - Document center
-- Any page with embedded PDF links
+**Example Use Cases:**
+```
+URL: https://nantucket-ma.gov/DocumentCenter
+Mode: HTML ON, Recursive OFF
+→ Parses Document Center homepage content
 
-Located in `app/api/parse-link/route.ts:1-252` and `components/LinkIngestionForm.tsx:1-245`
+URL: https://nantucket-ma.gov/AgendaCenter/Select-Board-3
+Mode: HTML ON, Recursive ON
+→ Parses listing page + follows to all meetings
+
+URL: https://nantucket-ma.gov/1234/Budget-Department
+Mode: HTML ON, Recursive ON
+→ Processes entire department + linked docs
+```
+
+Located in `app/api/parse-link/route.ts:1-411` and `components/LinkIngestionForm.tsx:1-362`
 
 ### PDF Text Extraction
 - Uses `unpdf` - a modern, serverless-friendly PDF text extraction library
@@ -281,6 +304,15 @@ Deploy to Vercel:
 Ensure environment variables match production Supabase project and API keys.
 
 ## Recent Changes
+
+- **2025-10-24:** **HTML PARSING & RECURSIVE CRAWLING** - Parse ANY page, not just PDFs:
+  - **HTML Content Extraction:** Parses web pages directly using cheerio
+  - **Intelligent Content Detection:** Removes navigation, extracts main content
+  - **Recursive Crawling:** Follows internal links to discover entire document sections
+  - **Unified Processing:** Both PDFs and HTML use same AI parsing pipeline
+  - **Advanced Options UI:** Toggle switches for parseHTML and recursive modes
+  - **URL Queue System:** Manages recursive discovery with Set-based dedup
+  - **Example:** Paste Document Center homepage → parses page + all linked PDFs recursively
 
 - **2025-10-24:** **AUTOMATED DOCUMENT INGESTION** - Added link-based crawling for batch document processing:
   - **Link Ingestion API:** `/api/parse-link` endpoint crawls any URL for PDFs
