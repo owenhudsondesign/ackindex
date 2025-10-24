@@ -61,18 +61,36 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
     setUploadStatus({ type: null, message: '' });
 
     try {
+      console.log('Starting upload process...', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        title,
+        category,
+        source
+      });
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', title);
       formData.append('category', category);
       formData.append('source', source);
 
+      console.log('FormData created, sending request to /api/upload...');
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       const result = await response.json();
+      console.log('Response data:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Upload failed');
@@ -96,6 +114,7 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
       // Notify parent component
       onUploadSuccess();
     } catch (error: any) {
+      console.error('Upload error:', error);
       setUploadStatus({
         type: 'error',
         message: error.message || 'Upload failed. Please try again.',
