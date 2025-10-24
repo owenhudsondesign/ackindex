@@ -12,9 +12,12 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<Category | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { entries, isLoading } = useFetchEntries(
+  const { entries, isLoading, isError } = useFetchEntries(
     activeCategory !== 'All' ? activeCategory : undefined
   );
+
+  // Debug logging
+  console.log('Home component render:', { entries, isLoading, isError });
 
   // Filter entries by search query
   const filteredEntries = entries?.filter((entry) => {
@@ -69,7 +72,11 @@ export default function Home() {
       )}
 
       {/* Feed Grid */}
-      <FeedGrid entries={filteredEntries || []} isLoading={isLoading} />
+      <FeedGrid 
+        entries={filteredEntries || []} 
+        isLoading={isLoading} 
+        isError={isError}
+      />
     </div>
   );
 }
