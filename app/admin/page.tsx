@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useFetchEntries } from '@/hooks/useEntries';
 import UploadForm from '@/components/UploadForm';
+import LinkIngestionForm from '@/components/LinkIngestionForm';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -138,48 +139,80 @@ export default function AdminPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Upload Form */}
-        <div>
-          <UploadForm onUploadSuccess={refresh} />
+      {/* Upload Methods */}
+      <div className="mb-8">
+        <div className="bg-gradient-to-r from-ack-blue/10 to-ack-sand/10 rounded-2xl p-6 border-2 border-ack-blue/20 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Two Ways to Add Documents</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🔗</span>
+              <div>
+                <p className="font-semibold">Automated Link Crawling (Recommended)</p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Paste any Nantucket gov page URL. System automatically finds and processes all PDFs.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">📤</span>
+              <div>
+                <p className="font-semibold">Manual PDF Upload</p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Upload a single PDF file at a time for precise control.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Recent Uploads */}
-        <div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200"
-          >
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Uploads</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Link Ingestion Form */}
+          <div>
+            <LinkIngestionForm onIngestionSuccess={refresh} />
+          </div>
 
-            {entries && entries.length > 0 ? (
-              <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {entries.slice(0, 10).map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="p-4 border border-gray-200 rounded-xl hover:border-ack-blue transition-colors"
-                  >
-                    <h3 className="font-semibold text-gray-900 mb-1">{entry.title}</h3>
-                    <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-                      <span className="px-2 py-1 bg-gray-100 rounded-md">{entry.category}</span>
-                      <span>•</span>
-                      <span>{entry.source}</span>
-                    </div>
-                    <p className="text-xs text-gray-500">{formatDate(entry.created_at)}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-4">📄</div>
-                <p className="text-gray-600">No documents uploaded yet</p>
-              </div>
-            )}
-          </motion.div>
+          {/* Manual Upload Form */}
+          <div>
+            <UploadForm onUploadSuccess={refresh} />
+          </div>
         </div>
       </div>
+
+      {/* Recent Uploads */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200"
+      >
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Documents</h2>
+
+        {entries && entries.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {entries.slice(0, 12).map((entry) => (
+              <div
+                key={entry.id}
+                className="p-4 border border-gray-200 rounded-xl hover:border-ack-blue transition-colors"
+              >
+                <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{entry.title}</h3>
+                <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                  <span className="px-2 py-1 bg-gray-100 rounded-md">{entry.category}</span>
+                </div>
+                <p className="text-xs text-gray-600 mb-1">{entry.source}</p>
+                <p className="text-xs text-gray-500">{formatDate(entry.created_at)}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">📄</div>
+            <p className="text-gray-600">No documents uploaded yet</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Use either method above to add your first document
+            </p>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

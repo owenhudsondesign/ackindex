@@ -72,7 +72,8 @@ Citizens ask questions like "Why did my taxes go up?" and get instant answers wi
 
 ### Key Files
 
-- **`app/api/upload/route.ts`** - Handles PDF upload, text extraction, AI parsing, storage
+- **`app/api/upload/route.ts`** - Handles manual PDF upload, text extraction, AI parsing, storage
+- **`app/api/parse-link/route.ts`** - **NEW:** Automated URL crawling - discovers and processes PDFs from any webpage
 - **`app/api/dashboard/route.ts`** - Aggregates data from all documents for dashboard view
 - **`app/api/chat/route.ts`** - Multi-turn conversational Q&A with message history
 - **`lib/ai-parser.ts`** - AI parsing logic with structured prompts for civic data
@@ -96,7 +97,8 @@ Citizens ask questions like "Why did my taxes go up?" and get instant answers wi
 - **`MetricChip.tsx`** - Displays metrics with trend indicators
 
 **Admin Components:**
-- **`UploadForm.tsx`** - Admin PDF upload form with validation
+- **`UploadForm.tsx`** - Manual PDF upload form with validation
+- **`LinkIngestionForm.tsx`** - **NEW:** Automated URL crawling interface for batch document processing
 
 ### AI Parsing Schema
 
@@ -159,6 +161,38 @@ The AI parser is instructed to:
 - Provide plain English explanations for citizens
 
 ## Important Implementation Details
+
+### Link-Based Document Ingestion (Automated Crawling)
+
+AckIndex now supports **automated document discovery** - admins can paste any Nantucket government URL and the system will:
+
+1. **Crawl the page** using Cheerio HTML parser
+2. **Find all PDF links** on the page (same-domain only for security)
+3. **Download each PDF** and extract text
+4. **Parse with AI** to generate summaries, insights, and structured data
+5. **Deduplicate** based on URL and title to avoid processing the same document twice
+6. **Store in database** with all metadata
+
+**Key Features:**
+- **Batch processing:** Process multiple PDFs from a single URL submission
+- **Automatic deduplication:** Skips documents already in database
+- **Progress tracking:** Real-time feedback on crawl progress
+- **Error handling:** Continues processing even if individual PDFs fail
+- **Same-domain restriction:** Only follows links from nantucket-ma.gov for security
+
+**Technical Details:**
+- Uses `cheerio` for HTML parsing (server-side jQuery-like API)
+- Converts relative PDF URLs to absolute URLs automatically
+- Downloads PDFs to memory (no disk storage) for parsing
+- Extracts document titles from URLs as fallback
+- Maximum duration: 5 minutes (configurable via `maxDuration`)
+
+**Example URLs:**
+- `https://nantucket-ma.gov/AgendaCenter/Select-Board-3` - Agenda center pages
+- `https://nantucket-ma.gov/DocumentCenter` - Document center
+- Any page with embedded PDF links
+
+Located in `app/api/parse-link/route.ts:1-252` and `components/LinkIngestionForm.tsx:1-245`
 
 ### PDF Text Extraction
 - Uses `unpdf` - a modern, serverless-friendly PDF text extraction library
@@ -247,6 +281,15 @@ Deploy to Vercel:
 Ensure environment variables match production Supabase project and API keys.
 
 ## Recent Changes
+
+- **2025-10-24:** **AUTOMATED DOCUMENT INGESTION** - Added link-based crawling for batch document processing:
+  - **Link Ingestion API:** `/api/parse-link` endpoint crawls any URL for PDFs
+  - **Automated Discovery:** Finds and downloads all PDF links from government webpages
+  - **Batch Processing:** Process multiple PDFs from a single URL submission
+  - **Smart Deduplication:** Automatically skips documents already in database
+  - **LinkIngestionForm Component:** User-friendly admin interface with progress tracking
+  - **Error Resilience:** Continues processing even if individual PDFs fail
+  - Transforms AckIndex from manual upload tool to **self-updating civic knowledge base**
 
 - **2025-10-24:** **MAJOR ARCHITECTURAL TRANSFORMATION** - Converted from document browser to civic intelligence dashboard:
   - **New Homepage:** Completely rewritten to prioritize Q&A over document browsing

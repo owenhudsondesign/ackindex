@@ -1,0 +1,278 @@
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Category } from '@/types';
+
+interface LinkIngestionFormProps {
+  onIngestionSuccess?: () => void;
+}
+
+interface ParseResult {
+  title: string;
+  url: string;
+  status: 'success' | 'error' | 'duplicate';
+  message?: string;
+}
+
+export default function LinkIngestionForm({ onIngestionSuccess }: LinkIngestionFormProps) {
+  const [url, setUrl] = useState('');
+  const [category, setCategory] = useState<Category>('General');
+  const [source, setSource] = useState('Town of Nantucket');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState('');
+  const [results, setResults] = useState<ParseResult[] | null>(null);
+  const [error, setError] = useState('');
+
+  const categories: Category[] = [
+    'Budget',
+    'Real Estate',
+    'Town Meeting',
+    'Infrastructure',
+    'General',
+  ];
+
+  const exampleUrls = [
+    'https://nantucket-ma.gov/AgendaCenter/Select-Board-3',
+    'https://nantucket-ma.gov/DocumentCenter',
+    'https://nantucket-ma.gov/Archive.aspx?AMID=41',
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setResults(null);
+    setIsProcessing(true);
+    setProgress('Starting crawl...');
+
+    try {
+      // Validate URL
+      new URL(url);
+
+      setProgress('Fetching page and searching for PDFs...');
+
+      const response = await fetch('/api/parse-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          category,
+          source,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to process link');
+      }
+
+      const data = await response.json();
+
+      setResults(data.results || []);
+      setProgress(`Complete! ${data.successCount} new documents added, ${data.duplicateCount} duplicates skipped, ${data.errorCount} errors.`);
+
+      if (data.successCount > 0 && onIngestionSuccess) {
+        onIngestionSuccess();
+      }
+
+      // Reset form on success
+      if (data.successCount > 0) {
+        setUrl('');
+      }
+
+    } catch (err: any) {
+      console.error('Link ingestion error:', err);
+      setError(err.message || 'Failed to process link');
+      setProgress('');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200"
+    >
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">🔗 Link-Based Ingestion</h2>
+        <p className="text-gray-600 text-sm">
+          Paste a URL to automatically discover and parse PDFs from any Nantucket government webpage
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* URL Input */}
+        <div>
+          <label htmlFor="url" className="block text-sm font-semibold text-gray-700 mb-2">
+            Page URL *
+          </label>
+          <input
+            type="url"
+            id="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-ack-blue focus:border-transparent"
+            placeholder="https://nantucket-ma.gov/..."
+            required
+            disabled={isProcessing}
+          />
+          <div className="mt-2">
+            <p className="text-xs text-gray-600 mb-1">Try these examples:</p>
+            {exampleUrls.map((exampleUrl, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setUrl(exampleUrl)}
+                className="text-xs text-ack-blue hover:text-ack-blue/80 mr-3 hover:underline"
+                disabled={isProcessing}
+              >
+                {exampleUrl.split('/').slice(-1)[0] || 'Document Center'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Category Select */}
+        <div>
+          <label htmlFor="category" className="block text-sm font-semibold text-gray-700 mb-2">
+            Category *
+          </label>
+          <select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as Category)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-ack-blue focus:border-transparent"
+            required
+            disabled={isProcessing}
+          >
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Source Input */}
+        <div>
+          <label htmlFor="source" className="block text-sm font-semibold text-gray-700 mb-2">
+            Source *
+          </label>
+          <input
+            type="text"
+            id="source"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-ack-blue focus:border-transparent"
+            placeholder="e.g., Town Finance Department"
+            required
+            disabled={isProcessing}
+          />
+        </div>
+
+        {/* Progress Message */}
+        {progress && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className={`p-4 rounded-xl border ${
+              isProcessing
+                ? 'bg-blue-50 border-blue-200'
+                : results && results.some(r => r.status === 'success')
+                ? 'bg-green-50 border-green-200'
+                : 'bg-yellow-50 border-yellow-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {isProcessing && (
+                <div className="w-5 h-5 border-2 border-ack-blue border-t-transparent rounded-full animate-spin"></div>
+              )}
+              <p className={`text-sm font-medium ${
+                isProcessing
+                  ? 'text-blue-800'
+                  : results && results.some(r => r.status === 'success')
+                  ? 'text-green-800'
+                  : 'text-yellow-800'
+              }`}>
+                {progress}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="p-4 rounded-xl bg-red-50 border border-red-200"
+          >
+            <p className="text-sm font-medium text-red-800">{error}</p>
+          </motion.div>
+        )}
+
+        {/* Results List */}
+        {results && results.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="border border-gray-200 rounded-xl p-4 max-h-64 overflow-y-auto"
+          >
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Processing Results:</h3>
+            <div className="space-y-2">
+              {results.map((result, idx) => (
+                <div
+                  key={idx}
+                  className={`p-3 rounded-lg text-sm ${
+                    result.status === 'success'
+                      ? 'bg-green-50 border border-green-200'
+                      : result.status === 'duplicate'
+                      ? 'bg-yellow-50 border border-yellow-200'
+                      : 'bg-red-50 border border-red-200'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg">
+                      {result.status === 'success' ? '✅' : result.status === 'duplicate' ? '⚠️' : '❌'}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{result.title}</p>
+                      {result.message && (
+                        <p className="text-xs text-gray-600 mt-1">{result.message}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isProcessing || !url}
+          className="w-full py-3 px-6 rounded-xl font-semibold text-white bg-ack-blue hover:bg-ack-blue/90 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200"
+        >
+          {isProcessing ? 'Processing...' : 'Start Crawl & Parse'}
+        </button>
+      </form>
+
+      {/* Info Box */}
+      <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+        <h4 className="text-sm font-semibold text-blue-900 mb-2">How it works:</h4>
+        <ul className="text-xs text-blue-800 space-y-1">
+          <li>• Crawls the provided URL for PDF links</li>
+          <li>• Downloads and extracts text from each PDF</li>
+          <li>• Uses AI to summarize and extract key insights</li>
+          <li>• Automatically skips duplicates</li>
+          <li>• Can take 1-5 minutes depending on page size</li>
+        </ul>
+      </div>
+    </motion.div>
+  );
+}
