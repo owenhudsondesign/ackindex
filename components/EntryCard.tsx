@@ -125,6 +125,23 @@ export default function EntryCard({ entry, index }: EntryCardProps) {
           </div>
         )}
 
+        {/* What This Means - Most Important Section! */}
+        {entry.plain_english_summary && entry.plain_english_summary.length > 0 && (
+          <div className="mb-6 p-6 bg-gradient-to-br from-ack-blue/5 to-ack-sand/5 rounded-xl border-2 border-ack-blue/20">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <span className="text-2xl">💡</span> What This Means For You
+            </h3>
+            <div className="space-y-2">
+              {entry.plain_english_summary.map((point, idx) => (
+                <p key={idx} className="flex items-start gap-2 text-gray-700">
+                  <span className="text-ack-blue font-bold mt-0.5">•</span>
+                  <span className="flex-1">{point}</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Notable Updates */}
         {entry.notable_updates && entry.notable_updates.length > 0 && (
           <div className="mb-4">

@@ -66,7 +66,14 @@ Return this JSON structure:
     "string — brief notable changes, decisions, or project statuses"
   ],
   "date_published": "string — if found, in YYYY-MM-DD format, else null",
-  "document_excerpt": "string — short quoted excerpt or section title (optional)"
+  "document_excerpt": "string — short quoted excerpt or section title (optional)",
+
+  "plain_english_summary": [
+    "string — Plain English bullet points explaining what this means for citizens",
+    "Example: 'Your property taxes will likely increase 3.5% next year'",
+    "Example: 'Healthcare costs are the main driver - up 59% in 5 years'",
+    "Example: 'Good news: Debt payments going down, freeing up $1.5M'"
+  ]
 }
 
 EXAMPLES OF GOOD INSIGHTS:

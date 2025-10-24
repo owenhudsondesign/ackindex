@@ -7,6 +7,7 @@ import { Category } from '@/types';
 import CategoryTabs from '@/components/CategoryTabs';
 import SearchBar from '@/components/SearchBar';
 import FeedGrid from '@/components/FeedGrid';
+import QuestionBox from '@/components/QuestionBox';
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<Category | 'All'>('All');
@@ -33,20 +34,29 @@ export default function Home() {
 
   return (
     <div className="container-custom py-12">
-      {/* Hero Section */}
+      {/* Hero Section - Simplified */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-12"
+        className="text-center mb-8"
       >
-        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          Nantucket&apos;s Window Into Itself
+        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
+          Understand Your Town Government
         </h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Stay informed with clear, data-driven summaries of town budgets, real estate updates,
-          infrastructure projects, and civic decisions.
+          Ask questions. Get answers. Make sense of Nantucket's civic data.
         </p>
       </motion.div>
+
+      {/* Q&A Feature - Most Prominent */}
+      <QuestionBox />
+
+      {/* Divider */}
+      <div className="flex items-center gap-4 my-12">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+        <span className="text-sm text-gray-500 font-medium">Or browse recent updates</span>
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+      </div>
 
       {/* Search Bar */}
       <SearchBar onSearch={setSearchQuery} />
@@ -72,9 +82,9 @@ export default function Home() {
       )}
 
       {/* Feed Grid */}
-      <FeedGrid 
-        entries={Array.isArray(filteredEntries) ? filteredEntries : []} 
-        isLoading={isLoading} 
+      <FeedGrid
+        entries={Array.isArray(filteredEntries) ? filteredEntries : []}
+        isLoading={isLoading}
         isError={isError}
       />
     </div>

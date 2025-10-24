@@ -51,6 +51,7 @@ export interface CivicEntry {
   insights?: Insight[];
   comparisons?: Comparison[];
   notable_updates?: string[];
+  plain_english_summary?: string[];
   date_published?: string;
   document_excerpt?: string;
   created_at: string;
@@ -74,6 +75,7 @@ export interface ParsedCivicData {
   insights?: Insight[];
   comparisons?: Comparison[];
   notable_updates?: string[];
+  plain_english_summary?: string[];
   date_published?: string;
   document_excerpt?: string;
 }

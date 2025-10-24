@@ -13,6 +13,7 @@ create table if not exists public.entries (
   insights jsonb default '[]'::jsonb,
   comparisons jsonb default '[]'::jsonb,
   notable_updates jsonb default '[]'::jsonb,
+  plain_english_summary jsonb default '[]'::jsonb,
   date_published date,
   document_excerpt text,
   file_path text,
