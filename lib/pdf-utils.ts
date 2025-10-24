@@ -1,28 +1,34 @@
 export async function extractTextFromPDF(file: Buffer): Promise<string> {
   try {
-    // Use pdfjs-dist for better compatibility
-    const pdfjsLib = await import('pdfjs-dist');
-    
+    // Use pdfjs-dist legacy build for Node.js/serverless environments
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+
+    console.log('Starting PDF text extraction...');
+
     // Load the PDF document
     const loadingTask = pdfjsLib.getDocument({
-      data: file,
+      data: new Uint8Array(file),
       useSystemFonts: true,
+      standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/standard_fonts/',
     });
-    
-    const pdf = await loadingTask.promise;
-    let fullText = '';
-    
+
+    const pdfDocument = await loadingTask.promise;
+    const numPages = pdfDocument.numPages;
+    console.log(`PDF loaded with ${numPages} pages`);
+
     // Extract text from all pages
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
+    let fullText = '';
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await pdfDocument.getPage(pageNum);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
         .map((item: any) => item.str)
         .join(' ');
       fullText += pageText + '\n';
     }
-    
-    return fullText.trim();
+
+    console.log('PDF extraction successful, text length:', fullText.length);
+    return fullText;
   } catch (error) {
     console.error('PDF parsing error:', error);
     throw new Error('Failed to extract text from PDF');
