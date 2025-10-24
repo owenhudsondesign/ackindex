@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { extractTextFromPDF, sanitizeFileName, validateFileSize, validateFileType } from '@/lib/pdf-utils';
-import { parseDocumentWithClaude } from '@/lib/ai-parser';
+import { parseDocumentWithClaude, parseDocumentWithOpenAI } from '@/lib/ai-parser';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,6 +9,15 @@ export const maxDuration = 60; // Max 60 seconds for parsing
 
 export async function POST(request: NextRequest) {
   try {
+    // Debug environment variables
+    console.log('Upload API - Environment check:', {
+      hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
+      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+
     const formData = await request.formData();
     
     const file = formData.get('file') as File;
@@ -53,11 +62,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse with AI
-    const parsedData = await parseDocumentWithClaude(extractedText, {
-      title,
-      category,
-      source,
-    });
+    console.log('Starting AI parsing...');
+    let parsedData;
+    try {
+      parsedData = await parseDocumentWithClaude(extractedText, {
+        title,
+        category,
+        source,
+      });
+      console.log('AI parsing successful');
+    } catch (aiError: any) {
+      console.error('AI parsing failed:', aiError);
+      // Fallback to OpenAI if Claude fails
+      try {
+        console.log('Trying OpenAI fallback...');
+        parsedData = await parseDocumentWithOpenAI(extractedText, {
+          title,
+          category,
+          source,
+        });
+        console.log('OpenAI parsing successful');
+      } catch (openaiError: any) {
+        console.error('OpenAI parsing also failed:', openaiError);
+        throw new Error(`AI parsing failed: ${aiError.message}`);
+      }
+    }
 
     // Upload PDF to Supabase Storage
     const supabase = getServiceSupabase();
