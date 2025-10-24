@@ -1,92 +1,201 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useFetchEntries } from '@/hooks/useEntries';
-import { Category } from '@/types';
-import CategoryTabs from '@/components/CategoryTabs';
-import SearchBar from '@/components/SearchBar';
-import FeedGrid from '@/components/FeedGrid';
-import QuestionBox from '@/components/QuestionBox';
+import ChatBot from '@/components/ChatBot';
+import KeyMetricsDashboard from '@/components/KeyMetricsDashboard';
+import TopInsights from '@/components/TopInsights';
+import TrendCharts from '@/components/TrendCharts';
+import { Insight, Visualization } from '@/types';
+
+interface AggregatedMetric {
+  label: string;
+  value: string;
+  trend?: 'up' | 'down' | 'stable';
+  change_pct?: number;
+  category: string;
+}
+
+interface DashboardData {
+  metrics: AggregatedMetric[];
+  insights: Insight[];
+  visualizations: Visualization[];
+  totalDocuments: number;
+  lastUpdated: string;
+}
 
 export default function Home() {
-  const [activeCategory, setActiveCategory] = useState<Category | 'All'>('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const { entries, isLoading, isError } = useFetchEntries(
-    activeCategory !== 'All' ? activeCategory : undefined
-  );
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/dashboard');
 
-  // Debug logging
-  console.log('Home component render:', { entries, isLoading, isError });
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
 
-  // Filter entries by search query
-  const filteredEntries = Array.isArray(entries) ? entries.filter((entry) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      entry.title.toLowerCase().includes(query) ||
-      entry.summary.toLowerCase().includes(query) ||
-      entry.source.toLowerCase().includes(query) ||
-      entry.category.toLowerCase().includes(query)
-    );
-  }) : [];
+        const data = await response.json();
+        setDashboardData(data);
+      } catch (err: any) {
+        console.error('Dashboard fetch error:', err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
 
   return (
     <div className="container-custom py-12">
-      {/* Hero Section - Simplified */}
+      {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
+        className="text-center mb-12"
       >
-        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
-          Understand Your Town Government
-        </h2>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Ask questions. Get answers. Make sense of Nantucket's civic data.
+        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
+          AckIndex
+        </h1>
+        <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-2">
+          Your civic intelligence dashboard for Nantucket
         </p>
+        {dashboardData && (
+          <p className="text-sm text-gray-500">
+            {dashboardData.totalDocuments} documents analyzed • Last updated {formatDate(dashboardData.lastUpdated)}
+          </p>
+        )}
       </motion.div>
 
-      {/* Q&A Feature - Most Prominent */}
-      <QuestionBox />
+      {/* ChatBot - The Centerpiece */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+        className="mb-16"
+      >
+        <ChatBot />
+      </motion.div>
 
-      {/* Divider */}
-      <div className="flex items-center gap-4 my-12">
-        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-        <span className="text-sm text-gray-500 font-medium">Or browse recent updates</span>
-        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-      </div>
-
-      {/* Search Bar */}
-      <SearchBar onSearch={setSearchQuery} />
-
-      {/* Category Filters */}
-      <CategoryTabs
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-      />
-
-      {/* Results Count */}
-      {!isLoading && filteredEntries && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mb-6"
-        >
-          <p className="text-sm text-gray-600">
-            {filteredEntries.length} {filteredEntries.length === 1 ? 'update' : 'updates'}{' '}
-            {searchQuery && `matching "${searchQuery}"`}
-          </p>
-        </motion.div>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-ack-blue"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard data...</p>
+        </div>
       )}
 
-      {/* Feed Grid */}
-      <FeedGrid
-        entries={Array.isArray(filteredEntries) ? filteredEntries : []}
-        isLoading={isLoading}
-        isError={isError}
-      />
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+          <p className="text-red-800">
+            Failed to load dashboard data: {error}
+          </p>
+        </div>
+      )}
+
+      {/* Dashboard Content */}
+      {!isLoading && !error && dashboardData && (
+        <>
+          {/* Key Metrics Dashboard */}
+          {dashboardData.metrics && dashboardData.metrics.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mb-16"
+            >
+              <KeyMetricsDashboard metrics={dashboardData.metrics} />
+            </motion.div>
+          )}
+
+          {/* Top Insights */}
+          {dashboardData.insights && dashboardData.insights.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-16"
+            >
+              <TopInsights insights={dashboardData.insights} />
+            </motion.div>
+          )}
+
+          {/* Trend Charts */}
+          {dashboardData.visualizations && dashboardData.visualizations.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mb-16"
+            >
+              <TrendCharts visualizations={dashboardData.visualizations} />
+            </motion.div>
+          )}
+
+          {/* Empty State */}
+          {dashboardData.totalDocuments === 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-16 bg-white rounded-2xl shadow-md border border-gray-200"
+            >
+              <div className="text-6xl mb-4">📄</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                No Documents Yet
+              </h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                Upload your first civic document to start building your intelligence dashboard.
+              </p>
+              <a
+                href="/upload"
+                className="inline-block bg-ack-blue text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-600 transition-colors"
+              >
+                Upload Document
+              </a>
+            </motion.div>
+          )}
+        </>
+      )}
+
+      {/* Data Transparency Footer */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="mt-16 p-6 bg-gray-50 rounded-xl border border-gray-200"
+      >
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">
+          About This Data
+        </h3>
+        <p className="text-xs text-gray-600 leading-relaxed">
+          AckIndex uses AI to analyze civic documents from Nantucket town government.
+          All data is extracted from official public records. Insights are generated to help
+          citizens understand complex civic information. Always verify important details with
+          official sources.
+        </p>
+        {dashboardData && dashboardData.totalDocuments > 0 && (
+          <p className="text-xs text-gray-500 mt-2">
+            Currently tracking {dashboardData.totalDocuments} document{dashboardData.totalDocuments !== 1 ? 's' : ''} across
+            budgets, real estate, town meetings, infrastructure, and general civic matters.
+          </p>
+        )}
+      </motion.div>
     </div>
   );
 }

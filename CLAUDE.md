@@ -52,23 +52,50 @@ Run `supabase-setup.sql` in Supabase SQL Editor to create:
 ### Core Data Flow
 
 1. **Admin uploads PDF** → `/admin` page
-2. **PDF text extraction** → `lib/pdf-utils.ts` using pdf-parse
+2. **PDF text extraction** → `lib/pdf-utils.ts` using unpdf
 3. **AI parsing** → `lib/ai-parser.ts` (Claude primary, OpenAI fallback)
 4. **Storage** → Supabase Storage (PDF) + PostgreSQL (structured data)
-5. **Display** → Public dashboard at `/` fetches via `/api/entries`
+5. **Dashboard aggregation** → `/api/dashboard` aggregates all document data
+6. **Conversational Q&A** → `/api/chat` provides multi-turn AI conversations
+7. **Display** → Public dashboard at `/` shows ChatBot + aggregated insights
+
+### Dashboard Architecture (Q&A-First Approach)
+
+AckIndex is a **civic intelligence dashboard**, not a document browser. The homepage prioritizes:
+
+1. **ChatBot (Centerpiece)** - Multi-turn conversational AI for citizen questions
+2. **Key Metrics Dashboard** - Aggregated metrics from all documents
+3. **Top Insights** - Most important 3 insights (ranked by impact)
+4. **Trend Charts** - Visual patterns over time
+
+Citizens ask questions like "Why did my taxes go up?" and get instant answers with sources.
 
 ### Key Files
 
 - **`app/api/upload/route.ts`** - Handles PDF upload, text extraction, AI parsing, storage
+- **`app/api/dashboard/route.ts`** - Aggregates data from all documents for dashboard view
+- **`app/api/chat/route.ts`** - Multi-turn conversational Q&A with message history
 - **`lib/ai-parser.ts`** - AI parsing logic with structured prompts for civic data
-- **`lib/pdf-utils.ts`** - PDF text extraction using pdf-parse
+- **`lib/pdf-utils.ts`** - PDF text extraction using unpdf
 - **`lib/supabase.ts`** - Supabase client initialization (client + service role)
-- **`types/index.ts`** - TypeScript types for CivicEntry, ParsedCivicData, etc.
+- **`types/index.ts`** - TypeScript types for CivicEntry, ParsedCivicData, Insight, etc.
 
 ### Components
 
-- **`EntryCard.tsx`** - Main card component displaying civic entries
+**Dashboard Components:**
+- **`ChatBot.tsx`** - Multi-turn conversational Q&A interface (centerpiece)
+- **`KeyMetricsDashboard.tsx`** - Grid of aggregated metrics from all documents
+- **`TopInsights.tsx`** - Top 3 most important insights with visual hierarchy
+- **`TrendCharts.tsx`** - Line/bar charts showing patterns over time
+
+**Data Display Components:**
+- **`EntryCard.tsx`** - Card component for individual civic entries
 - **`ChartBlock.tsx`** - Renders Recharts visualizations from parsed data
+- **`InsightCard.tsx`** - Displays AI-generated insights (concern/success/neutral)
+- **`ComparisonCard.tsx`** - Side-by-side data comparisons
+- **`MetricChip.tsx`** - Displays metrics with trend indicators
+
+**Admin Components:**
 - **`UploadForm.tsx`** - Admin PDF upload form with validation
 
 ### AI Parsing Schema
@@ -80,20 +107,56 @@ The AI parsers (`parseDocumentWithClaude` / `parseDocumentWithOpenAI`) extract s
   title: string;              // Document headline
   source: string;             // Issuing department
   category: Category;         // Budget | Real Estate | Town Meeting | Infrastructure | General
-  summary: string;            // 2-paragraph summary (400 words max)
-  key_metrics: [              // Important numbers
-    { label: string, value: string }
+  summary: string;            // 2-paragraph summary (400 words max) with key insights
+  key_metrics: [              // Important numbers with trends
+    {
+      label: string,
+      value: string,
+      trend?: 'up' | 'down' | 'stable',
+      change_pct?: number
+    }
   ],
-  visualizations: [           // Chart data
-    { type: 'bar' | 'line' | 'pie' | 'donut' | 'timeline' | 'table',
+  visualizations: [           // Chart data with insights
+    {
+      type: 'bar' | 'line' | 'pie' | 'donut' | 'timeline' | 'table',
+      title?: string,
       labels: string[],
-      values: number[] }
+      values: number[],
+      insight?: string,
+      highlight_index?: number
+    }
   ],
-  notable_updates: string[];  // Key highlights
-  date_published: string;     // YYYY-MM-DD format
-  document_excerpt: string;   // Optional excerpt
+  insights: [                 // AI-generated insights (NEW)
+    {
+      type: 'concern' | 'success' | 'neutral',
+      title: string,
+      description: string,
+      impact: 'high' | 'medium' | 'low'
+    }
+  ],
+  comparisons: [              // Side-by-side comparisons (NEW)
+    {
+      title: string,
+      category_a: string,
+      value_a: string,
+      category_b: string,
+      value_b: string,
+      winner: string
+    }
+  ],
+  plain_english_summary: string[];  // Plain English bullet points (NEW)
+  notable_updates: string[];        // Key highlights
+  date_published: string;           // YYYY-MM-DD format
+  document_excerpt: string;         // Optional excerpt
 }
 ```
+
+The AI parser is instructed to:
+- Identify trends and calculate year-over-year changes
+- Flag concerns (expenses growing >10%, budget issues)
+- Find insights and calculate ratios
+- Compare categories (which growing fastest/slowest)
+- Provide plain English explanations for citizens
 
 ## Important Implementation Details
 
@@ -185,13 +248,25 @@ Ensure environment variables match production Supabase project and API keys.
 
 ## Recent Changes
 
-- **2025-10-24:** Enhanced dashboard with civic intelligence features:
-  - AI parsing now extracts insights, comparisons, and trends
+- **2025-10-24:** **MAJOR ARCHITECTURAL TRANSFORMATION** - Converted from document browser to civic intelligence dashboard:
+  - **New Homepage:** Completely rewritten to prioritize Q&A over document browsing
+  - **ChatBot Component:** Multi-turn conversational AI interface as centerpiece (components/ChatBot.tsx:1-156)
+  - **KeyMetricsDashboard:** Aggregated metrics from all documents (components/KeyMetricsDashboard.tsx:1-87)
+  - **TopInsights:** Top 3 most important insights ranked by impact (components/TopInsights.tsx:1-118)
+  - **TrendCharts:** Visual patterns over time using Recharts (components/TrendCharts.tsx:1-125)
+  - **API Endpoints:**
+    - `/api/dashboard` - Aggregates data from all documents for dashboard view
+    - `/api/chat` - Multi-turn conversational Q&A with message history
+  - **Philosophy:** Citizens don't need another PDF viewer - they need answers to real questions like "Why did my taxes go up?"
+
+- **2025-10-24:** Enhanced AI parsing with civic intelligence features:
+  - AI parsing now extracts insights, comparisons, trends, and plain English summaries
   - Added InsightCard component (concern/success/neutral alerts)
   - Added ComparisonCard component (side-by-side data comparisons)
   - Enhanced MetricChip with trend indicators (↑↓→) and percentage changes
   - Enhanced ChartBlock with titles, insights, and highlighting
-  - Updated database schema with insights and comparisons columns
+  - Updated database schema with insights, comparisons, and plain_english_summary columns
+
 - **2025-10-24:** Fixed Buffer to Uint8Array conversion for `unpdf` library
 - **2025-10-24:** Removed test/debug API routes from production build
 - **2025-10-24:** Fixed Vercel serverless PDF parsing by switching to `unpdf` library (pure JavaScript, no native dependencies)
