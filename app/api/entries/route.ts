@@ -11,7 +11,32 @@ export async function GET(request: NextRequest) {
     console.log('Environment check:', {
       hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 20) + '...',
     });
+
+    // Test Supabase connection first
+    try {
+      const { data: testData, error: testError } = await supabase
+        .from('entries')
+        .select('count')
+        .limit(1);
+      
+      console.log('Supabase connection test:', { testData, testError });
+      
+      if (testError) {
+        console.error('Supabase connection failed:', testError);
+        return NextResponse.json(
+          { error: 'Database connection failed', details: testError.message },
+          { status: 500 }
+        );
+      }
+    } catch (connectionError: any) {
+      console.error('Supabase initialization error:', connectionError);
+      return NextResponse.json(
+        { error: 'Failed to initialize database connection', details: connectionError.message },
+        { status: 500 }
+      );
+    }
 
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category') as Category | null;
