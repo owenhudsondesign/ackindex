@@ -163,8 +163,9 @@ Edit parsing instructions in `lib/ai-parser.ts:9-34` and update TypeScript types
 ### Debugging upload failures
 1. Check browser console for client-side errors
 2. Check server logs for API errors (shows env var status, AI parsing logs)
-3. Verify Supabase connection: use `/api/test-supabase` endpoint
-4. Test simple upload: use `/api/test-upload` endpoint
+3. Check Vercel function logs in Vercel dashboard
+4. Verify environment variables are set correctly in Vercel project settings
+5. Test locally with `npm run dev` before deploying
 
 ## Testing
 
@@ -184,10 +185,11 @@ Ensure environment variables match production Supabase project and API keys.
 
 ## Recent Changes
 
+- **2025-10-24:** Fixed Buffer to Uint8Array conversion for `unpdf` library
+- **2025-10-24:** Removed test/debug API routes from production build
 - **2025-10-24:** Fixed Vercel serverless PDF parsing by switching to `unpdf` library (pure JavaScript, no native dependencies)
 - **2025-10-24:** Removed `pdf-parse`, `pdfjs-dist`, and `canvas` packages that don't work in serverless environments
 - **2025-10-23:** Added comprehensive debugging to upload API
-- **2025-10-23:** Added test endpoints for upload and Supabase connection
 
 ## Documentation
 
