@@ -101,9 +101,10 @@ The AI parsers (`parseDocumentWithClaude` / `parseDocumentWithOpenAI`) extract s
 - Uses `unpdf` - a modern, serverless-friendly PDF text extraction library
 - Pure JavaScript implementation with no native dependencies
 - Import: `const { extractText } = await import('unpdf');`
+- **Important:** Requires `Uint8Array` input, so convert Buffer: `new Uint8Array(buffer)`
 - Returns an array of strings (one per page) which we join together
 - Works perfectly in Vercel serverless environment (no canvas/DOM dependencies)
-- Located in `lib/pdf-utils.ts:1-25`
+- Located in `lib/pdf-utils.ts:1-28`
 
 ### AI Parsing Strategy
 - **Primary:** Claude 3.5 Sonnet via Anthropic API

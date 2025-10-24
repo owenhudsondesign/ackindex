@@ -5,8 +5,11 @@ export async function extractTextFromPDF(file: Buffer): Promise<string> {
 
     console.log('Starting PDF text extraction with unpdf...');
 
+    // Convert Buffer to Uint8Array (unpdf requirement)
+    const uint8Array = new Uint8Array(file);
+
     // Extract text from the PDF
-    const { text, totalPages } = await extractText(file);
+    const { text, totalPages } = await extractText(uint8Array);
 
     // unpdf returns an array of strings (one per page), so join them
     const fullText = Array.isArray(text) ? text.join('\n') : text;
