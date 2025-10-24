@@ -18,8 +18,9 @@ export default function AdminPage() {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
+    // Check localStorage for admin authentication
+    const isAdminAuth = localStorage.getItem('admin_authenticated') === 'true';
+    setIsAuthenticated(isAdminAuth);
     setIsLoading(false);
   };
 
@@ -28,26 +29,23 @@ export default function AdminPage() {
     setError('');
 
     try {
-      // For MVP: simple password check
-      // In production, use Supabase Auth properly
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: 'admin@ackindex.com', // Configure this in Supabase
-        password: password,
-      });
-
-      if (error) {
+      // Simple password-based authentication for MVP
+      const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123';
+      
+      if (password === adminPassword) {
+        setIsAuthenticated(true);
+        // Store auth state in localStorage for persistence
+        localStorage.setItem('admin_authenticated', 'true');
+      } else {
         setError('Invalid credentials');
-        return;
       }
-
-      setIsAuthenticated(true);
     } catch (err) {
       setError('Login failed. Please try again.');
     }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('admin_authenticated');
     setIsAuthenticated(false);
   };
 
