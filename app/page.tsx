@@ -20,7 +20,7 @@ export default function Home() {
   console.log('Home component render:', { entries, isLoading, isError });
 
   // Filter entries by search query
-  const filteredEntries = entries?.filter((entry) => {
+  const filteredEntries = Array.isArray(entries) ? entries.filter((entry) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -29,7 +29,7 @@ export default function Home() {
       entry.source.toLowerCase().includes(query) ||
       entry.category.toLowerCase().includes(query)
     );
-  });
+  }) : [];
 
   return (
     <div className="container-custom py-12">
@@ -73,7 +73,7 @@ export default function Home() {
 
       {/* Feed Grid */}
       <FeedGrid 
-        entries={filteredEntries || []} 
+        entries={Array.isArray(filteredEntries) ? filteredEntries : []} 
         isLoading={isLoading} 
         isError={isError}
       />

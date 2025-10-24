@@ -7,6 +7,12 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    // Debug environment variables
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    });
+
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category') as Category | null;
 
@@ -29,6 +35,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log('Successfully fetched entries:', data?.length || 0);
     return NextResponse.json(data || []);
   } catch (error: any) {
     console.error('Fetch error:', error);

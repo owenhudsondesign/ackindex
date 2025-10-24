@@ -1,7 +1,14 @@
 import useSWR from 'swr';
 import { CivicEntry, Category } from '@/types';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to fetch entries');
+  }
+  return res.json();
+};
 
 export function useFetchEntries(category?: Category) {
   const url = category ? `/api/entries?category=${category}` : '/api/entries';
