@@ -122,7 +122,7 @@ function AccountContent() {
   const isPremium = dashboard.subscription_tier === 'premium';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pt-24 pb-12">
       <Container>
         {showSuccess && (
           <div className="mb-6 bg-green-50 border border-green-200 text-green-900 px-6 py-4 rounded-lg">
@@ -186,7 +186,7 @@ function AccountContent() {
                   </h3>
                   <p className="text-gray-700 mb-4">
                     Get unlimited tokens, priority support, and early access to new
-                    features for just $19.99/month.
+                    features for just $9.99/month.
                   </p>
                   <Link href="/pricing">
                     <Button>Upgrade Now</Button>
