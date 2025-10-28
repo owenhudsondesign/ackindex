@@ -156,7 +156,7 @@ function AccountContent() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Subscription Card */}
-            <Card>
+            <Card className="p-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-1">
@@ -213,7 +213,7 @@ function AccountContent() {
             </Card>
 
             {/* Usage Card */}
-            <Card>
+            <Card className="p-8">
               <h2 className="text-xl font-bold text-gray-900 mb-6">
                 Usage This Month
               </h2>
@@ -296,7 +296,7 @@ function AccountContent() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Account Info */}
-            <Card>
+            <Card className="p-8">
               <h2 className="text-xl font-bold text-gray-900 mb-6">
                 Account Info
               </h2>
@@ -325,7 +325,7 @@ function AccountContent() {
             </Card>
 
             {/* Quick Actions */}
-            <Card>
+            <Card className="p-8">
               <h2 className="text-xl font-bold text-gray-900 mb-6">
                 Quick Actions
               </h2>
@@ -344,7 +344,7 @@ function AccountContent() {
             </Card>
 
             {/* Support */}
-            <Card className="bg-gray-50">
+            <Card className="bg-gray-50 p-8">
               <h3 className="text-xl font-bold text-gray-900 mb-3">Need Help?</h3>
               <p className="text-sm text-gray-600 mb-4">
                 Contact us if you have any questions or issues.
