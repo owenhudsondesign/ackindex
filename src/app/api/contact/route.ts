@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { validateContactForm, sanitizeContactForm, ContactFormData } from '@/lib/validation';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization of Resend client
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend | null {
+  if (!resendClient && process.env.RESEND_API_KEY) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +42,14 @@ export async function POST(request: NextRequest) {
       console.error('CONTACT_EMAIL is not configured');
       return NextResponse.json(
         { error: 'Contact email is not configured. Please contact the administrator.' },
+        { status: 500 }
+      );
+    }
+
+    const resend = getResendClient();
+    if (!resend) {
+      return NextResponse.json(
+        { error: 'Email service is not available. Please contact the administrator.' },
         { status: 500 }
       );
     }
