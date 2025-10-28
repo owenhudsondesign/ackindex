@@ -7,9 +7,16 @@
 import { ApifyClient } from 'apify-client';
 import { cleanText } from './chunking';
 
-const apifyClient = new ApifyClient({
-  token: process.env.APIFY_API_TOKEN,
-});
+// Initialize Apify client with error handling
+function getApifyClient() {
+  if (!process.env.APIFY_API_TOKEN) {
+    throw new Error('APIFY_API_TOKEN is not configured in environment variables');
+  }
+  
+  return new ApifyClient({
+    token: process.env.APIFY_API_TOKEN,
+  });
+}
 
 export interface ScrapedContent {
   url: string;
@@ -50,6 +57,8 @@ export async function startScrapeJob(
   console.log(`[Apify] Starting scrape job for: ${url}`);
 
   try {
+    const apifyClient = getApifyClient();
+    
     // Use Apify's Website Content Crawler
     const actorId = process.env.APIFY_ACTOR_ID || 'apify/website-content-crawler';
 
@@ -91,7 +100,8 @@ export async function startScrapeJob(
     return run.id;
   } catch (error) {
     console.error('[Apify] Failed to start scrape job:', error);
-    throw new Error('Failed to start web scraping job');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to start web scraping job: ${errorMessage}`);
   }
 }
 
@@ -103,6 +113,7 @@ export async function checkJobStatus(runId: string): Promise<{
   statusMessage?: string;
 }> {
   try {
+    const apifyClient = getApifyClient();
     const run = await apifyClient.run(runId).get();
     
     return {
@@ -150,6 +161,7 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
   console.log(`[Apify] Fetching results for job: ${runId}`);
 
   try {
+    const apifyClient = getApifyClient();
     const { items } = await apifyClient.dataset(runId).listItems();
     
     const results: ScrapedContent[] = [];
