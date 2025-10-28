@@ -205,18 +205,14 @@ export function buildContext(results: RetrievalResult[]): string {
  * Extract citations from results
  */
 export function extractCitations(results: RetrievalResult[]): Array<{
-  index: number;
   title: string;
-  source: string;
   url?: string;
-  similarity: number;
+  snippet?: string;
 }> {
   return results.map((result, index) => ({
-    index: index + 1,
     title: result.document?.title || result.document?.filename || 'Untitled',
-    source: result.document?.source_type === 'url' ? 'Website' : 'PDF',
     url: result.document?.source_url,
-    similarity: Math.round(result.similarity * 100),
+    snippet: result.content.slice(0, 100),
   }));
 }
 

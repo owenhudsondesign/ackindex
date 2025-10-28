@@ -1,8 +1,11 @@
 // Chat message types
 export interface Citation {
   title: string;
-  url: string;
+  url?: string;
   snippet?: string;
+  source?: string;
+  similarity?: number;
+  index?: number;
 }
 
 export interface Message {

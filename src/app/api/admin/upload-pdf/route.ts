@@ -158,10 +158,3 @@ async function processPDFUpload(
   }
 }
 
-// Configure body parser for file uploads
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-

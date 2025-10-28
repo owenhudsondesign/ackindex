@@ -6,20 +6,7 @@ import Image from 'next/image';
 import ChatInput from '@/components/ChatInput';
 import ChatDialogue from '@/components/ChatDialogue';
 import EmptyState from '@/components/EmptyState';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  citations?: Array<{
-    index: number;
-    title: string;
-    source: string;
-    url?: string;
-    similarity: number;
-  }>;
-  isLoading?: boolean;
-}
+import { Message } from '@/lib/types';
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
