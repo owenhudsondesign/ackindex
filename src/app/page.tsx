@@ -96,7 +96,7 @@ export default function Home() {
       <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8 relative">
         {/* Subtle Grid Background */}
         <div 
-          className="absolute inset-0 -z-10 opacity-30"
+          className="absolute inset-0 -z-10 opacity-20"
           style={{
             backgroundImage: `
               linear-gradient(to right, rgb(200, 200, 200) 1px, transparent 1px),
