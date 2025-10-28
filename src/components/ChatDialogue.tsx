@@ -2,18 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import ChatMessage from './ChatMessage';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  citations?: Array<{
-    title: string;
-    url: string;
-    snippet?: string;
-  }>;
-  isLoading?: boolean;
-}
+import { Message } from '@/lib/types';
 
 interface ChatDialogueProps {
   messages: Message[];
