@@ -59,11 +59,25 @@ export async function startScrapeJob(
   try {
     const apifyClient = getApifyClient();
     
-    // Use Apify's Web Scraper - simpler and more reliable
-    const actorId = process.env.APIFY_ACTOR_ID || 'apify/web-scraper';
+    // Use Apify's Content Scraper for better PDF extraction
+    const actorId = process.env.APIFY_ACTOR_ID || 'apify/content-scraper';
 
+    console.log(`[Apify] Using actor: ${actorId}`);
+    
     const run = await apifyClient.actor(actorId).call({
       startUrls: [{ url }],
+      maxDepth: maxDepth,
+      maxResults: maxPages,
+      
+      // Enable PDF downloads
+      downloadSources: extractPDFs,
+      downloadPaths: extractPDFs ? ['pdf', 'PDF', '.pdf'] : undefined,
+      
+      // Content extraction settings
+      readableTextOnly: true,
+      removeCookies: true,
+      
+      // Proxy settings
       proxy: {
         useApifyProxy: true,
       },
@@ -143,37 +157,58 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
     const apifyClient = getApifyClient();
     const { items } = await apifyClient.dataset(runId).listItems();
     
+    console.log(`[Apify] Dataset has ${items.length} items`);
+    
     const results: ScrapedContent[] = [];
     
     for (const item of items as any[]) {
-      // apify/web-scraper uses 'pageFunctionResult' field
+      console.log(`[Apify] Processing item:`, JSON.stringify(item).substring(0, 200));
+      
+      // Handle different actor output formats
       const pageData = item.pageFunctionResult || item;
       
+      // Extract URL (content-scraper uses 'url' directly)
+      const itemUrl = pageData.url || item.url || item.loadedUrl || '';
+      
+      // Extract text content (content-scraper uses 'text', some actors use 'markdown')
+      const textContent = pageData.text || item.text || pageData.markdown || item.markdown || 
+                         pageData.readableText || item.readableText || '';
+      
+      // Extract title
+      const pageTitle = pageData.title || item.title || item.metadata?.title || 
+                       extractTitleFromUrl(itemUrl);
+      
       const content: ScrapedContent = {
-        url: pageData.url || item.url || '',
-        title: pageData.title || item.title || extractTitleFromUrl(pageData.url || item.url || ''),
-        text: cleanText(pageData.text || pageData.markdown || item.text || item.markdown || ''),
+        url: itemUrl,
+        title: pageTitle,
+        text: cleanText(textContent),
         pdfs: [],
         metadata: {
-          crawledAt: pageData.loadedTime || item.loadedTime || new Date().toISOString(),
-          httpStatusCode: pageData.httpStatusCode || item.httpStatusCode || 200,
+          crawledAt: pageData.loadedTime || item.loadedTime || item.updatedAt || new Date().toISOString(),
+          httpStatusCode: pageData.httpStatusCode || item.httpStatusCode || item.statusCode || 200,
           ...pageData.metadata,
           ...item.metadata,
+          ...item,
         },
       };
       
-      // Extract PDFs from the page
-      if ((pageData.downloadedFiles || item.downloadedFiles) && Array.isArray(pageData.downloadedFiles || item.downloadedFiles)) {
-        const files = pageData.downloadedFiles || item.downloadedFiles;
-        content.pdfs = files
-          .filter((f: any) => f.url?.endsWith('.pdf'))
+      // Extract PDFs from downloaded files
+      const downloadedFiles = pageData.downloadedFiles || item.downloadedFiles || 
+                             pageData.files || item.files || [];
+      
+      if (Array.isArray(downloadedFiles)) {
+        content.pdfs = downloadedFiles
+          .filter((f: any) => {
+            const fileUrl = f.url || f.path || f.key || '';
+            return fileUrl.endsWith('.pdf') || fileUrl.includes('.pdf');
+          })
           .map((f: any) => ({
-            url: f.url,
-            filename: extractFilenameFromUrl(f.url),
+            url: f.url || f.key || f.path || '',
+            filename: extractFilenameFromUrl(f.url || f.key || f.path || ''),
           }));
       }
       
-      // Only include pages with content
+      // Only include pages with content or PDFs
       if (content.text.length > 100 || content.pdfs.length > 0) {
         results.push(content);
       }
