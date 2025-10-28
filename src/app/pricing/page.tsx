@@ -48,15 +48,22 @@ export default function PricingPage() {
         }
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        console.error('Checkout error response:', data);
+        throw new Error(data.error || 'Failed to create checkout session');
       }
 
-      const { url } = await response.json();
-      window.location.href = url;
+      if (!data.url) {
+        throw new Error('No checkout URL returned');
+      }
+
+      window.location.href = data.url;
     } catch (error) {
       console.error('Error creating checkout:', error);
-      alert('Failed to start checkout. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start checkout';
+      alert(`Error: ${errorMessage}\n\nPlease check the console for more details.`);
       setLoading(null);
     }
   };

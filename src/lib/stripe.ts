@@ -1,5 +1,14 @@
 import Stripe from 'stripe';
 
+// Validate Stripe configuration
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error('❌ STRIPE_SECRET_KEY is not set in environment variables');
+}
+
+if (!process.env.STRIPE_PREMIUM_PRICE_ID) {
+  console.error('❌ STRIPE_PREMIUM_PRICE_ID is not set in environment variables');
+}
+
 // Initialize Stripe with secret key
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   typescript: true,
@@ -47,6 +56,16 @@ export async function createCheckoutSession(
   successUrl: string,
   cancelUrl: string
 ): Promise<Stripe.Checkout.Session> {
+  const priceId = PRICING.PREMIUM.priceId;
+  
+  if (!priceId) {
+    throw new Error(
+      'STRIPE_PREMIUM_PRICE_ID is not configured. Please set it in your environment variables.'
+    );
+  }
+
+  console.log('Creating Stripe checkout with price ID:', priceId);
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
@@ -54,7 +73,7 @@ export async function createCheckoutSession(
     client_reference_id: userId,
     line_items: [
       {
-        price: PRICING.PREMIUM.priceId,
+        price: priceId,
         quantity: 1,
       },
     ],
