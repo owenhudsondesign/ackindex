@@ -1,12 +1,5 @@
 'use client';
-
-interface Citation {
-  index: number;
-  title: string;
-  source: string;
-  url?: string;
-  similarity: number;
-}
+import { Citation } from '@/lib/types';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant';
@@ -52,28 +45,34 @@ export default function ChatMessage({ role, content, citations, isLoading }: Cha
           <div className="mt-3 ml-1">
             <p className="text-xs font-medium text-ack-dark-gray mb-2">Sources:</p>
             <div className="space-y-2">
-              {citations.map((citation) => (
+              {citations.map((citation, idx) => (
                 <div
-                  key={citation.index}
+                  key={idx}
                   className="block bg-ack-light-gray rounded-lg px-3 py-2"
                 >
                   <div className="flex items-start space-x-2">
-                    <div className="flex-shrink-0 w-5 h-5 bg-ack-blue text-white rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
-                      {citation.index}
-                    </div>
+                    {(citation.index !== undefined || idx >= 0) && (
+                      <div className="flex-shrink-0 w-5 h-5 bg-ack-blue text-white rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
+                        {citation.index ?? idx + 1}
+                      </div>
+                    )}
                     <div className="flex-grow min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-ack-black truncate">
                           {citation.title}
                         </p>
-                        <span className="flex-shrink-0 text-xs text-ack-dark-gray bg-gray-200 px-2 py-0.5 rounded-full">
-                          {citation.source}
-                        </span>
+                        {citation.source && (
+                          <span className="flex-shrink-0 text-xs text-ack-dark-gray bg-gray-200 px-2 py-0.5 rounded-full">
+                            {citation.source}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-ack-dark-gray">
-                          Relevance: {citation.similarity}%
-                        </span>
+                        {citation.similarity !== undefined && (
+                          <span className="text-xs text-ack-dark-gray">
+                            Relevance: {citation.similarity}%
+                          </span>
+                        )}
                         {citation.url && (
                           <a
                             href={citation.url}
