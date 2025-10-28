@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Container, Card, Button, Loading } from '@/components';
@@ -19,7 +19,7 @@ interface UserDashboard {
   tokens_remaining: number;
 }
 
-export default function AccountPage() {
+function AccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -346,6 +346,18 @@ export default function AccountPage() {
         </div>
       </Container>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
+        <Loading />
+      </div>
+    }>
+      <AccountContent />
+    </Suspense>
   );
 }
 
