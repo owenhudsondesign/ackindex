@@ -122,7 +122,7 @@ function AccountContent() {
   const isPremium = dashboard.subscription_tier === 'premium';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-8">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pt-24 pb-16">
       <Container>
         {showSuccess && (
           <div className="mb-8 bg-green-50 border border-green-200 text-green-900 px-6 py-4 rounded-lg">
