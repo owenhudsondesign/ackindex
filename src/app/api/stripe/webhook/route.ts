@@ -134,7 +134,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     stripeSubscriptionId: subscription.id,
     metadata: {
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
-      currentPeriodEnd: subscription.current_period_end,
+      currentPeriodEnd: (subscription as any).current_period_end,
     },
   });
 
