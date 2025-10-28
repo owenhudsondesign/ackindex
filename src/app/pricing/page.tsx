@@ -77,7 +77,7 @@ export default function PricingPage() {
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
           {/* Free Tier */}
-          <Card className="relative">
+          <Card className="relative p-8">
             <div className="mb-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Free</h3>
               <div className="flex items-baseline">
@@ -184,7 +184,7 @@ export default function PricingPage() {
           </Card>
 
           {/* Premium Tier */}
-          <Card className="relative border-2 border-blue-500 shadow-xl">
+          <Card className="relative border-2 border-blue-500 shadow-xl p-8">
             {/* Popular Badge */}
             <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
               <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
@@ -346,7 +346,7 @@ export default function PricingPage() {
           </h2>
 
           <div className="space-y-4">
-            <Card>
+            <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 What are tokens?
               </h3>
@@ -357,7 +357,7 @@ export default function PricingPage() {
               </p>
             </Card>
 
-            <Card>
+            <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Can I upgrade or downgrade anytime?
               </h3>
@@ -368,7 +368,7 @@ export default function PricingPage() {
               </p>
             </Card>
 
-            <Card>
+            <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 What happens if I exceed my free tier limit?
               </h3>
@@ -379,7 +379,7 @@ export default function PricingPage() {
               </p>
             </Card>
 
-            <Card>
+            <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Is there a discount for annual billing?
               </h3>
@@ -389,7 +389,7 @@ export default function PricingPage() {
               </p>
             </Card>
 
-            <Card>
+            <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Who is Premium best for?
               </h3>
