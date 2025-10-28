@@ -183,7 +183,7 @@ export function validatePDFFile(
     }
   } else {
     // Buffer validation
-    if (buffer.length > maxSizeBytes) {
+    if (file.length > maxSizeBytes) {
       return {
         valid: false,
         error: `File size must be less than ${maxSizeBytes / 1024 / 1024}MB`,
@@ -192,7 +192,7 @@ export function validatePDFFile(
 
     // Check PDF magic number
     const pdfHeader = Buffer.from([0x25, 0x50, 0x44, 0x46]); // %PDF
-    if (!buffer.slice(0, 4).equals(pdfHeader)) {
+    if (!file.slice(0, 4).equals(pdfHeader)) {
       return { valid: false, error: 'File does not appear to be a valid PDF' };
     }
   }
