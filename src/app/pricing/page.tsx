@@ -63,10 +63,10 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      <Container className="pt-24 pb-20">
+      <Container className="py-16">
         {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">
             Simple, Transparent Pricing
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -75,10 +75,10 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
           {/* Free Tier */}
           <Card className="relative">
-            <div className="mb-6">
+            <div className="mb-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Free</h3>
               <div className="flex items-baseline">
                 <span className="text-5xl font-bold text-gray-900">$0</span>
@@ -192,7 +192,7 @@ export default function PricingPage() {
               </span>
             </div>
 
-            <div className="mb-6">
+            <div className="mb-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Premium</h3>
               <div className="flex items-baseline">
                 <span className="text-5xl font-bold text-blue-600">$9.99</span>
@@ -341,11 +341,11 @@ export default function PricingPage() {
 
         {/* FAQ Section */}
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">
             Frequently Asked Questions
           </h2>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             <Card>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 What are tokens?
@@ -403,11 +403,11 @@ export default function PricingPage() {
         </div>
 
         {/* CTA Section */}
-        <div className="mt-20 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+        <div className="mt-16 text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">
             Ready to get started?
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-gray-600 mb-10">
             Create your free account in less than 30 seconds
           </p>
           <Link href="/signup">

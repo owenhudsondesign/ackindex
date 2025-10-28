@@ -109,11 +109,11 @@ export default function ContactPage() {
       <Container className="py-16">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 text-ack-blue mb-4">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 text-ack-blue mb-6">
               We'd love to hear from you
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-ack-black mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-ack-black mb-6">
               Get In Touch
             </h1>
             <p className="text-lg text-ack-dark-gray">
@@ -190,7 +190,7 @@ export default function ContactPage() {
             </form>
 
             {/* Info Text */}
-            <div className="mt-6 flex items-start space-x-2 text-sm text-ack-dark-gray">
+            <div className="mt-8 flex items-start space-x-2 text-sm text-ack-dark-gray">
               <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
@@ -202,7 +202,7 @@ export default function ContactPage() {
           </div>
 
           {/* Alternative Contact Info */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-gradient-to-br from-ack-blue/5 to-ack-blue/10 rounded-lg p-6 border border-ack-blue/20">
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-10 h-10 bg-ack-blue rounded-full flex items-center justify-center">

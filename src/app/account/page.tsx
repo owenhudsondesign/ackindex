@@ -122,10 +122,10 @@ function AccountContent() {
   const isPremium = dashboard.subscription_tier === 'premium';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white" style={{ paddingTop: '6rem', paddingBottom: '3rem' }}>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-8">
       <Container>
         {showSuccess && (
-          <div className="mb-6 bg-green-50 border border-green-200 text-green-900 px-6 py-4 rounded-lg">
+          <div className="mb-8 bg-green-50 border border-green-200 text-green-900 px-6 py-4 rounded-lg">
             <div className="flex items-center">
               <svg
                 className="w-5 h-5 mr-3"
@@ -147,12 +147,12 @@ function AccountContent() {
           </div>
         )}
 
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">My Account</h1>
-          <p className="text-gray-600">Manage your subscription and usage</p>
+        <div className="mb-10">
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">My Account</h1>
+          <p className="text-gray-600 text-lg">Manage your subscription and usage</p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Subscription Card */}
@@ -297,22 +297,22 @@ function AccountContent() {
           <div className="space-y-6">
             {/* Account Info */}
             <Card>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">
                 Account Info
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-600">Name</p>
+                  <p className="text-sm text-gray-600 mb-1">Name</p>
                   <p className="font-medium text-gray-900">
                     {dashboard.full_name || 'Not set'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Email</p>
+                  <p className="text-sm text-gray-600 mb-1">Email</p>
                   <p className="font-medium text-gray-900">{dashboard.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Email Updates</p>
+                  <p className="text-sm text-gray-600 mb-1">Email Updates</p>
                   <p className="font-medium text-gray-900">
                     {dashboard.email_updates_enabled ? (
                       <span className="text-green-600">✓ Subscribed</span>
@@ -326,10 +326,10 @@ function AccountContent() {
 
             {/* Quick Actions */}
             <Card>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">
                 Quick Actions
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Link href="/" className="block">
                   <Button variant="secondary" fullWidth>
                     Go to Chatbot
@@ -345,12 +345,12 @@ function AccountContent() {
 
             {/* Support */}
             <Card className="bg-gray-50">
-              <h3 className="font-semibold text-gray-900 mb-2">Need Help?</h3>
-              <p className="text-sm text-gray-600 mb-3">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Need Help?</h3>
+              <p className="text-sm text-gray-600 mb-4">
                 Contact us if you have any questions or issues.
               </p>
               <Link href="/contact">
-                <Button variant="secondary" size="sm" fullWidth>
+                <Button variant="secondary" fullWidth>
                   Contact Support
                 </Button>
               </Link>
