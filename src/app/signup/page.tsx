@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signUp } from '@/lib/auth';
+import { signIn } from '@/lib/auth';
 import { Button, Input, Container, Card } from '@/components';
 
 export default function SignUpPage() {
@@ -50,7 +50,7 @@ export default function SignUpPage() {
     }
 
     try {
-      // Call our API route instead of directly using Supabase
+      // Call our API route to create the account
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
@@ -70,12 +70,19 @@ export default function SignUpPage() {
         throw new Error(data.error || 'Failed to create account');
       }
 
+      // Now log them in automatically
+      await signIn({
+        email: formData.email,
+        password: formData.password,
+      });
+
       setSuccess(true);
       
-      // Redirect to login after 3 seconds
+      // Redirect to home page after 2 seconds to use the chatbot
       setTimeout(() => {
-        router.push('/login');
-      }, 3000);
+        router.push('/');
+        router.refresh();
+      }, 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to create account. Please try again.');
     } finally {
@@ -128,7 +135,7 @@ export default function SignUpPage() {
             )}
 
             <p className="text-sm text-gray-500">
-              Redirecting you to the home page in a few seconds...
+              Redirecting you to start chatting in a few seconds...
             </p>
           </Card>
         </Container>
