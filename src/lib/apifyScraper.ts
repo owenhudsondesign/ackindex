@@ -68,6 +68,7 @@ export async function startScrapeJob(
       startUrls: [{ url }],
       maxDepth: maxDepth,
       maxResults: maxPages,
+      waitForLoadMoreSecs: 5,
       
       // Enable PDF downloads
       downloadSources: extractPDFs,
