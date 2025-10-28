@@ -104,12 +104,18 @@ export async function checkJobStatus(runId: string): Promise<{
  */
 export async function waitForJob(
   runId: string,
-  timeoutMs: number = 300000 // 5 minutes
+  timeoutMs: number = 120000 // 2 minutes
 ): Promise<void> {
   const startTime = Date.now();
+  let lastStatus = '';
   
   while (Date.now() - startTime < timeoutMs) {
     const { status } = await checkJobStatus(runId);
+    
+    if (status !== lastStatus) {
+      console.log(`[Apify] Job ${runId} status: ${status}`);
+      lastStatus = status;
+    }
     
     if (status === 'SUCCEEDED') {
       console.log(`[Apify] Job ${runId} completed successfully`);
@@ -120,8 +126,8 @@ export async function waitForJob(
       throw new Error(`Scraping job ${status.toLowerCase()}`);
     }
     
-    // Wait 5 seconds before checking again
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Wait 3 seconds before checking again (more frequent updates)
+    await new Promise(resolve => setTimeout(resolve, 3000));
   }
   
   throw new Error('Scraping job timed out');

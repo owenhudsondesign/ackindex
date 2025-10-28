@@ -114,8 +114,8 @@ async function processUrlScraping(
 
     console.log(`[Scrape API] Waiting for Apify job ${runId} to complete...`);
 
-    // Wait for job to complete (with 5 minute timeout)
-    await waitForJob(runId, 300000);
+    // Wait for job to complete (with 2 minute timeout - jobs typically finish faster)
+    await waitForJob(runId, 120000);
 
     // Get results
     const results = await getJobResults(runId);
