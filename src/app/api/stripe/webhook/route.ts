@@ -172,8 +172,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
  * Handle successful payment
  */
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
-  const userId = invoice.subscription_details?.metadata?.userId;
+  const subscriptionId = (invoice as any).subscription as string;
+  const userId = (invoice as any).subscription_details?.metadata?.userId;
 
   if (!userId) {
     console.log('No user ID in invoice, skipping');
@@ -185,7 +185,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     status: 'active',
     stripeSubscriptionId: subscriptionId,
     stripeInvoiceId: invoice.id,
-    amountCents: invoice.amount_paid,
+    amountCents: (invoice as any).amount_paid,
     currency: invoice.currency,
   });
 
@@ -196,8 +196,8 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
  * Handle failed payment
  */
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
-  const userId = invoice.subscription_details?.metadata?.userId;
+  const subscriptionId = (invoice as any).subscription as string;
+  const userId = (invoice as any).subscription_details?.metadata?.userId;
 
   if (!userId) {
     console.log('No user ID in invoice, skipping');
@@ -216,7 +216,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     status: 'past_due',
     stripeSubscriptionId: subscriptionId,
     stripeInvoiceId: invoice.id,
-    amountCents: invoice.amount_due,
+    amountCents: (invoice as any).amount_due,
     currency: invoice.currency,
   });
 
