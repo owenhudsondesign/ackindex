@@ -93,7 +93,18 @@ export default function Home() {
 
   return (
     <PageLayout>
-      <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8">
+      <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8 relative">
+        {/* Subtle Grid Background */}
+        <div 
+          className="absolute inset-0 -z-10 opacity-30"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgb(200, 200, 200) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(200, 200, 200) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px'
+          }}
+        />
         <div className="w-full max-w-3xl px-4">
           {/* Badge */}
           <div className="flex justify-center mb-8">
