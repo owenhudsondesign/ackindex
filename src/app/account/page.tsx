@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Container, Card, Button, Loading } from '@/components';
 import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 interface UserDashboard {
   id: string;
@@ -45,8 +46,20 @@ function AccountContent() {
         return;
       }
 
-      // Fetch dashboard data
-      const response = await fetch('/api/user/dashboard');
+      // Get the session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+
+      // Fetch dashboard data with auth token
+      const response = await fetch('/api/user/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to load dashboard');
       }
