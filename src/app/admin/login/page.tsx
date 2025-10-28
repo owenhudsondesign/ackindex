@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from '@/lib/auth';
 import PageLayout from '@/components/PageLayout';
@@ -8,7 +8,7 @@ import Container from '@/components/Container';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 
-export default function AdminLoginPage() {
+function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '/admin';
@@ -122,5 +122,26 @@ export default function AdminLoginPage() {
         </div>
       </Container>
     </PageLayout>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={
+      <PageLayout>
+        <Container className="py-16">
+          <div className="max-w-md mx-auto">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ack-blue/10 mb-4 animate-pulse">
+                <div className="w-8 h-8 bg-ack-blue/20 rounded-full"></div>
+              </div>
+              <h1 className="text-3xl font-bold text-ack-black mb-2">Loading...</h1>
+            </div>
+          </div>
+        </Container>
+      </PageLayout>
+    }>
+      <LoginFormContent />
+    </Suspense>
   );
 }
