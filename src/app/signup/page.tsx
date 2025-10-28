@@ -86,7 +86,7 @@ export default function SignUpPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
-        <Container maxWidth="sm">
+        <Container size="sm">
           <Card className="text-center">
             <div className="mb-6">
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -138,7 +138,7 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4 py-12">
-      <Container maxWidth="sm" className="my-8">
+      <Container size="sm" className="my-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Create Your Account
