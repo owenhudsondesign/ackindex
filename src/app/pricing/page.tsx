@@ -32,8 +32,20 @@ export default function PricingPage() {
 
     // Redirect to checkout
     try {
+      // Get the session token
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       });
 
       if (!response.ok) {
@@ -51,7 +63,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      <Container className="py-20">
+      <Container className="pt-24 pb-20">
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
