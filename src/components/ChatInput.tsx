@@ -25,7 +25,7 @@ export default function ChatInput({
 
   return (
     <form onSubmit={handleSubmit} className="relative">
-      <div className="flex items-center bg-white border border-gray-300 rounded-full shadow-lg shadow-ack-blue/20 hover:shadow-xl hover:shadow-ack-blue/30 transition-shadow focus-within:ring-2 focus-within:ring-ack-blue focus-within:border-transparent focus-within:shadow-xl focus-within:shadow-ack-blue/40">
+      <div className="flex items-center bg-white border border-gray-300 rounded-full shadow-lg shadow-ack-blue/20 hover:shadow-xl hover:shadow-ack-blue/30 focus-within:shadow-xl focus-within:shadow-ack-blue/40 transition-shadow focus-within:ring-2 focus-within:ring-ack-blue focus-within:border-ack-blue">
         {/* Search Icon */}
         <div className="pl-5 pr-3">
           <svg
