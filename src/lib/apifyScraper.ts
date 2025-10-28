@@ -59,39 +59,12 @@ export async function startScrapeJob(
   try {
     const apifyClient = getApifyClient();
     
-    // Use Apify's Website Content Crawler
-    const actorId = process.env.APIFY_ACTOR_ID || 'apify/website-content-crawler';
+    // Use Apify's Web Scraper - simpler and more reliable
+    const actorId = process.env.APIFY_ACTOR_ID || 'apify/web-scraper';
 
     const run = await apifyClient.actor(actorId).call({
       startUrls: [{ url }],
-      maxCrawlDepth: maxDepth,
-      maxCrawlPages: maxPages,
-      
-      // Crawler settings
-      crawlerType: 'playwright:firefox',
-      includeUrlGlobs: [],
-      excludeUrlGlobs: [],
-      
-      // Content extraction
-      readableTextCharThreshold: 100,
-      removeCookieWarnings: true,
-      removeElementsCssSelector: 'nav, footer, header, .nav, .footer, .header',
-      
-      // PDF handling
-      downloadFiles: extractPDFs,
-      downloadFileTypes: ['pdf'],
-      
-      // Output settings
-      saveHtml: false,
-      saveMarkdown: true,
-      saveScreenshots: false,
-      
-      // Performance
-      maxRequestsPerCrawl: maxPages,
-      maxSessionRotations: 10,
-      
-      // Proxy settings
-      proxyConfiguration: {
+      proxy: {
         useApifyProxy: true,
       },
     });
@@ -167,21 +140,26 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
     const results: ScrapedContent[] = [];
     
     for (const item of items as any[]) {
+      // apify/web-scraper uses 'pageFunctionResult' field
+      const pageData = item.pageFunctionResult || item;
+      
       const content: ScrapedContent = {
-        url: item.url || '',
-        title: item.metadata?.title || extractTitleFromUrl(item.url),
-        text: cleanText(item.text || item.markdown || ''),
+        url: pageData.url || item.url || '',
+        title: pageData.title || item.title || extractTitleFromUrl(pageData.url || item.url || ''),
+        text: cleanText(pageData.text || pageData.markdown || item.text || item.markdown || ''),
         pdfs: [],
         metadata: {
-          crawledAt: item.loadedTime || new Date().toISOString(),
-          httpStatusCode: item.httpStatusCode,
+          crawledAt: pageData.loadedTime || item.loadedTime || new Date().toISOString(),
+          httpStatusCode: pageData.httpStatusCode || item.httpStatusCode || 200,
+          ...pageData.metadata,
           ...item.metadata,
         },
       };
       
       // Extract PDFs from the page
-      if (item.downloadedFiles && Array.isArray(item.downloadedFiles)) {
-        content.pdfs = item.downloadedFiles
+      if ((pageData.downloadedFiles || item.downloadedFiles) && Array.isArray(pageData.downloadedFiles || item.downloadedFiles)) {
+        const files = pageData.downloadedFiles || item.downloadedFiles;
+        content.pdfs = files
           .filter((f: any) => f.url?.endsWith('.pdf'))
           .map((f: any) => ({
             url: f.url,
