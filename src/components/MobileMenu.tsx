@@ -1,10 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getCurrentUser } from '@/lib/auth';
 
 export default function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      setUser(null);
+    }
+  };
 
   return (
     <>
@@ -56,12 +71,46 @@ export default function MobileMenu() {
               About
             </Link>
             <Link
+              href="/pricing"
+              onClick={() => setIsOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-medium text-ack-dark-gray hover:text-ack-blue hover:bg-ack-light-gray transition-colors"
+            >
+              Pricing
+            </Link>
+            <Link
               href="/contact"
               onClick={() => setIsOpen(false)}
-              className="block px-3 py-2 rounded-md text-base font-medium text-ack-blue hover:bg-ack-light-gray transition-colors"
+              className="block px-3 py-2 rounded-md text-base font-medium text-ack-dark-gray hover:text-ack-blue hover:bg-ack-light-gray transition-colors"
             >
               Contact
             </Link>
+            <div className="border-t border-gray-200 my-2"></div>
+            {user ? (
+              <Link
+                href="/account"
+                onClick={() => setIsOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-white bg-ack-blue hover:bg-opacity-90 transition-colors"
+              >
+                My Account
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-md text-base font-medium text-ack-dark-gray hover:text-ack-blue hover:bg-ack-light-gray transition-colors"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-md text-base font-medium text-white bg-ack-blue hover:bg-opacity-90 transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

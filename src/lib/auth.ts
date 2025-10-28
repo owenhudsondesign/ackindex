@@ -73,3 +73,94 @@ export async function isAuthenticated(): Promise<boolean> {
   const session = await getSession();
   return !!session;
 }
+
+export interface SignUpData {
+  email: string;
+  password: string;
+  fullName?: string;
+  emailUpdates?: boolean;
+}
+
+/**
+ * Sign up a new user with email and password
+ */
+export async function signUp(data: SignUpData) {
+  const { data: authData, error } = await supabase.auth.signUp({
+    email: data.email,
+    password: data.password,
+    options: {
+      emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/`,
+      data: {
+        full_name: data.fullName || '',
+        email_updates: data.emailUpdates || false,
+      },
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  // Create user profile after successful signup
+  if (authData.user) {
+    try {
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: authData.user.id,
+          full_name: data.fullName || null,
+          email_updates_enabled: data.emailUpdates || false,
+        });
+
+      if (profileError) {
+        console.error('Error creating user profile:', profileError);
+        // Don't throw - user is created, profile creation is secondary
+      }
+    } catch (profileError) {
+      console.error('Error creating user profile:', profileError);
+      // Don't throw - user is created, profile creation is secondary
+    }
+  }
+
+  return authData;
+}
+
+/**
+ * Resend confirmation email
+ */
+export async function resendConfirmation(email: string) {
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+/**
+ * Reset password request
+ */
+export async function resetPassword(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/reset-password`,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+/**
+ * Update password
+ */
+export async function updatePassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}

@@ -1,0 +1,120 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+// Service role client (bypasses RLS)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { email, password, fullName, emailUpdates } = body;
+
+    console.log('[Signup API] Received request for:', email);
+
+    // Validate input
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email and password are required' },
+        { status: 400 }
+      );
+    }
+
+    // Check environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[Signup API] Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters' },
+        { status: 400 }
+      );
+    }
+
+    // Create user in Supabase Auth using regular signup
+    console.log('[Signup API] Attempting to create user...');
+    const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName || '',
+          email_updates: emailUpdates || false,
+        },
+      },
+    });
+
+    if (authError) {
+      console.error('[Signup API] Auth error:', authError.message, authError);
+      
+      // Check if user already exists
+      if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
+        return NextResponse.json(
+          { error: 'This email is already registered. Please use a different email or try logging in.' },
+          { status: 400 }
+        );
+      }
+      
+      return NextResponse.json(
+        { error: authError.message },
+        { status: 400 }
+      );
+    }
+
+    if (!authData.user) {
+      return NextResponse.json(
+        { error: 'Failed to create user' },
+        { status: 500 }
+      );
+    }
+
+    // Create user profile (using service role, bypasses RLS)
+    const { error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .insert({
+        id: authData.user.id,
+        full_name: fullName || null,
+        email_updates_enabled: emailUpdates || false,
+      });
+
+    if (profileError) {
+      console.error('Profile creation error:', profileError);
+      // User is created, but profile failed - log it but don't fail the request
+    }
+
+    // If email updates enabled, add to email_subscribers
+    if (emailUpdates) {
+      await supabaseAdmin
+        .from('email_subscribers')
+        .insert({
+          email: email,
+          user_id: authData.user.id,
+          is_subscribed: true,
+          verified: true,
+          frequency: 'weekly',
+        });
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: authData.user.id,
+        email: authData.user.email,
+      },
+    });
+  } catch (error: any) {
+    console.error('Signup error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to create account' },
+      { status: 500 }
+    );
+  }
+}
+

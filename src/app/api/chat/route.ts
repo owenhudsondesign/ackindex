@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults } from '@/lib/retrieval';
+import { getCurrentUser } from '@/lib/auth';
+import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -19,6 +21,31 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[Chat API] Received query: "${message}"`);
+
+    // Check if user is authenticated
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign up or log in to use the chatbot.' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user has tokens remaining
+    const canQuery = await canUserQuery(user.id);
+    if (!canQuery) {
+      const dashboard = await getUserDashboard(user.id);
+      return NextResponse.json(
+        {
+          error: 'Token limit exceeded',
+          message: `You've used all ${dashboard?.tokens_used_this_month || 0} of your monthly tokens. Upgrade to Premium for unlimited access!`,
+          upgradeRequired: true,
+        },
+        { status: 429 } // Too Many Requests
+      );
+    }
+
+    console.log(`[Chat API] User ${user.id} authorized to query`);
 
     // Step 1: Retrieve relevant chunks
     const results = await retrieveRelevantChunks(message, {
@@ -79,6 +106,25 @@ Remember: Your knowledge is limited to the context above. Do not make up informa
 
     console.log('[Chat API] Generated response successfully');
 
+    // Track usage
+    const inputTokens = completion.usage?.prompt_tokens || 0;
+    const outputTokens = completion.usage?.completion_tokens || 0;
+    const totalTokens = completion.usage?.total_tokens || 0;
+
+    // Calculate cost (approximate)
+    // GPT-4o-mini: $0.15 per 1M input tokens, $0.60 per 1M output tokens
+    const costCents = Math.ceil(
+      (inputTokens / 1_000_000) * 15 + (outputTokens / 1_000_000) * 60
+    );
+
+    // Record usage in database
+    await recordUsage(user.id, inputTokens, outputTokens, costCents);
+
+    console.log(`[Chat API] Recorded usage: ${totalTokens} tokens for user ${user.id}`);
+
+    // Get updated usage stats
+    const dashboard = await getUserDashboard(user.id);
+
     return NextResponse.json({
       response,
       citations,
@@ -88,6 +134,11 @@ Remember: Your knowledge is limited to the context above. Do not make up informa
         avgSimilarity: Math.round(
           results.reduce((sum, r) => sum + r.similarity, 0) / results.length * 100
         ),
+      },
+      usage: {
+        tokensUsed: totalTokens,
+        tokensRemaining: dashboard?.tokens_remaining || 0,
+        monthlyLimit: dashboard?.monthly_token_limit || 10000,
       },
     });
   } catch (error) {
