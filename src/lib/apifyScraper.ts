@@ -59,27 +59,48 @@ export async function startScrapeJob(
   try {
     const apifyClient = getApifyClient();
     
-    // Use Apify's Content Scraper for better PDF extraction
-    const actorId = process.env.APIFY_ACTOR_ID || 'apify/content-scraper';
+    // Use Apify's Website Content Crawler - best for PDF extraction
+    const actorId = process.env.APIFY_ACTOR_ID || 'apify/website-content-crawler';
 
     console.log(`[Apify] Using actor: ${actorId}`);
     
     const run = await apifyClient.actor(actorId).call({
       startUrls: [{ url }],
-      maxDepth: maxDepth,
-      maxResults: maxPages,
+      crawlerType: 'playwright:firefox',
+      maxCrawlDepth: maxDepth,
+      maxCrawlPages: maxPages,
+      
+      // Link crawling settings
+      includeUrlGlobs: [],
+      excludeUrlGlobs: [],
+      
+      // Wait for dynamic content
       waitForLoadMoreSecs: 5,
+      dynamicContentWaitSecs: 5,
       
-      // Enable PDF downloads
-      downloadSources: extractPDFs,
-      downloadPaths: extractPDFs ? ['pdf', 'PDF', '.pdf'] : undefined,
+      // Content extraction
+      readableTextCharThreshold: 100,
+      removeCookieWarnings: true,
+      removeElementsCssSelector: 'nav, footer, header, .nav, .footer, .header, #nav, #footer, #header',
       
-      // Content extraction settings
-      readableTextOnly: true,
-      removeCookies: true,
+      // PDF handling - download ALL PDFs
+      downloadFiles: extractPDFs,
+      downloadFileTypes: extractPDFs ? ['pdf'] : [],
+      maxFileDownloadSizeMB: 50,
+      
+      // Output settings
+      saveHtml: false,
+      saveMarkdown: true,
+      saveScreenshots: false,
+      saveFiles: extractPDFs,
+      
+      // Performance
+      maxRequestsPerCrawl: maxPages,
+      maxSessionRotations: 10,
+      requestTimeoutSecs: 60,
       
       // Proxy settings
-      proxy: {
+      proxyConfiguration: {
         useApifyProxy: true,
       },
     });
@@ -163,21 +184,16 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
     const results: ScrapedContent[] = [];
     
     for (const item of items as any[]) {
-      console.log(`[Apify] Processing item:`, JSON.stringify(item).substring(0, 200));
+      console.log(`[Apify] Processing item:`, JSON.stringify(item).substring(0, 300));
       
-      // Handle different actor output formats
-      const pageData = item.pageFunctionResult || item;
+      // Extract URL - website-content-crawler uses 'url'
+      const itemUrl = item.url || item.loadedUrl || '';
       
-      // Extract URL (content-scraper uses 'url' directly)
-      const itemUrl = pageData.url || item.url || item.loadedUrl || '';
+      // Extract text content - website-content-crawler uses 'text' or 'markdown'
+      const textContent = item.text || item.markdown || item.readableText || '';
       
-      // Extract text content (content-scraper uses 'text', some actors use 'markdown')
-      const textContent = pageData.text || item.text || pageData.markdown || item.markdown || 
-                         pageData.readableText || item.readableText || '';
-      
-      // Extract title
-      const pageTitle = pageData.title || item.title || item.metadata?.title || 
-                       extractTitleFromUrl(itemUrl);
+      // Extract title - website-content-crawler uses metadata.title
+      const pageTitle = item.metadata?.title || item.title || extractTitleFromUrl(itemUrl);
       
       const content: ScrapedContent = {
         url: itemUrl,
@@ -185,33 +201,43 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
         text: cleanText(textContent),
         pdfs: [],
         metadata: {
-          crawledAt: pageData.loadedTime || item.loadedTime || item.updatedAt || new Date().toISOString(),
-          httpStatusCode: pageData.httpStatusCode || item.httpStatusCode || item.statusCode || 200,
-          ...pageData.metadata,
+          crawledAt: item.loadedTime || item.crawledAt || new Date().toISOString(),
+          httpStatusCode: item.httpStatusCode || item.statusCode || 200,
+          depth: item.depth || 0,
           ...item.metadata,
-          ...item,
         },
       };
       
       // Extract PDFs from downloaded files
-      const downloadedFiles = pageData.downloadedFiles || item.downloadedFiles || 
-                             pageData.files || item.files || [];
+      // website-content-crawler puts files in 'downloadedFiles' array
+      const downloadedFiles = item.downloadedFiles || item.files || [];
       
-      if (Array.isArray(downloadedFiles)) {
+      if (Array.isArray(downloadedFiles) && downloadedFiles.length > 0) {
+        console.log(`[Apify] Found ${downloadedFiles.length} downloaded files on ${itemUrl}`);
+        
         content.pdfs = downloadedFiles
           .filter((f: any) => {
             const fileUrl = f.url || f.path || f.key || '';
-            return fileUrl.endsWith('.pdf') || fileUrl.includes('.pdf');
+            const isPdf = fileUrl.toLowerCase().endsWith('.pdf') || 
+                         fileUrl.toLowerCase().includes('.pdf') ||
+                         (f.mimeType && f.mimeType.includes('pdf'));
+            if (isPdf) {
+              console.log(`[Apify] Found PDF: ${fileUrl}`);
+            }
+            return isPdf;
           })
           .map((f: any) => ({
             url: f.url || f.key || f.path || '',
-            filename: extractFilenameFromUrl(f.url || f.key || f.path || ''),
+            filename: f.filename || extractFilenameFromUrl(f.url || f.key || f.path || ''),
           }));
       }
       
       // Only include pages with content or PDFs
       if (content.text.length > 100 || content.pdfs.length > 0) {
         results.push(content);
+        if (content.pdfs.length > 0) {
+          console.log(`[Apify] Added page with ${content.pdfs.length} PDFs`);
+        }
       }
     }
     
