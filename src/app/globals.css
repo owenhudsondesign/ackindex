@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ack-blue: #2e90c6;
+  --color-ack-dark-gray: #4d4d4d;
+  --color-ack-black: #191919;
+  --color-ack-light-gray: #efefef;
+  --color-ack-white: #ffffff;
+  
+  --font-sans: Inter, sans-serif;
+}
+
+@layer base {
+  * {
+    --color-ring: var(--color-ack-blue);
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-ack-black);
+    background-color: var(--color-ack-white);
+  }
+}
+
+@layer utilities {
+  .ring-ack-blue {
+    --tw-ring-color: rgb(46 144 198);
+  }
+  
+  .focus-within\:ring-ack-blue:focus-within {
+    --tw-ring-color: rgb(46 144 198);
+  }
+  
+  .hover\:border-ack-blue:hover {
+    border-color: rgb(46 144 198);
+  }
+  
+  .bg-ack-blue\/10 {
+    background-color: rgba(46, 144, 198, 0.1);
+  }
+  
+  .bg-ack-blue\/5 {
+    background-color: rgba(46, 144, 198, 0.05);
+  }
+  
+  .text-ack-blue {
+    color: rgb(46 144 198);
+  }
+  
+  .text-ack-black {
+    color: rgb(25 25 25);
+  }
+  
+  .text-ack-dark-gray {
+    color: rgb(77 77 77);
+  }
+  
+  .bg-ack-blue {
+    background-color: rgb(46 144 198);
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Chat animations */
+  .animate-in {
+    animation: animate-in 0.3s ease-out;
+  }
+  
+  .fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  
+  .slide-in-from-top-4 {
+    animation: slide-in-from-top 0.3s ease-out;
+  }
+}
+
+@keyframes animate-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-1rem);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Custom ring styles for focus-within */
+.focus-within\:ring-ack-blue:focus-within {
+  --tw-ring-color: rgb(46 144 198);
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  border-color: transparent;
+}
+
+/* Custom scrollbar for chat dialogue */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
