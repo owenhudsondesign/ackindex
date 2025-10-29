@@ -27,11 +27,81 @@ export default function Home() {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
       console.log('Auth check result:', currentUser ? 'Logged in' : 'Not logged in');
+      
+      // If user is logged in, set up their role
+      if (currentUser) {
+        await setupUserRole(currentUser);
+      }
     } catch (error) {
       console.error('Auth check error:', error);
       setUser(null);
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const setupUserRole = async (currentUser: any) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Determine role based on email
+      let role = 'user';
+      let subscriptionTier = 'free';
+      let tokenLimit = 3500;
+      
+      if (currentUser.email === 'owenhudsondesign@gmail.com') {
+        role = 'admin';
+        subscriptionTier = 'premium';
+        tokenLimit = 50000;
+        console.log('✅ Setting up ADMIN account for:', currentUser.email);
+      } else if (currentUser.email === 'hudsonowenr@gmail.com') {
+        role = 'user';
+        subscriptionTier = 'free';
+        tokenLimit = 3500;
+        console.log('✅ Setting up USER account for:', currentUser.email);
+      }
+
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (existingProfile) {
+        console.log('Profile already exists:', existingProfile);
+        return;
+      }
+
+      // Create user profile
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: currentUser.id,
+          full_name: currentUser.email === 'owenhudsondesign@gmail.com' ? 'Owen Hudson (Admin)' : 'Owen Hudson',
+          subscription_tier: subscriptionTier,
+          subscription_status: subscriptionTier === 'premium' ? 'active' : 'free',
+          monthly_token_limit: tokenLimit,
+          role: role,
+          email_updates_enabled: true,
+          email_updates_frequency: 'weekly'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating profile:', error);
+      } else {
+        console.log('✅ Created profile:', profile);
+        console.log(`🎉 Role: ${role}, Tier: ${subscriptionTier}, Tokens: ${tokenLimit}`);
+        
+        if (role === 'admin') {
+          console.log('🔑 You now have admin access! Visit /admin to upload URLs');
+        }
+      }
+    } catch (error) {
+      console.error('Error setting up user role:', error);
     }
   };
 
