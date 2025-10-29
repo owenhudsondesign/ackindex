@@ -13,11 +13,11 @@ try {
         maxPages = 10,
         maxDepth = 2,
         extractPDFs = true,
-        openaiApiKey, // Required for Stagehand
+        openaiApiKey = process.env.OPENAI_API_KEY, // Fall back to env var
     } = input;
 
     if (!openaiApiKey) {
-        throw new Error('OpenAI API key is required for Stagehand. Please provide it in the input.');
+        throw new Error('OpenAI API key is required for Stagehand. Please provide it in the input or set OPENAI_API_KEY environment variable.');
     }
 
     console.log('🚀 Starting Stagehand Nantucket scraper...');
