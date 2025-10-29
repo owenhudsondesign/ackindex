@@ -76,34 +76,11 @@ async function semanticSearch(
   console.log(`[Retrieval] Query embedding generated: ${queryEmbedding.length} dimensions`);
   console.log(`[Retrieval] First 5 embedding values: [${queryEmbedding.slice(0, 5).join(', ')}...]`);
 
-  // Format for PostgreSQL
-  const embeddingStr = `[${queryEmbedding.join(',')}]`;
-  console.log(`[Retrieval] Embedding string length: ${embeddingStr.length} characters`);
-
-  // First, let's check if the RPC function exists and if there are any chunks with embeddings
-  console.log('[Retrieval] Checking database state...');
-  
-  // Check if there are any chunks with embeddings
-  const { data: chunkCheck, error: chunkError } = await supabaseAdmin
-    .from('document_chunks')
-    .select('id, embedding')
-    .not('embedding', 'is', null)
-    .limit(1);
-  
-  if (chunkError) {
-    console.error('[Retrieval] Error checking chunks:', chunkError);
-  } else {
-    console.log(`[Retrieval] Chunks with embeddings: ${chunkCheck?.length || 0}`);
-    if (chunkCheck && chunkCheck.length > 0) {
-      console.log(`[Retrieval] Sample embedding length: ${chunkCheck[0].embedding?.length || 0}`);
-    }
-  }
-
   // Search using the database function
+  // Pass embedding as array - Supabase will automatically cast to vector(1536) type
   console.log(`[Retrieval] Calling search_similar_chunks with threshold=${minSimilarity}, count=${maxResults}`);
-  console.log(`[Retrieval] Embedding string preview: ${embeddingStr.substring(0, 100)}...`);
   const { data, error } = await supabaseAdmin.rpc('search_similar_chunks', {
-    query_embedding: embeddingStr,
+    query_embedding: queryEmbedding,
     match_threshold: minSimilarity,
     match_count: maxResults,
   });
@@ -174,10 +151,10 @@ async function hybridSearch(
   minSimilarity: number
 ): Promise<RetrievalResult[]> {
   const queryEmbedding = await generateEmbedding(query);
-  const embeddingStr = `[${queryEmbedding.join(',')}]`;
 
+  // Pass embedding as array - Supabase will automatically cast to vector(1536) type
   const { data, error } = await supabaseAdmin.rpc('hybrid_search_chunks', {
-    query_embedding: embeddingStr,
+    query_embedding: queryEmbedding,
     query_text: query,
     match_count: maxResults,
   });

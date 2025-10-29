@@ -161,11 +161,10 @@ export async function updateChunkEmbedding(
   chunkId: string,
   embedding: number[]
 ): Promise<void> {
-  const embeddingStr = `[${embedding.join(',')}]`;
-
+  // Store as array - Supabase will automatically cast to vector(1536) type
   const { error } = await supabaseAdmin
     .from('document_chunks')
-    .update({ embedding: embeddingStr })
+    .update({ embedding: embedding })
     .eq('id', chunkId);
 
   if (error) {
