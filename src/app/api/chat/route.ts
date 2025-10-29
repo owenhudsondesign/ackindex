@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults } from '@/lib/retrieval';
+import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults, deduplicateResults } from '@/lib/retrieval';
 import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
 import { createClient } from '@supabase/supabase-js';
 
@@ -91,17 +91,21 @@ export async function POST(request: NextRequest) {
     console.log(`[Chat API] User ${user.id} authorized to query`);
 
     // Step 1: Retrieve relevant chunks
-    const results = await retrieveRelevantChunks(message, {
-      maxResults: 5,
-      minSimilarity: 0.7,
+    const rawResults = await retrieveRelevantChunks(message, {
+      maxResults: 10, // Get more results to deduplicate
+      minSimilarity: 0.5, // Lower threshold to catch more results
       includeDocumentInfo: true,
       searchMode: 'semantic',
     });
 
-    console.log(`[Chat API] Retrieved ${results.length} relevant chunks`);
+    console.log(`[Chat API] Retrieved ${rawResults.length} relevant chunks`);
 
-    // Step 2: Check if we have relevant information
-    if (!hasRelevantResults(results, 0.7)) {
+    // Step 2: Deduplicate results to avoid duplicate sources
+    const results = deduplicateResults(rawResults, 0.9); // Remove very similar content
+    console.log(`[Chat API] After deduplication: ${results.length} unique chunks`);
+
+    // Step 3: Check if we have relevant information (lower threshold)
+    if (!hasRelevantResults(results, 0.5)) {
       console.log('[Chat API] No relevant information found');
       return NextResponse.json({
         response: "I don't have enough information in my database to answer that question. I can only provide information about content that has been uploaded to AckIndex. Please try asking about topics covered in the uploaded documents, or consider uploading more relevant content.",
@@ -126,6 +130,7 @@ CRITICAL RULES:
 4. Be concise and direct
 5. If asked about current events or things not in the context, politely explain you only have access to uploaded documents
 6. Focus on civic information: permits, regulations, town meetings, etc.
+7. When you have relevant information, USE IT to answer the question directly
 
 Context from documents:
 ${context}
