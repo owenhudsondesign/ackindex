@@ -68,22 +68,39 @@ export async function startScrapeJob(
   try {
     const apifyClient = getApifyClient();
     
-    // Use custom PDF scraper actor with table extraction
-    const actorId = process.env.APIFY_ACTOR_ID || 'ackindex-pdf-actor';
+    // Choose actor based on environment variable
+    const useStagehand = process.env.USE_STAGEHAND_ACTOR === 'true';
+    const actorId = useStagehand 
+      ? (process.env.STAGEHAND_ACTOR_ID || 'legible_radish/stagehand-nantucket-scraper')
+      : (process.env.APIFY_ACTOR_ID || 'legible_radish/ackindex-pdf-actor');
 
-    console.log(`[Apify] Using custom actor: ${actorId}`);
+    console.log(`[Apify] Using ${useStagehand ? 'Stagehand' : 'Python'} actor: ${actorId}`);
     
-    // Custom actor with table extraction
-    console.log('[Apify] Using custom PDF scraper with table extraction');
-    const runConfig = {
-      startUrls: [{ url }],
-      downloadPdfs: extractPDFs,
-      maxCrawlDepth: maxDepth,
-      maxRequests: maxPages,
-      proxyConfiguration: {
-        useApifyProxy: false, // Custom actor doesn't need proxy
-      },
-    };
+    let runConfig: any;
+    
+    if (useStagehand) {
+      // Stagehand actor configuration
+      runConfig = {
+        startUrl: url,
+        maxPages: maxPages,
+        maxDepth: maxDepth,
+        extractPDFs: extractPDFs,
+        // OpenAI key should be set as environment variable in Apify actor
+      };
+      console.log('[Apify] Using Stagehand AI-powered scraper');
+    } else {
+      // Python actor configuration (legacy)
+      runConfig = {
+        startUrls: [{ url }],
+        downloadPdfs: extractPDFs,
+        maxCrawlDepth: maxDepth,
+        maxRequests: maxPages,
+        proxyConfiguration: {
+          useApifyProxy: false,
+        },
+      };
+      console.log('[Apify] Using Python PDF scraper with table extraction');
+    }
     
     const run = await apifyClient.actor(actorId).call(runConfig);
 
@@ -202,8 +219,33 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
         } else {
           console.log(`[Apify] Skipped page with insufficient content (${content.text.length} chars)`);
         }
+      } else if (item.type === 'pdf' && item.full_text) {
+        // PDF data from Stagehand actor
+        const content: ScrapedContent = {
+          url: item.url || '',
+          title: item.title || extractFilenameFromUrl(item.url || ''),
+          text: cleanText(item.full_text || ''),
+          pdfs: [{
+            url: item.url || '',
+            filename: extractFilenameFromUrl(item.url || ''),
+          }],
+          tables: item.tables || [],
+          metadata: {
+            crawledAt: item.scraped_at || new Date().toISOString(),
+            num_pages: item.num_pages || 0,
+            total_tables: item.total_tables || 0,
+            parser: item.parser || 'pdf-parse',
+            source_page: item.source_page || '',
+            ...item.metadata,
+          },
+        };
+        
+        if (content.text.length > 100 || (content.tables && content.tables.length > 0)) {
+          results.push(content);
+          console.log(`[Apify] Added PDF with ${content.text.length} characters`);
+        }
       } else if (item.status === 'success' && item.full_text) {
-        // PDF data with extracted content and tables
+        // PDF data from Python actor (legacy format)
         const content: ScrapedContent = {
           url: item.url || '',
           title: item.text || extractFilenameFromUrl(item.url || ''),
