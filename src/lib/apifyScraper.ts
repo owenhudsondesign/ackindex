@@ -159,7 +159,18 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
 
   try {
     const apifyClient = getApifyClient();
-    const { items } = await apifyClient.dataset(runId).listItems();
+    
+    // Get the run details to find the default dataset ID
+    const run = await apifyClient.run(runId).get();
+    const datasetId = run?.defaultDatasetId;
+    
+    if (!datasetId) {
+      console.error('[Apify] No dataset ID found for run:', runId);
+      throw new Error('No dataset found for this run');
+    }
+    
+    console.log(`[Apify] Using dataset ID: ${datasetId}`);
+    const { items } = await apifyClient.dataset(datasetId).listItems();
     
     console.log(`[Apify] Dataset has ${items.length} items`);
     
@@ -170,21 +181,26 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
       
       // Handle different item types from custom actor
       if (item.type === 'page') {
-        // Regular page data
+        // Regular page data with HTML content
         const content: ScrapedContent = {
           url: item.url || '',
           title: item.title || extractTitleFromUrl(item.url || ''),
-          text: '',
+          text: cleanText(item.text || ''),
           pdfs: [],
-          tables: [],
+          tables: item.tables || [],
           metadata: {
             crawledAt: new Date().toISOString(),
             pdf_count: item.pdf_count || 0,
+            text_length: item.text_length || 0,
           },
         };
         
-        if (content.url) {
+        // Only add pages with meaningful content
+        if (content.url && content.text.length > 100) {
           results.push(content);
+          console.log(`[Apify] Added page with ${content.text.length} characters`);
+        } else {
+          console.log(`[Apify] Skipped page with insufficient content (${content.text.length} chars)`);
         }
       } else if (item.status === 'success' && item.full_text) {
         // PDF data with extracted content and tables
