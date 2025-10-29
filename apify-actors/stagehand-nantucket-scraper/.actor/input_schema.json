@@ -1,0 +1,48 @@
+{
+  "title": "Stagehand Nantucket Scraper Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "startUrl": {
+      "title": "Start URL",
+      "type": "string",
+      "description": "The URL to start scraping from",
+      "editor": "textfield",
+      "prefill": "https://www.nantucket-ma.gov/2091/Annual-Town-Meeting"
+    },
+    "maxPages": {
+      "title": "Maximum Pages",
+      "type": "integer",
+      "description": "Maximum number of pages to scrape",
+      "editor": "number",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 100
+    },
+    "maxDepth": {
+      "title": "Maximum Crawl Depth",
+      "type": "integer",
+      "description": "How many levels deep to follow links",
+      "editor": "number",
+      "default": 2,
+      "minimum": 0,
+      "maximum": 5
+    },
+    "extractPDFs": {
+      "title": "Extract PDFs",
+      "type": "boolean",
+      "description": "Download and parse PDF documents",
+      "editor": "checkbox",
+      "default": true
+    },
+    "openaiApiKey": {
+      "title": "OpenAI API Key",
+      "type": "string",
+      "description": "OpenAI API key for Stagehand AI extraction (required)",
+      "editor": "textfield",
+      "isSecret": true
+    }
+  },
+  "required": ["startUrl", "openaiApiKey"]
+}
+
