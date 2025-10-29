@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Container, Card, Button, Loading } from '@/components';
+import PageLayout from '@/components/PageLayout';
 import { getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
@@ -122,8 +123,9 @@ function AccountContent() {
   const isPremium = dashboard.subscription_tier === 'premium';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pt-24 pb-16">
-      <Container>
+    <PageLayout>
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pt-24 pb-16">
+        <Container>
         {showSuccess && (
           <div className="mb-8 bg-green-50 border border-green-200 text-green-900 px-6 py-4 rounded-lg">
             <div className="flex items-center">
@@ -372,6 +374,7 @@ function AccountContent() {
         </div>
       </Container>
     </div>
+    </PageLayout>
   );
 }
 
