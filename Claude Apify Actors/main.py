@@ -13,11 +13,21 @@ import PyPDF2
 import io
 import aiohttp
 from playwright.async_api import async_playwright
+from openai import OpenAI
+import os
 
 class NantucketPDFCrawler:
-    def __init__(self):
+    def __init__(self, openai_api_key=None):
         self.pdf_results = []
         self.visited_urls = set()
+        self.openai_client = None
+        
+        # Initialize OpenAI if API key is provided
+        if openai_api_key:
+            self.openai_client = OpenAI(api_key=openai_api_key)
+            Actor.log.info('✅ OpenAI enabled for AI-powered content extraction')
+        else:
+            Actor.log.warning('⚠️ OpenAI API key not provided - using basic extraction')
         
     async def extract_pdf_links(self, html: str, page_url: str):
         """Extract all PDF links from HTML"""
@@ -75,6 +85,67 @@ class NantucketPDFCrawler:
                 links.append(absolute_url)
         
         return links
+    
+    def ai_extract_content(self, raw_text: str, page_title: str) -> str:
+        """
+        Use OpenAI to intelligently extract main content from HTML text.
+        This removes navigation, headers, footers, and boilerplate, keeping only meaningful content.
+        """
+        if not self.openai_client:
+            return raw_text  # Fallback to basic extraction
+        
+        try:
+            # Truncate if too long (GPT context limits)
+            text_to_analyze = raw_text[:8000] if len(raw_text) > 8000 else raw_text
+            
+            Actor.log.info(f'🤖 Using AI to extract clean content from: {page_title}')
+            
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are an expert content extractor for government websites. 
+Your job is to extract ONLY the main, meaningful content from web pages.
+
+REMOVE:
+- Navigation menus, breadcrumbs
+- Headers and footers
+- Social media links
+- "Last updated" dates
+- Copyright notices
+- Cookie notices
+- Contact info unless it's the main content
+- Repetitive boilerplate text
+
+KEEP:
+- Main article/page content
+- Meeting minutes and agendas
+- Official documents and reports
+- Important announcements
+- Policy information
+- Substantive text about the topic
+
+Return ONLY the cleaned, meaningful content. Be thorough - if the page has good content, include all of it."""
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Page title: {page_title}\n\nExtract the main content from this text:\n\n{text_to_analyze}"
+                    }
+                ],
+                temperature=0.3,
+                max_tokens=2000
+            )
+            
+            extracted_content = response.choices[0].message.content.strip()
+            
+            Actor.log.info(f'✅ AI extraction: {len(raw_text)} → {len(extracted_content)} characters')
+            
+            return extracted_content if extracted_content else raw_text
+            
+        except Exception as e:
+            Actor.log.error(f'❌ AI extraction failed: {str(e)} - falling back to basic extraction')
+            return raw_text
     
     async def download_and_parse_pdf(self, session: aiohttp.ClientSession, pdf_info: dict):
         """Download and parse a PDF file"""
@@ -243,7 +314,7 @@ class NantucketPDFCrawler:
 
 async def main():
     async with Actor:
-        Actor.log.info('Nantucket PDF Crawler starting...')
+        Actor.log.info('🚀 Nantucket PDF Crawler with AI starting...')
         
         # Get input
         actor_input = await Actor.get_input() or {}
@@ -260,7 +331,15 @@ async def main():
         max_pages = actor_input.get('maxRequests', 10)
         download_pdfs = actor_input.get('downloadPdfs', True)
         
-        crawler_instance = NantucketPDFCrawler()
+        # Get OpenAI API key from input or environment variable
+        openai_api_key = actor_input.get('openaiApiKey') or os.environ.get('OPENAI_API_KEY')
+        
+        if openai_api_key:
+            Actor.log.info('✅ OpenAI API key found - AI extraction enabled')
+        else:
+            Actor.log.warning('⚠️ No OpenAI API key - using basic extraction only')
+        
+        crawler_instance = NantucketPDFCrawler(openai_api_key=openai_api_key)
         
         # Create aiohttp session for downloading PDFs
         async with aiohttp.ClientSession() as session:
@@ -351,21 +430,28 @@ async def main():
                         
                         Actor.log.info(f'Extracted text length after cleaning: {len(page_text)} characters')
                         
-                        if len(page_text) < 100:
+                        # Use AI to further clean and extract meaningful content
+                        if openai_api_key and len(page_text) > 100:
+                            final_text = crawler_instance.ai_extract_content(page_text, page_title)
+                        else:
+                            final_text = page_text
+                        
+                        if len(final_text) < 100:
                             Actor.log.warning(f'Very little text extracted! HTML preview: {html[:500]}...')
                             Actor.log.warning(f'Raw text preview: {raw_body_text[:500]}...')
                         else:
-                            Actor.log.info(f'Text preview: {page_text[:300]}...')
+                            Actor.log.info(f'Final text preview: {final_text[:300]}...')
                         
-                        # Save page data with content
+                        # Save page data with AI-cleaned content
                         await Actor.push_data({
                             'url': url,
                             'type': 'page',
                             'title': page_title,
-                            'text': page_text,
-                            'text_length': len(page_text),
+                            'text': final_text,
+                            'text_length': len(final_text),
                             'pdf_count': len(pdf_links),
-                            'tables': []  # HTML pages don't have tables extracted yet
+                            'tables': [],  # HTML pages don't have tables extracted yet
+                            'ai_processed': bool(openai_api_key and len(page_text) > 100)
                         })
                         
                         # Extract more links to crawl

@@ -43,6 +43,13 @@
             "default": {
                 "useApifyProxy": false
             }
+        },
+        "openaiApiKey": {
+            "title": "OpenAI API Key",
+            "type": "string",
+            "description": "Optional: OpenAI API key for AI-powered content extraction. If provided, the scraper will use GPT-4o-mini to intelligently extract and clean page content, removing navigation and boilerplate.",
+            "editor": "textfield",
+            "isSecret": true
         }
     },
     "required": ["startUrls"]
