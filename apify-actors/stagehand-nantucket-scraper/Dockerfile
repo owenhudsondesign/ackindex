@@ -27,11 +27,12 @@ RUN npm --quiet set progress=false \
     && echo "NPM version:" \
     && npm --version
 
-# Install Playwright browsers after npm install
-RUN npx playwright install chromium --with-deps
+# Install Playwright browsers (skip system deps since we already installed them)
+RUN npx playwright install chromium
 
 # Set environment for Playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
+ENV PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
 
 # Copy source code
 COPY . ./
