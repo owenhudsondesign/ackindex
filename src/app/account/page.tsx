@@ -340,6 +340,19 @@ function AccountContent() {
                     <Button fullWidth>Upgrade to Premium</Button>
                   </Link>
                 )}
+                <div className="pt-3 border-t border-gray-200">
+                  <button
+                    onClick={async () => {
+                      const { signOut } = await import('@/lib/auth');
+                      await signOut();
+                      router.push('/login');
+                      router.refresh();
+                    }}
+                    className="w-full px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
               </div>
             </Card>
 
