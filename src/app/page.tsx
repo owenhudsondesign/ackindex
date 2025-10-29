@@ -49,11 +49,18 @@ export default function Home() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get response from chat API');
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        // Handle specific error cases
+        if (response.status === 401) {
+          throw new Error('AUTHENTICATION_REQUIRED');
+        } else if (response.status === 429) {
+          throw new Error('TOKEN_LIMIT_EXCEEDED');
+        } else {
+          throw new Error(data.error || 'Failed to get response from chat API');
+        }
+      }
 
       // Create assistant message with response
       const assistantMessage: Message = {
@@ -72,11 +79,24 @@ export default function Home() {
     } catch (error) {
       console.error('Chat error:', error);
 
+      // Handle specific error types
+      let errorContent = "I'm sorry, but I encountered an error while processing your request. Please try again later or contact support if the problem persists.";
+      
+      if (error instanceof Error) {
+        if (error.message === 'AUTHENTICATION_REQUIRED') {
+          errorContent = "🔐 **Please sign up or log in to use the chatbot.**\n\nTo ask questions about Nantucket civic documents, you'll need to create a free account. This helps us track usage and provide better service.\n\n[Sign up here](/signup) or [log in](/login) to get started!";
+        } else if (error.message === 'TOKEN_LIMIT_EXCEEDED') {
+          errorContent = "📊 **You've reached your monthly token limit.**\n\nFree accounts get 3,500 tokens per month (~25-30 questions). Upgrade to Premium for unlimited access!\n\n[Upgrade to Premium](/pricing) to continue asking questions.";
+        } else if (error.message.includes('Token limit exceeded')) {
+          errorContent = "📊 **You've reached your monthly token limit.**\n\nFree accounts get 3,500 tokens per month (~25-30 questions). Upgrade to Premium for unlimited access!\n\n[Upgrade to Premium](/pricing) to continue asking questions.";
+        }
+      }
+
       // Replace loading message with error message
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: "I'm sorry, but I encountered an error while processing your request. Please try again later or contact support if the problem persists.",
+        content: errorContent,
         citations: [],
       };
 
