@@ -207,9 +207,9 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
           },
         };
         
-        if (content.text.length > 100 || content.tables.length > 0) {
+        if (content.text.length > 100 || (content.tables && content.tables.length > 0)) {
           results.push(content);
-          console.log(`[Apify] Added PDF with ${content.tables.length} tables`);
+          console.log(`[Apify] Added PDF with ${content.tables?.length || 0} tables`);
         }
       } else if (item.url && item.url.toLowerCase().endsWith('.pdf')) {
         // PDF link without content
