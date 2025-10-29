@@ -21,14 +21,14 @@ export const PRICING = {
     price: 0,
     priceId: null, // No Stripe price ID for free tier
     features: [
-      '10,000 tokens per month',
+      '3,500 tokens per month',
       '~25-30 questions per month',
       'Full chatbot access',
       'Search all documents',
       'Weekly email updates',
       'Community support',
     ],
-    tokenLimit: 10000,
+    tokenLimit: 3500,
   },
   PREMIUM: {
     name: 'Premium',

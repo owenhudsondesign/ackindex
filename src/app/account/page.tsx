@@ -165,7 +165,7 @@ function AccountContent() {
                   <p className="text-gray-600">
                     {isPremium
                       ? 'Unlimited tokens and queries'
-                      : '10,000 tokens per month'}
+                      : '3,500 tokens per month'}
                   </p>
                 </div>
                 {isPremium ? (

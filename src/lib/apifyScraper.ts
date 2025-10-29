@@ -26,6 +26,15 @@ export interface ScrapedContent {
     url: string;
     filename: string;
   }>;
+  tables?: Array<{
+    page: number;
+    table_index: number;
+    rows: number;
+    cols: number;
+    data: any[][];
+    headers: any[];
+    body: any[][];
+  }>;
   metadata: Record<string, any>;
 }
 
@@ -59,72 +68,22 @@ export async function startScrapeJob(
   try {
     const apifyClient = getApifyClient();
     
-    // Use Apify's Website Content Crawler - best for PDF extraction
-    const actorId = process.env.APIFY_ACTOR_ID || 'apify/website-content-crawler';
+    // Use custom PDF scraper actor with table extraction
+    const actorId = process.env.APIFY_ACTOR_ID || 'ackindex-pdf-actor';
 
-    console.log(`[Apify] Using actor: ${actorId}`);
+    console.log(`[Apify] Using custom actor: ${actorId}`);
     
-    // Check if using custom PDF scraper actor
-    const isCustomPdfActor = actorId.includes('ackindex-pdf-actor');
-    
-    let runConfig: any;
-    
-    if (isCustomPdfActor) {
-      // Custom actor with table extraction
-      console.log('[Apify] Using custom PDF scraper with table extraction');
-      runConfig = {
-        startUrls: [{ url }],
-        downloadPdfs: extractPDFs,
-        maxCrawlDepth: maxDepth,
-        maxRequests: maxPages,
-        proxyConfiguration: {
-          useApifyProxy: false, // Custom actor doesn't need proxy
-        },
-      };
-    } else {
-      // Default website-content-crawler
-      console.log('[Apify] Using default website content crawler');
-      runConfig = {
-        startUrls: [{ url }],
-        crawlerType: 'playwright:firefox',
-        maxCrawlDepth: maxDepth,
-        maxCrawlPages: maxPages,
-        
-        // Link crawling settings
-        includeUrlGlobs: [],
-        excludeUrlGlobs: [],
-        
-        // Wait for dynamic content
-        waitForLoadMoreSecs: 5,
-        dynamicContentWaitSecs: 5,
-        
-        // Content extraction
-        readableTextCharThreshold: 100,
-        removeCookieWarnings: true,
-        removeElementsCssSelector: 'nav, footer, header, .nav, .footer, .header, #nav, #footer, #header',
-        
-        // PDF handling - download ALL PDFs
-        downloadFiles: extractPDFs,
-        downloadFileTypes: extractPDFs ? ['pdf'] : [],
-        maxFileDownloadSizeMB: 50,
-        
-        // Output settings
-        saveHtml: false,
-        saveMarkdown: true,
-        saveScreenshots: false,
-        saveFiles: extractPDFs,
-        
-        // Performance
-        maxRequestsPerCrawl: maxPages,
-        maxSessionRotations: 10,
-        requestTimeoutSecs: 60,
-        
-        // Proxy settings
-        proxyConfiguration: {
-          useApifyProxy: true,
-        },
-      };
-    }
+    // Custom actor with table extraction
+    console.log('[Apify] Using custom PDF scraper with table extraction');
+    const runConfig = {
+      startUrls: [{ url }],
+      downloadPdfs: extractPDFs,
+      maxCrawlDepth: maxDepth,
+      maxRequests: maxPages,
+      proxyConfiguration: {
+        useApifyProxy: false, // Custom actor doesn't need proxy
+      },
+    };
     
     const run = await apifyClient.actor(actorId).call(runConfig);
 
@@ -209,58 +168,67 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
     for (const item of items as any[]) {
       console.log(`[Apify] Processing item:`, JSON.stringify(item).substring(0, 300));
       
-      // Extract URL - website-content-crawler uses 'url'
-      const itemUrl = item.url || item.loadedUrl || '';
-      
-      // Extract text content - website-content-crawler uses 'text' or 'markdown'
-      const textContent = item.text || item.markdown || item.readableText || '';
-      
-      // Extract title - website-content-crawler uses metadata.title
-      const pageTitle = item.metadata?.title || item.title || extractTitleFromUrl(itemUrl);
-      
-      const content: ScrapedContent = {
-        url: itemUrl,
-        title: pageTitle,
-        text: cleanText(textContent),
-        pdfs: [],
-        metadata: {
-          crawledAt: item.loadedTime || item.crawledAt || new Date().toISOString(),
-          httpStatusCode: item.httpStatusCode || item.statusCode || 200,
-          depth: item.depth || 0,
-          ...item.metadata,
-        },
-      };
-      
-      // Extract PDFs from downloaded files
-      // website-content-crawler puts files in 'downloadedFiles' array
-      const downloadedFiles = item.downloadedFiles || item.files || [];
-      
-      if (Array.isArray(downloadedFiles) && downloadedFiles.length > 0) {
-        console.log(`[Apify] Found ${downloadedFiles.length} downloaded files on ${itemUrl}`);
+      // Handle different item types from custom actor
+      if (item.type === 'page') {
+        // Regular page data
+        const content: ScrapedContent = {
+          url: item.url || '',
+          title: item.title || extractTitleFromUrl(item.url || ''),
+          text: '',
+          pdfs: [],
+          tables: [],
+          metadata: {
+            crawledAt: new Date().toISOString(),
+            pdf_count: item.pdf_count || 0,
+          },
+        };
         
-        content.pdfs = downloadedFiles
-          .filter((f: any) => {
-            const fileUrl = f.url || f.path || f.key || '';
-            const isPdf = fileUrl.toLowerCase().endsWith('.pdf') || 
-                         fileUrl.toLowerCase().includes('.pdf') ||
-                         (f.mimeType && f.mimeType.includes('pdf'));
-            if (isPdf) {
-              console.log(`[Apify] Found PDF: ${fileUrl}`);
-            }
-            return isPdf;
-          })
-          .map((f: any) => ({
-            url: f.url || f.key || f.path || '',
-            filename: f.filename || extractFilenameFromUrl(f.url || f.key || f.path || ''),
-          }));
-      }
-      
-      // Only include pages with content or PDFs
-      if (content.text.length > 100 || content.pdfs.length > 0) {
-        results.push(content);
-        if (content.pdfs.length > 0) {
-          console.log(`[Apify] Added page with ${content.pdfs.length} PDFs`);
+        if (content.url) {
+          results.push(content);
         }
+      } else if (item.status === 'success' && item.full_text) {
+        // PDF data with extracted content and tables
+        const content: ScrapedContent = {
+          url: item.url || '',
+          title: item.text || extractFilenameFromUrl(item.url || ''),
+          text: cleanText(item.full_text || ''),
+          pdfs: [{
+            url: item.url || '',
+            filename: extractFilenameFromUrl(item.url || ''),
+          }],
+          tables: item.tables || [],
+          metadata: {
+            crawledAt: new Date().toISOString(),
+            num_pages: item.num_pages || 0,
+            total_tables: item.total_tables || 0,
+            parser: item.parser || 'unknown',
+            source_page: item.source_page || '',
+            ...item.metadata,
+          },
+        };
+        
+        if (content.text.length > 100 || content.tables.length > 0) {
+          results.push(content);
+          console.log(`[Apify] Added PDF with ${content.tables.length} tables`);
+        }
+      } else if (item.url && item.url.toLowerCase().endsWith('.pdf')) {
+        // PDF link without content
+        const content: ScrapedContent = {
+          url: item.url,
+          title: item.text || extractFilenameFromUrl(item.url),
+          text: '',
+          pdfs: [{
+            url: item.url,
+            filename: extractFilenameFromUrl(item.url),
+          }],
+          tables: [],
+          metadata: {
+            crawledAt: new Date().toISOString(),
+            source_page: item.source_page || '',
+          },
+        };
+        
+        results.push(content);
       }
     }
     

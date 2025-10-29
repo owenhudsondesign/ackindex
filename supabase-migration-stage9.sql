@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   subscription_status VARCHAR(20) DEFAULT 'active' CHECK (subscription_status IN ('active', 'cancelled', 'past_due', 'trialing')),
   
   -- Usage limits
-  monthly_token_limit INTEGER DEFAULT 10000, -- Free tier: 10k tokens/month
+  monthly_token_limit INTEGER DEFAULT 3500, -- Free tier: 3.5k tokens/month
   
   -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -305,12 +305,14 @@ ALTER TABLE subscription_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_subscribers ENABLE ROW LEVEL SECURITY;
 
 -- User Profiles: Users can read/update their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON user_profiles;
 CREATE POLICY "Users can view own profile"
   ON user_profiles
   FOR SELECT
   TO authenticated
   USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can update own profile" ON user_profiles;
 CREATE POLICY "Users can update own profile"
   ON user_profiles
   FOR UPDATE
@@ -318,6 +320,7 @@ CREATE POLICY "Users can update own profile"
   USING (id = auth.uid());
 
 -- Service role can do anything (for webhooks)
+DROP POLICY IF EXISTS "Service role full access to profiles" ON user_profiles;
 CREATE POLICY "Service role full access to profiles"
   ON user_profiles
   FOR ALL
@@ -325,12 +328,14 @@ CREATE POLICY "Service role full access to profiles"
   USING (true);
 
 -- Usage Tracking: Users can view their own usage
+DROP POLICY IF EXISTS "Users can view own usage" ON usage_tracking;
 CREATE POLICY "Users can view own usage"
   ON usage_tracking
   FOR SELECT
   TO authenticated
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Service role full access to usage" ON usage_tracking;
 CREATE POLICY "Service role full access to usage"
   ON usage_tracking
   FOR ALL
@@ -338,12 +343,14 @@ CREATE POLICY "Service role full access to usage"
   USING (true);
 
 -- Subscription History: Users can view their own history
+DROP POLICY IF EXISTS "Users can view own subscription history" ON subscription_history;
 CREATE POLICY "Users can view own subscription history"
   ON subscription_history
   FOR SELECT
   TO authenticated
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Service role full access to history" ON subscription_history;
 CREATE POLICY "Service role full access to history"
   ON subscription_history
   FOR ALL
@@ -351,6 +358,7 @@ CREATE POLICY "Service role full access to history"
   USING (true);
 
 -- Email Subscribers: Only service role can access
+DROP POLICY IF EXISTS "Service role full access to subscribers" ON email_subscribers;
 CREATE POLICY "Service role full access to subscribers"
   ON email_subscribers
   FOR ALL
@@ -408,7 +416,7 @@ END $$;
 Pricing Tiers:
 
 FREE TIER:
-- 10,000 tokens per month (~25-30 queries)
+- 3,500 tokens per month (~25-30 queries)
 - Email updates opt-in
 - Basic chat access
 

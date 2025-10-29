@@ -156,7 +156,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   await updateSubscription(userId, {
     tier: 'free',
     status: 'cancelled',
-    monthlyTokenLimit: 10000,
+        monthlyTokenLimit: 3500,
   });
 
   await logSubscriptionEvent(userId, 'subscription_cancelled', {

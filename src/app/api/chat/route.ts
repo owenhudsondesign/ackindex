@@ -138,7 +138,7 @@ Remember: Your knowledge is limited to the context above. Do not make up informa
       usage: {
         tokensUsed: totalTokens,
         tokensRemaining: dashboard?.tokens_remaining || 0,
-        monthlyLimit: dashboard?.monthly_token_limit || 10000,
+        monthlyLimit: dashboard?.monthly_token_limit || 3500,
       },
     });
   } catch (error) {

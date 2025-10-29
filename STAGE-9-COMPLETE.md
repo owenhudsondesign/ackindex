@@ -13,7 +13,7 @@ Stage 9 implements a complete user signup system with email newsletters, Stripe-
    - Full integration with Supabase Auth
 
 2. **Stripe Subscription Management**
-   - Free tier: 10,000 tokens/month (~25-30 questions)
+   - Free tier: 3,500 tokens/month (~25-30 questions)
    - Premium tier: $9.99/month with unlimited usage
    - Secure payment processing
    - Customer billing portal
@@ -308,7 +308,7 @@ User starts with fresh token allowance
 ## 💡 Pricing Breakdown
 
 ### Free Tier ($0/month)
-- ✅ 10,000 tokens per month
+- ✅ 3,500 tokens per month
 - ✅ ~25-30 questions per month
 - ✅ Full chatbot access
 - ✅ Search all documents
@@ -511,7 +511,7 @@ ORDER BY tokens_remaining ASC;
 
 ✅ **User Signup** - Beautiful signup flow with email opt-in  
 ✅ **Authentication** - Secure login/logout system  
-✅ **Free Tier** - 10,000 tokens/month with tracking  
+✅ **Free Tier** - 3,500 tokens/month with tracking  
 ✅ **Premium Tier** - Unlimited usage for $9.99/month  
 ✅ **Usage Tracking** - Real-time token consumption  
 ✅ **Usage Limits** - Automatic enforcement with upgrade prompts  
