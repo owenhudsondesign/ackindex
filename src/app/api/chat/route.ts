@@ -1,12 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults } from '@/lib/retrieval';
-import { getCurrentUser } from '@/lib/auth';
 import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
+import { createClient } from '@supabase/supabase-js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Server-side Supabase client for API routes
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
+
+// Get user from request headers (server-side)
+async function getUserFromRequest(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authHeader.substring(7);
+  
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      console.log('[Chat API] Auth error:', error?.message);
+      return null;
+    }
+
+    return {
+      id: user.id,
+      email: user.email || '',
+    };
+  } catch (error) {
+    console.log('[Chat API] Token validation error:', error);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,13 +63,16 @@ export async function POST(request: NextRequest) {
     console.log(`[Chat API] Received query: "${message}"`);
 
     // Check if user is authenticated
-    const user = await getCurrentUser();
+    const user = await getUserFromRequest(request);
     if (!user) {
+      console.log('[Chat API] No valid user found in request');
       return NextResponse.json(
         { error: 'Authentication required. Please sign up or log in to use the chatbot.' },
         { status: 401 }
       );
     }
+
+    console.log(`[Chat API] Authenticated user: ${user.email} (${user.id})`);
 
     // Check if user has tokens remaining
     const canQuery = await canUserQuery(user.id);

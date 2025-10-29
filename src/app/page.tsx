@@ -8,6 +8,7 @@ import ChatDialogue from '@/components/ChatDialogue';
 import EmptyState from '@/components/EmptyState';
 import { Message } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 export default function Home() {
@@ -56,11 +57,19 @@ export default function Home() {
     setMessages(prev => [...prev, loadingMessage]);
 
     try {
+      // Get the session token for API authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('AUTHENTICATION_REQUIRED');
+      }
+
       // Call the chat API
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           message,
