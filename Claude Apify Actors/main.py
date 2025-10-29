@@ -377,28 +377,10 @@ async def main():
         
         crawler_instance = NantucketPDFCrawler(openai_api_key=openai_api_key)
         
-        # Create aiohttp session for downloading PDFs
-        async with aiohttp.ClientSession() as session:
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(
-                    headless=True,
-                    args=[
-                        '--no-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-gpu',
-                        '--single-process',
-                    ],
-                )
-                context = await browser.new_context(
-                    viewport={ 'width': 1280, 'height': 800 },
-                    java_script_enabled=True,
-                )
-                page = await context.new_page()
-
-                # Block heavy resources to reduce memory usage
-                await context.route('**/*', lambda route: asyncio.create_task(
-                    route.abort() if route.request.resource_type in {'image', 'media', 'font', 'stylesheet'} else route.continue_()
-                ))
+        # Create aiohttp session for HTML + PDF fetching (no browser to save memory)
+        async with aiohttp.ClientSession(headers={
+            'User-Agent': 'Mozilla/5.0 (compatible; AckindexBot/1.0; +https://ackindex.com)'
+        }) as session:
                 
                 urls_to_visit = start_urls.copy()
                 pages_crawled = 0
@@ -419,16 +401,14 @@ async def main():
                     
                     try:
                         Actor.log.info(f'Processing ({pages_crawled}/{max_pages}): {url}')
-                        
-                        # Navigate to page and wait for DOM to be ready (faster than networkidle)
-                        await page.goto(url, wait_until='domcontentloaded', timeout=30000)
-                        
-                        # Additional wait for dynamic content to render
-                        await page.wait_for_timeout(2000)
-                        
-                        # Get HTML content after JavaScript has executed
-                        html = await page.content()
-                        page_title = await page.title()
+
+                        # Fetch HTML without rendering to save memory
+                        resp = await session.get(url, timeout=30)
+                        if resp.status >= 400:
+                            raise Exception(f'HTTP {resp.status}')
+                        html = await resp.text(errors='ignore')
+                        soup = BeautifulSoup(html, 'html.parser')
+                        page_title = (soup.title.string if soup.title and soup.title.string else url)[:200]
                         
                         Actor.log.info(f'Page loaded: {page_title} (HTML length: {len(html)} bytes)')
                         
@@ -450,8 +430,6 @@ async def main():
                                 await Actor.push_data(pdf_info)
                         
                         # Extract text content from the page
-                        soup = BeautifulSoup(html, 'html.parser')
-                        
                         # Log raw body length before cleaning
                         raw_body_text = soup.body.get_text() if soup.body else soup.get_text()
                         Actor.log.info(f'Raw body text length before cleaning: {len(raw_body_text)} characters')
@@ -511,18 +489,14 @@ async def main():
                         })
                         
                         # Extract more links to crawl
-                        if pages_crawled < max_pages:
+                        if pages_crawled < max_pages and max_depth > 0:
                             page_links = await crawler_instance.extract_page_links(html, url, start_urls[0])
-                            # Enforce max_depth by tracking distance from first start URL
-                            next_depth = 1  # minimal tracking since we don't store per-URL depth here
-                            if next_depth <= max_depth:
-                                urls_to_visit.extend(page_links[:max_pages - pages_crawled])
+                            urls_to_visit.extend(page_links[:max_pages - pages_crawled])
                         
                     except Exception as e:
                         Actor.log.error(f'Error processing {url}: {str(e)}')
                 
-                await context.close()
-                await browser.close()
+                # No browser context to close in light mode
         
         Actor.log.info(f'Crawling finished! Processed {pages_crawled} pages.')
 
