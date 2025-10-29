@@ -1,0 +1,21 @@
+{
+  "title": "CivicClerk Harvester Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "portalUrl": {
+      "title": "Portal URL",
+      "type": "string",
+      "description": "CivicClerk portal root (e.g., https://nantucketma.portal.civicclerk.com/)",
+      "default": "https://nantucketma.portal.civicclerk.com/"
+    },
+    "maxEvents": {
+      "title": "Max events to scan",
+      "type": "integer",
+      "default": 50
+    }
+  },
+  "required": ["portalUrl"]
+}
+
+
