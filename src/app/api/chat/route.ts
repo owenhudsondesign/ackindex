@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     // Step 1: Retrieve relevant chunks
     const rawResults = await retrieveRelevantChunks(message, {
       maxResults: 10, // Get more results to deduplicate
-      minSimilarity: 0.5, // Lower threshold to catch more results
+      minSimilarity: 0.7, // Back to original threshold
       includeDocumentInfo: true,
       searchMode: 'semantic',
     });
@@ -103,9 +103,18 @@ export async function POST(request: NextRequest) {
     // Step 2: Deduplicate results to avoid duplicate sources
     const results = deduplicateResults(rawResults, 0.9); // Remove very similar content
     console.log(`[Chat API] After deduplication: ${results.length} unique chunks`);
+    
+    // Debug: Log the results
+    if (results.length > 0) {
+      console.log(`[Chat API] Top result similarity: ${results[0].similarity}`);
+      console.log(`[Chat API] Top result content preview: ${results[0].content.substring(0, 200)}...`);
+    }
 
-    // Step 3: Check if we have relevant information (lower threshold)
-    if (!hasRelevantResults(results, 0.5)) {
+    // Step 3: Check if we have relevant information
+    const hasRelevant = hasRelevantResults(results, 0.7);
+    console.log(`[Chat API] Has relevant results: ${hasRelevant}`);
+    
+    if (!hasRelevant) {
       console.log('[Chat API] No relevant information found');
       return NextResponse.json({
         response: "I don't have enough information in my database to answer that question. I can only provide information about content that has been uploaded to AckIndex. Please try asking about topics covered in the uploaded documents, or consider uploading more relevant content.",
@@ -114,11 +123,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Step 3: Build context from retrieved chunks
+    // Step 4: Build context from retrieved chunks
     const context = buildContext(results);
     const citations = extractCitations(results);
 
     console.log(`[Chat API] Built context with ${citations.length} sources`);
+    console.log(`[Chat API] Context preview: ${context.substring(0, 300)}...`);
 
     // Step 4: Generate response with LLM
     const systemPrompt = `You are AckIndex, a helpful AI assistant for the Town of Nantucket. Your role is to answer questions based ONLY on the provided context from official town documents, permits, and records.
