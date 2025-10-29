@@ -139,6 +139,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Chat API] Built context with ${citations.length} sources`);
     console.log(`[Chat API] Context preview: ${context.substring(0, 300)}...`);
+    
+    // Debug: Log detailed results info
+    console.log(`[Chat API] Results details:`);
+    results.forEach((result, i) => {
+      console.log(`  Result ${i + 1}:`);
+      console.log(`    - Similarity: ${result.similarity}`);
+      console.log(`    - Content length: ${result.content?.length || 0}`);
+      console.log(`    - Document title: ${result.document?.title || 'No title'}`);
+      console.log(`    - Content preview: ${result.content?.substring(0, 100) || 'No content'}...`);
+    });
 
     // Step 4: Generate response with LLM
     const systemPrompt = `You are AckIndex, a helpful AI assistant for the Town of Nantucket. Your role is to answer questions based ONLY on the provided context from official town documents, permits, and records.
@@ -163,6 +173,11 @@ Remember: Your knowledge is limited to the context above. Do not make up informa
       { role: 'user', content: message },
     ];
 
+    // Debug: Log the full system prompt being sent to LLM
+    console.log(`[Chat API] System prompt length: ${systemPrompt.length} characters`);
+    console.log(`[Chat API] System prompt preview: ${systemPrompt.substring(0, 500)}...`);
+    console.log(`[Chat API] Context length: ${context.length} characters`);
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages,
@@ -172,7 +187,10 @@ Remember: Your knowledge is limited to the context above. Do not make up informa
 
     const response = completion.choices[0].message.content || 'I apologize, but I was unable to generate a response.';
 
-    console.log('[Chat API] Generated response successfully');
+    // Debug: Log the full LLM response
+    console.log(`[Chat API] LLM response: "${response}"`);
+    console.log(`[Chat API] Response length: ${response.length} characters`);
+    console.log(`[Chat API] Generated response successfully`);
 
     // Track usage
     const inputTokens = completion.usage?.prompt_tokens || 0;
