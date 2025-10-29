@@ -72,11 +72,33 @@ async function semanticSearch(
   // Generate embedding for the query
   console.log('[Retrieval] Generating query embedding...');
   const queryEmbedding = await generateEmbedding(query);
+  console.log(`[Retrieval] Query embedding generated: ${queryEmbedding.length} dimensions`);
 
   // Format for PostgreSQL
   const embeddingStr = `[${queryEmbedding.join(',')}]`;
+  console.log(`[Retrieval] Embedding string length: ${embeddingStr.length} characters`);
+
+  // First, let's check if the RPC function exists and if there are any chunks with embeddings
+  console.log('[Retrieval] Checking database state...');
+  
+  // Check if there are any chunks with embeddings
+  const { data: chunkCheck, error: chunkError } = await supabaseAdmin
+    .from('document_chunks')
+    .select('id, embedding')
+    .not('embedding', 'is', null)
+    .limit(1);
+  
+  if (chunkError) {
+    console.error('[Retrieval] Error checking chunks:', chunkError);
+  } else {
+    console.log(`[Retrieval] Chunks with embeddings: ${chunkCheck?.length || 0}`);
+    if (chunkCheck && chunkCheck.length > 0) {
+      console.log(`[Retrieval] Sample embedding length: ${chunkCheck[0].embedding?.length || 0}`);
+    }
+  }
 
   // Search using the database function
+  console.log(`[Retrieval] Calling search_similar_chunks with threshold=${minSimilarity}, count=${maxResults}`);
   const { data, error } = await supabaseAdmin.rpc('search_similar_chunks', {
     query_embedding: embeddingStr,
     match_threshold: minSimilarity,
@@ -85,13 +107,19 @@ async function semanticSearch(
 
   if (error) {
     console.error('[Retrieval] Database search error:', error);
+    console.error('[Retrieval] Error details:', JSON.stringify(error, null, 2));
     throw new Error('Database search failed');
   }
 
-  console.log(`[Retrieval] Found ${data?.length || 0} results`);
+  console.log(`[Retrieval] RPC returned ${data?.length || 0} results`);
+  if (data && data.length > 0) {
+    console.log(`[Retrieval] First result similarity: ${data[0].similarity}`);
+    console.log(`[Retrieval] First result content preview: ${data[0].content?.substring(0, 100)}...`);
+  }
 
   // Optionally fetch document info
   if (includeDocumentInfo && data && data.length > 0) {
+    console.log('[Retrieval] Enriching with document info...');
     return await enrichWithDocumentInfo(data);
   }
 
