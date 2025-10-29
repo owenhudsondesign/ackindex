@@ -18,7 +18,13 @@ try {
   const startUrl = /\/events/i.test(portalUrl) ? portalUrl : new URL('/events', portalUrl).href;
   console.log(`[Actor] Starting at: ${startUrl}`);
   await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  // Give the SPA time to render
   await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(3000);
+  // Nudge the list to load
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => window.scrollTo(0, 0));
 
   // Collect event links from the landing page
   const collectEventLinks = async () => {
@@ -29,10 +35,36 @@ try {
     return Array.from(new Set(links)).slice(0, maxEvents);
   };
 
-  const eventLinks = await collectEventLinks();
+  let eventLinks = await collectEventLinks();
   console.log(`[Actor] Detected ${eventLinks.length} event links`);
+  // Fallback 1: parse raw HTML for /event/{id} even if anchors aren’t attached yet
   if (eventLinks.length === 0) {
-    await Actor.pushData({ type: 'page', url: startUrl, note: 'No events detected', scraped_at: new Date().toISOString() });
+    const html = await page.content();
+    const rx = /\b\/event\/(\d+)[^"'\s>]*/gi;
+    const found = new Set();
+    let m;
+    while ((m = rx.exec(html)) !== null) {
+      try { found.add(new URL(m[0], startUrl).href); } catch {}
+      if (found.size >= maxEvents) break;
+    }
+    eventLinks = Array.from(found);
+    console.log(`[Actor] Fallback regex event links: ${eventLinks.length}`);
+  }
+  // Fallback 2: retry from portal root then navigate back to /events
+  if (eventLinks.length === 0) {
+    const root = new URL('/', startUrl).href;
+    console.log(`[Actor] Retrying from portal root: ${root}`);
+    await page.goto(root, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    eventLinks = await collectEventLinks();
+    console.log(`[Actor] After retry, event links: ${eventLinks.length}`);
+  }
+  if (eventLinks.length === 0) {
+    await Actor.pushData({ type: 'page', url: startUrl, note: 'No events detected after retries', scraped_at: new Date().toISOString() });
   }
 
   // Helper to push dataset entries
