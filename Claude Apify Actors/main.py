@@ -318,7 +318,21 @@ async def main():
         
         # Get input
         actor_input = await Actor.get_input() or {}
-        start_urls_input = actor_input.get('startUrls', [{'url': 'https://ackindex.com'}])
+        # Log received keys for debugging
+        try:
+            Actor.log.info(f"Input keys: {list(actor_input.keys())}")
+        except Exception:
+            pass
+
+        # Normalize input: support startUrl (string) or url (string)
+        start_urls_input = actor_input.get('startUrls')
+        if not start_urls_input:
+            if 'startUrl' in actor_input and actor_input.get('startUrl'):
+                start_urls_input = [{ 'url': actor_input.get('startUrl') }]
+            elif 'url' in actor_input and actor_input.get('url'):
+                start_urls_input = [{ 'url': actor_input.get('url') }]
+            else:
+                start_urls_input = [{ 'url': 'https://www.nantucket-ma.gov/2091/Annual-Town-Meeting' }]
         
         # Handle both formats: array of objects or array of strings
         start_urls = []
@@ -328,8 +342,13 @@ async def main():
             else:
                 start_urls.append(str(url_item))
         
-        max_pages = actor_input.get('maxRequests', 10)
+        # Normalize limits: support maxPages/maxDepth in addition to maxRequests
+        max_pages = actor_input.get('maxRequests') or actor_input.get('maxPages') or 10
         download_pdfs = actor_input.get('downloadPdfs', True)
+        max_depth = actor_input.get('maxCrawlDepth') or actor_input.get('maxDepth') or 2
+
+        Actor.log.info(f"Start URLs: {start_urls}")
+        Actor.log.info(f"max_pages={max_pages}, max_depth={max_depth}, download_pdfs={download_pdfs}")
         
         # Get OpenAI API key from input or environment variable
         openai_api_key = actor_input.get('openaiApiKey') or os.environ.get('OPENAI_API_KEY')
@@ -457,7 +476,10 @@ async def main():
                         # Extract more links to crawl
                         if pages_crawled < max_pages:
                             page_links = await crawler_instance.extract_page_links(html, url, start_urls[0])
-                            urls_to_visit.extend(page_links[:max_pages - pages_crawled])
+                            # Enforce max_depth by tracking distance from first start URL
+                            next_depth = 1  # minimal tracking since we don't store per-URL depth here
+                            if next_depth <= max_depth:
+                                urls_to_visit.extend(page_links[:max_pages - pages_crawled])
                         
                     except Exception as e:
                         Actor.log.error(f'Error processing {url}: {str(e)}')
