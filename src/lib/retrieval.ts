@@ -71,8 +71,10 @@ async function semanticSearch(
 ): Promise<RetrievalResult[]> {
   // Generate embedding for the query
   console.log('[Retrieval] Generating query embedding...');
+  console.log(`[Retrieval] Query text: "${query}"`);
   const queryEmbedding = await generateEmbedding(query);
   console.log(`[Retrieval] Query embedding generated: ${queryEmbedding.length} dimensions`);
+  console.log(`[Retrieval] First 5 embedding values: [${queryEmbedding.slice(0, 5).join(', ')}...]`);
 
   // Format for PostgreSQL
   const embeddingStr = `[${queryEmbedding.join(',')}]`;
@@ -99,6 +101,7 @@ async function semanticSearch(
 
   // Search using the database function
   console.log(`[Retrieval] Calling search_similar_chunks with threshold=${minSimilarity}, count=${maxResults}`);
+  console.log(`[Retrieval] Embedding string preview: ${embeddingStr.substring(0, 100)}...`);
   const { data, error } = await supabaseAdmin.rpc('search_similar_chunks', {
     query_embedding: embeddingStr,
     match_threshold: minSimilarity,
