@@ -272,6 +272,11 @@ async def main():
                     if url in crawler_instance.visited_urls:
                         continue
                     
+                    # Skip PDF URLs - they'll be downloaded separately
+                    if url.lower().endswith('.pdf') or '/DocumentCenter/View/' in url:
+                        Actor.log.info(f'Skipping direct PDF/document URL: {url}')
+                        continue
+                    
                     crawler_instance.visited_urls.add(url)
                     pages_crawled += 1
                     
