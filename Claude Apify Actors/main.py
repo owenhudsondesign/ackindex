@@ -283,11 +283,11 @@ async def main():
                     try:
                         Actor.log.info(f'Processing ({pages_crawled}/{max_pages}): {url}')
                         
-                        # Navigate to page and wait for full load
-                        await page.goto(url, wait_until='networkidle', timeout=60000)
+                        # Navigate to page and wait for DOM to be ready (faster than networkidle)
+                        await page.goto(url, wait_until='domcontentloaded', timeout=30000)
                         
                         # Additional wait for dynamic content to render
-                        await page.wait_for_timeout(3000)
+                        await page.wait_for_timeout(2000)
                         
                         # Get HTML content after JavaScript has executed
                         html = await page.content()
