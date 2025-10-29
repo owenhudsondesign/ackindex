@@ -9,8 +9,10 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
+    xvfb-run \
     xvfb \
-    dbus
+    dbus \
+    font-noto-emoji
 
 # Copy package files first
 COPY package*.json ./
