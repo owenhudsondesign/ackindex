@@ -13,6 +13,7 @@ import PyPDF2
 import io
 import aiohttp
 from playwright.async_api import async_playwright
+import gc
 from openai import OpenAI
 import os
 
@@ -154,10 +155,26 @@ Return ONLY the cleaned, meaningful content. Be thorough - if the page has good 
             
             async with session.get(pdf_info['url'], timeout=30) as response:
                 if response.status == 200:
+                    # Skip huge PDFs to avoid OOM (25 MB cap)
+                    try:
+                        content_len = response.headers.get('content-length')
+                        if content_len and int(content_len) > 25 * 1024 * 1024:
+                            Actor.log.warning(f"Skipping large PDF (>25MB): {pdf_info['url']}")
+                            return { **pdf_info, 'status': 'skipped_large' }
+                    except Exception:
+                        pass
+                    
                     pdf_content = await response.read()
+                    if len(pdf_content) > 25 * 1024 * 1024:
+                        Actor.log.warning(f"Skipping large PDF after download (>25MB): {pdf_info['url']}")
+                        return { **pdf_info, 'status': 'skipped_large' }
                     
                     # Parse PDF
                     parsed_data = self.parse_pdf_content(pdf_content)
+                    
+                    # Free memory ASAP
+                    del pdf_content
+                    gc.collect()
                     
                     return {
                         **pdf_info,
@@ -229,22 +246,22 @@ Return ONLY the cleaned, meaningful content. Be thorough - if the page has good 
             for page_num, page in enumerate(pdf.pages, 1):
                 try:
                     text = page.extract_text() or ""
-                    tables = page.extract_tables()
+                    # Extract only table counts to save memory
                     page_tables = []
-                    
-                    for table_idx, table in enumerate(tables):
-                        if table and len(table) > 0:
-                            table_data = {
-                                'page': page_num,
-                                'table_index': table_idx + 1,
-                                'rows': len(table),
-                                'cols': len(table[0]) if table else 0,
-                                'data': table,
-                                'headers': table[0] if table else [],
-                                'body': table[1:] if len(table) > 1 else []
-                            }
-                            page_tables.append(table_data)
-                            all_tables.append(table_data)
+                    try:
+                        tables = page.extract_tables()
+                        for table_idx, table in enumerate(tables):
+                            if table and len(table) > 0:
+                                table_data = {
+                                    'page': page_num,
+                                    'table_index': table_idx + 1,
+                                    'rows': len(table),
+                                    'cols': len(table[0]) if table else 0,
+                                }
+                                page_tables.append(table_data)
+                                all_tables.append(table_data)
+                    except Exception:
+                        pass
                     
                     pages_data.append({
                         'page_number': page_num,
@@ -363,8 +380,25 @@ async def main():
         # Create aiohttp session for downloading PDFs
         async with aiohttp.ClientSession() as session:
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
-                page = await browser.new_page()
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        '--no-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-gpu',
+                        '--single-process',
+                    ],
+                )
+                context = await browser.new_context(
+                    viewport={ 'width': 1280, 'height': 800 },
+                    java_script_enabled=True,
+                )
+                page = await context.new_page()
+
+                # Block heavy resources to reduce memory usage
+                await context.route('**/*', lambda route: asyncio.create_task(
+                    route.abort() if route.request.resource_type in {'image', 'media', 'font', 'stylesheet'} else route.continue_()
+                ))
                 
                 urls_to_visit = start_urls.copy()
                 pages_crawled = 0
@@ -402,11 +436,14 @@ async def main():
                         pdf_links = await crawler_instance.extract_pdf_links(html, url)
                         Actor.log.info(f'Found {len(pdf_links)} PDF(s) on {url}')
                         
-                        # Process each PDF
+                        # Process each PDF (limit to reduce memory)
                         if download_pdfs and pdf_links:
-                            for pdf_info in pdf_links:
+                            for pdf_info in pdf_links[:10]:
                                 result = await crawler_instance.download_and_parse_pdf(session, pdf_info)
                                 await Actor.push_data(result)
+                                # Help GC between large files
+                                del result
+                                gc.collect()
                         elif pdf_links:
                             # Just save PDF links without downloading
                             for pdf_info in pdf_links:
@@ -484,6 +521,7 @@ async def main():
                     except Exception as e:
                         Actor.log.error(f'Error processing {url}: {str(e)}')
                 
+                await context.close()
                 await browser.close()
         
         Actor.log.info(f'Crawling finished! Processed {pages_crawled} pages.')
