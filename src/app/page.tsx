@@ -1,16 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageLayout from '@/components/PageLayout';
 import Image from 'next/image';
 import ChatInput from '@/components/ChatInput';
 import ChatDialogue from '@/components/ChatDialogue';
 import EmptyState from '@/components/EmptyState';
 import { Message } from '@/lib/types';
+import { getCurrentUser } from '@/lib/auth';
+import Link from 'next/link';
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+      console.log('Auth check result:', currentUser ? 'Logged in' : 'Not logged in');
+    } catch (error) {
+      console.error('Auth check error:', error);
+      setUser(null);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const handleSubmit = async (message: string) => {
     // Add user message
@@ -156,6 +178,61 @@ export default function Home() {
           <p className="text-center text-ack-dark-gray mb-8 max-w-lg mx-auto">
             Want to know what&apos;s going on in Town? Have a question about zoning permits? AckIndex is here to help.
           </p>
+
+          {/* Authentication Status */}
+          {authLoading ? (
+            <div className="flex justify-center mb-6">
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                <span>Checking authentication...</span>
+              </div>
+            </div>
+          ) : user ? (
+            <div className="flex justify-center mb-6">
+              <div className="flex items-center space-x-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-green-800 font-medium">
+                  Logged in as {user.email}
+                </span>
+                <Link 
+                  href="/account" 
+                  className="text-xs text-green-600 hover:text-green-800 underline"
+                >
+                  View Account
+                </Link>
+                <button 
+                  onClick={checkAuth}
+                  className="text-xs text-green-600 hover:text-green-800 underline ml-2"
+                  title="Refresh authentication status"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center mb-6">
+              <div className="flex items-center space-x-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span className="text-sm text-yellow-800">
+                  Not logged in - 
+                </span>
+                <Link 
+                  href="/signup" 
+                  className="text-xs text-yellow-600 hover:text-yellow-800 underline font-medium"
+                >
+                  Sign up
+                </Link>
+                <span className="text-sm text-yellow-800">or</span>
+                <Link 
+                  href="/login" 
+                  className="text-xs text-yellow-600 hover:text-yellow-800 underline font-medium"
+                >
+                  log in
+                </Link>
+                <span className="text-sm text-yellow-800">to use the chatbot</span>
+              </div>
+            </div>
+          )}
 
           {/* Chat Input */}
           <ChatInput 
