@@ -27,7 +27,12 @@ class NantucketPDFCrawler:
         # Find all links
         for link in soup.find_all('a', href=True):
             href = link['href']
-            if href.lower().endswith('.pdf'):
+            # Check for direct .pdf links OR DocumentCenter/View links (common in government sites)
+            is_pdf = (href.lower().endswith('.pdf') or 
+                     '/DocumentCenter/View/' in href or
+                     'PDF' in href or 'pdf' in href)
+            
+            if is_pdf:
                 absolute_url = urljoin(page_url, href)
                 link_text = link.get_text(strip=True)
                 
