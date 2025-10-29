@@ -38,11 +38,11 @@
     "openaiApiKey": {
       "title": "OpenAI API Key",
       "type": "string",
-      "description": "OpenAI API key for Stagehand AI extraction (required)",
+      "description": "OpenAI API key for Stagehand AI extraction (optional if set as environment variable)",
       "editor": "textfield",
       "isSecret": true
     }
   },
-  "required": ["startUrl", "openaiApiKey"]
+  "required": ["startUrl"]
 }
 
