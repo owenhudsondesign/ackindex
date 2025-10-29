@@ -16,7 +16,7 @@ try {
     headers: { 'x-bb-api-key': bbKey, 'content-type': 'application/json' },
   });
   const { seleniumRemoteUrl, id: sessionId } = session.data;
-  Actor.log.info(`Browserbase session: ${sessionId}`);
+  console.log(`[Browserbase] Session: ${sessionId}`);
 
   const driver = await new Builder().forBrowser('chrome').usingServer(seleniumRemoteUrl).build();
 
@@ -37,7 +37,7 @@ try {
   };
 
   let events = await getEventLinks();
-  Actor.log.info(`Detected ${events.length} event links`);
+  console.log(`[Actor] Detected ${events.length} event links`);
   if (events.length === 0) {
     await Actor.pushData({ type: 'page', url: startUrl, note: 'No events detected', scraped_at: new Date().toISOString() });
   }
@@ -50,7 +50,7 @@ try {
   for (const ev of events) {
     try {
       const filesUrl = ev.endsWith('/files') ? ev : ev.replace(/\/?$/, '/files');
-      Actor.log.info(`Files page: ${filesUrl}`);
+      console.log(`[Actor] Files page: ${filesUrl}`);
       await driver.get(filesUrl);
       await driver.wait(until.elementLocated(By.css('body')),{ timeout: 30000 });
       await Actor.sleep(1000);
