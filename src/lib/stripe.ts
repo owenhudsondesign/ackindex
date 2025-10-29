@@ -35,15 +35,12 @@ export const PRICING = {
     price: 999, // $9.99 in cents
     priceId: process.env.STRIPE_PREMIUM_PRICE_ID || '', // Set in env
     features: [
-      'Unlimited tokens',
-      'Unlimited questions',
+      '50,000 tokens per month',
+      '~350-400 questions per month',
       'Priority support',
-      'Advanced search features',
-      'Early access to new features',
-      'Export conversation history',
-      'API access (coming soon)',
+      'Everything in Free, plus...',
     ],
-    tokenLimit: 999999999, // Effectively unlimited
+    tokenLimit: 50000,
   },
 } as const;
 

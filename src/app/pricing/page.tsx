@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Container, Button, Card } from '@/components';
+import PageLayout from '@/components/PageLayout';
 import { getCurrentUser } from '@/lib/auth';
 import { useEffect } from 'react';
 
@@ -69,8 +70,9 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      <Container className="py-16">
+    <PageLayout>
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+        <Container className="py-16">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
@@ -208,6 +210,11 @@ export default function PricingPage() {
               <p className="text-gray-600 mt-2">
                 For professionals & power users
               </p>
+              <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  <strong>50,000 tokens per month</strong> - Perfect for real estate agents, journalists, lawyers, and researchers who need frequent access to town documents and regulations.
+                </p>
+              </div>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -226,10 +233,10 @@ export default function PricingPage() {
                   />
                 </svg>
                 <span className="text-gray-700">
-                  <strong>Unlimited tokens</strong>
+                  <strong>50,000 tokens per month</strong>
                   <br />
                   <span className="text-sm text-gray-500">
-                    Ask as many questions as you need
+                    Approximately 350-400 questions
                   </span>
                 </span>
               </li>
@@ -267,73 +274,6 @@ export default function PricingPage() {
                 </svg>
                 <span className="text-gray-700">Priority support</span>
               </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-gray-700">Advanced search features</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-gray-700">Early access to new features</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-gray-700">Export conversation history</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-gray-700">
-                  API access{' '}
-                  <span className="text-sm text-gray-500">(coming soon)</span>
-                </span>
-              </li>
             </ul>
 
             <Button
@@ -343,6 +283,26 @@ export default function PricingPage() {
             >
               {loading === 'premium' ? 'Loading...' : 'Upgrade to Premium'}
             </Button>
+          </Card>
+        </div>
+
+        {/* Enterprise Notice */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <Card className="p-6 bg-gradient-to-r from-gray-50 to-blue-50 border-2 border-blue-200">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Need More Tokens?
+              </h3>
+              <p className="text-gray-600 mb-4">
+                For organizations or users who need more than 50,000 tokens per month, 
+                we offer custom enterprise pricing with volume discounts.
+              </p>
+              <Link href="/contact">
+                <Button variant="secondary" size="sm">
+                  Contact Us for Enterprise Pricing
+                </Button>
+              </Link>
+            </div>
           </Card>
         </div>
 
@@ -359,8 +319,8 @@ export default function PricingPage() {
               </h3>
               <p className="text-gray-600">
                 Tokens are units of text used by the AI. On average, one question and
-                answer uses about 300-400 tokens. With 3,500 tokens, you can ask
-                approximately 25-30 questions per month.
+                answer uses about 300-400 tokens. Free users get 3,500 tokens (~25-30 questions), 
+                while Premium users get 50,000 tokens (~350-400 questions) per month.
               </p>
             </Card>
 
@@ -382,7 +342,7 @@ export default function PricingPage() {
               <p className="text-gray-600">
                 You'll be notified when you're close to your limit. Once you reach
                 3,500 tokens, you won't be able to ask more questions until next month,
-                unless you upgrade to Premium.
+                unless you upgrade to Premium (50,000 tokens) or contact us for enterprise pricing.
               </p>
             </Card>
 
@@ -403,7 +363,8 @@ export default function PricingPage() {
               <p className="text-gray-600">
                 Premium is ideal for real estate professionals, journalists, researchers,
                 lawyers, and anyone who frequently needs information about Nantucket town
-                documents and regulations.
+                documents and regulations. With 50,000 tokens per month, professionals can 
+                ask hundreds of questions without worrying about limits.
               </p>
             </Card>
           </div>
@@ -421,8 +382,9 @@ export default function PricingPage() {
             <Button size="lg">Create Free Account</Button>
           </Link>
         </div>
-      </Container>
-    </div>
+        </Container>
+      </div>
+    </PageLayout>
   );
 }
 
