@@ -5,8 +5,12 @@ FROM apify/actor-python:3.11
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Playwright browsers
+RUN playwright install chromium
+RUN playwright install-deps chromium
+
 # Copy source code
 COPY . ./
 
 # Run the Actor
-CMD ["python", "apify_actor_main.py"]
+CMD ["python", "main.py"]
