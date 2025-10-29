@@ -282,13 +282,13 @@ async def main():
                         await page.goto(url, wait_until='networkidle', timeout=60000)
                         
                         # Additional wait for dynamic content to render
-                        await page.wait_for_timeout(2000)
+                        await page.wait_for_timeout(3000)
                         
                         # Get HTML content after JavaScript has executed
                         html = await page.content()
                         page_title = await page.title()
                         
-                        Actor.log.info(f'Page loaded: {page_title} (content length: {len(html)} bytes)')
+                        Actor.log.info(f'Page loaded: {page_title} (HTML length: {len(html)} bytes)')
                         
                         # Extract PDF links from this page
                         pdf_links = await crawler_instance.extract_pdf_links(html, url)
@@ -306,6 +306,10 @@ async def main():
                         
                         # Extract text content from the page
                         soup = BeautifulSoup(html, 'html.parser')
+                        
+                        # Log raw body length before cleaning
+                        raw_body_text = soup.body.get_text() if soup.body else soup.get_text()
+                        Actor.log.info(f'Raw body text length before cleaning: {len(raw_body_text)} characters')
                         
                         # Remove script and style elements, ads, and navigation
                         for element in soup(["script", "style", "nav", "header", "footer", "iframe", "noscript"]):
@@ -325,6 +329,7 @@ async def main():
                         
                         # Use main content if found, otherwise use entire body
                         content_element = main_content if main_content else soup.body if soup.body else soup
+                        Actor.log.info(f'Using content from: {"main content area" if main_content else "entire body"}')
                         
                         # Get text content
                         page_text = content_element.get_text(separator='\n', strip=True)
@@ -334,8 +339,13 @@ async def main():
                         chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
                         page_text = '\n'.join(chunk for chunk in chunks if chunk)
                         
-                        Actor.log.info(f'Extracted text length: {len(page_text)} characters')
-                        Actor.log.info(f'Text preview: {page_text[:200]}...')
+                        Actor.log.info(f'Extracted text length after cleaning: {len(page_text)} characters')
+                        
+                        if len(page_text) < 100:
+                            Actor.log.warning(f'Very little text extracted! HTML preview: {html[:500]}...')
+                            Actor.log.warning(f'Raw text preview: {raw_body_text[:500]}...')
+                        else:
+                            Actor.log.info(f'Text preview: {page_text[:300]}...')
                         
                         # Save page data with content
                         await Actor.push_data({
