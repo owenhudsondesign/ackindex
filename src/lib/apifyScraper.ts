@@ -64,46 +64,69 @@ export async function startScrapeJob(
 
     console.log(`[Apify] Using actor: ${actorId}`);
     
-    const run = await apifyClient.actor(actorId).call({
-      startUrls: [{ url }],
-      crawlerType: 'playwright:firefox',
-      maxCrawlDepth: maxDepth,
-      maxCrawlPages: maxPages,
-      
-      // Link crawling settings
-      includeUrlGlobs: [],
-      excludeUrlGlobs: [],
-      
-      // Wait for dynamic content
-      waitForLoadMoreSecs: 5,
-      dynamicContentWaitSecs: 5,
-      
-      // Content extraction
-      readableTextCharThreshold: 100,
-      removeCookieWarnings: true,
-      removeElementsCssSelector: 'nav, footer, header, .nav, .footer, .header, #nav, #footer, #header',
-      
-      // PDF handling - download ALL PDFs
-      downloadFiles: extractPDFs,
-      downloadFileTypes: extractPDFs ? ['pdf'] : [],
-      maxFileDownloadSizeMB: 50,
-      
-      // Output settings
-      saveHtml: false,
-      saveMarkdown: true,
-      saveScreenshots: false,
-      saveFiles: extractPDFs,
-      
-      // Performance
-      maxRequestsPerCrawl: maxPages,
-      maxSessionRotations: 10,
-      requestTimeoutSecs: 60,
-      
-      // Proxy settings
-      proxyConfiguration: {
-        useApifyProxy: true,
-      },
-    });
+    // Check if using custom PDF scraper actor
+    const isCustomPdfActor = actorId.includes('ackindex-pdf-actor');
+    
+    let runConfig: any;
+    
+    if (isCustomPdfActor) {
+      // Custom actor with table extraction
+      console.log('[Apify] Using custom PDF scraper with table extraction');
+      runConfig = {
+        startUrls: [{ url }],
+        downloadPdfs: extractPDFs,
+        maxCrawlDepth: maxDepth,
+        maxRequests: maxPages,
+        proxyConfiguration: {
+          useApifyProxy: false, // Custom actor doesn't need proxy
+        },
+      };
+    } else {
+      // Default website-content-crawler
+      console.log('[Apify] Using default website content crawler');
+      runConfig = {
+        startUrls: [{ url }],
+        crawlerType: 'playwright:firefox',
+        maxCrawlDepth: maxDepth,
+        maxCrawlPages: maxPages,
+        
+        // Link crawling settings
+        includeUrlGlobs: [],
+        excludeUrlGlobs: [],
+        
+        // Wait for dynamic content
+        waitForLoadMoreSecs: 5,
+        dynamicContentWaitSecs: 5,
+        
+        // Content extraction
+        readableTextCharThreshold: 100,
+        removeCookieWarnings: true,
+        removeElementsCssSelector: 'nav, footer, header, .nav, .footer, .header, #nav, #footer, #header',
+        
+        // PDF handling - download ALL PDFs
+        downloadFiles: extractPDFs,
+        downloadFileTypes: extractPDFs ? ['pdf'] : [],
+        maxFileDownloadSizeMB: 50,
+        
+        // Output settings
+        saveHtml: false,
+        saveMarkdown: true,
+        saveScreenshots: false,
+        saveFiles: extractPDFs,
+        
+        // Performance
+        maxRequestsPerCrawl: maxPages,
+        maxSessionRotations: 10,
+        requestTimeoutSecs: 60,
+        
+        // Proxy settings
+        proxyConfiguration: {
+          useApifyProxy: true,
+        },
+      };
+    }
+    
+    const run = await apifyClient.actor(actorId).call(runConfig);
 
     console.log(`[Apify] Job started with run ID: ${run.id}`);
     return run.id;
