@@ -99,6 +99,16 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`[Chat API] Retrieved ${rawResults.length} relevant chunks`);
+    
+    // Debug: Log raw results details
+    if (rawResults.length > 0) {
+      console.log(`[Chat API] Raw results details:`);
+      rawResults.forEach((result, i) => {
+        console.log(`  Result ${i + 1}: similarity=${result.similarity}, content_length=${result.content?.length || 0}`);
+      });
+    } else {
+      console.log(`[Chat API] No raw results found - this is the problem!`);
+    }
 
     // Step 2: Deduplicate results to avoid duplicate sources
     const results = deduplicateResults(rawResults, 0.9); // Remove very similar content
