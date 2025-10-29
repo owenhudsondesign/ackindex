@@ -8,14 +8,16 @@ from apify_client import ApifyClient
 import asyncio
 from bs4 import BeautifulSoup
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 import PyPDF2
 import io
 import aiohttp
+from playwright.async_api import async_playwright
 
 class NantucketPDFCrawler:
     def __init__(self):
         self.pdf_results = []
+        self.visited_urls = set()
         
     async def extract_pdf_links(self, html: str, page_url: str):
         """Extract all PDF links from HTML"""
@@ -49,6 +51,25 @@ class NantucketPDFCrawler:
                     })
         
         return pdf_links
+    
+    async def extract_page_links(self, html: str, base_url: str, start_url: str):
+        """Extract all page links for crawling"""
+        soup = BeautifulSoup(html, 'html.parser')
+        links = []
+        base_domain = urlparse(start_url).netloc
+        
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            absolute_url = urljoin(base_url, href)
+            
+            # Only crawl links from the same domain and not PDFs
+            parsed = urlparse(absolute_url)
+            if (parsed.netloc == base_domain and 
+                not absolute_url.lower().endswith('.pdf') and
+                absolute_url not in self.visited_urls):
+                links.append(absolute_url)
+        
+        return links
     
     async def download_and_parse_pdf(self, session: aiohttp.ClientSession, pdf_info: dict):
         """Download and parse a PDF file"""
@@ -221,62 +242,82 @@ async def main():
         
         # Get input
         actor_input = await Actor.get_input() or {}
-        start_urls = actor_input.get('startUrls', [{'url': 'https://ackindex.com'}])
-        max_depth = actor_input.get('maxCrawlDepth', 2)
+        start_urls_input = actor_input.get('startUrls', [{'url': 'https://ackindex.com'}])
+        
+        # Handle both formats: array of objects or array of strings
+        start_urls = []
+        for url_item in start_urls_input:
+            if isinstance(url_item, dict):
+                start_urls.append(url_item.get('url'))
+            else:
+                start_urls.append(str(url_item))
+        
+        max_pages = actor_input.get('maxRequests', 10)
         download_pdfs = actor_input.get('downloadPdfs', True)
         
         crawler_instance = NantucketPDFCrawler()
         
         # Create aiohttp session for downloading PDFs
         async with aiohttp.ClientSession() as session:
-            
-            # Define the request handler
-            async def request_handler(context):
-                """Handle each crawled page"""
-                url = context.request.url
-                Actor.log.info(f'Processing: {url}')
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
                 
-                # Get HTML content
-                html = await context.page.content()
+                urls_to_visit = start_urls.copy()
+                pages_crawled = 0
                 
-                # Extract PDF links from this page
-                pdf_links = await crawler_instance.extract_pdf_links(html, url)
-                Actor.log.info(f'Found {len(pdf_links)} PDF(s) on {url}')
+                while urls_to_visit and pages_crawled < max_pages:
+                    url = urls_to_visit.pop(0)
+                    
+                    if url in crawler_instance.visited_urls:
+                        continue
+                    
+                    crawler_instance.visited_urls.add(url)
+                    pages_crawled += 1
+                    
+                    try:
+                        Actor.log.info(f'Processing ({pages_crawled}/{max_pages}): {url}')
+                        
+                        # Navigate to page
+                        await page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                        
+                        # Get HTML content
+                        html = await page.content()
+                        page_title = await page.title()
+                        
+                        # Extract PDF links from this page
+                        pdf_links = await crawler_instance.extract_pdf_links(html, url)
+                        Actor.log.info(f'Found {len(pdf_links)} PDF(s) on {url}')
+                        
+                        # Process each PDF
+                        if download_pdfs and pdf_links:
+                            for pdf_info in pdf_links:
+                                result = await crawler_instance.download_and_parse_pdf(session, pdf_info)
+                                await Actor.push_data(result)
+                        elif pdf_links:
+                            # Just save PDF links without downloading
+                            for pdf_info in pdf_links:
+                                await Actor.push_data(pdf_info)
+                        
+                        # Save page data
+                        await Actor.push_data({
+                            'url': url,
+                            'type': 'page',
+                            'title': page_title,
+                            'pdf_count': len(pdf_links)
+                        })
+                        
+                        # Extract more links to crawl
+                        if pages_crawled < max_pages:
+                            page_links = await crawler_instance.extract_page_links(html, url, start_urls[0])
+                            urls_to_visit.extend(page_links[:max_pages - pages_crawled])
+                        
+                    except Exception as e:
+                        Actor.log.error(f'Error processing {url}: {str(e)}')
                 
-                # Process each PDF
-                if download_pdfs and pdf_links:
-                    for pdf_info in pdf_links:
-                        result = await crawler_instance.download_and_parse_pdf(session, pdf_info)
-                        await Actor.push_data(result)
-                elif pdf_links:
-                    # Just save PDF links without downloading
-                    for pdf_info in pdf_links:
-                        await Actor.push_data(pdf_info)
-                
-                # Save page data (optional)
-                await Actor.push_data({
-                    'url': url,
-                    'type': 'page',
-                    'title': await context.page.title(),
-                    'pdf_count': len(pdf_links)
-                })
-                
-                # Enqueue links for further crawling
-                await context.enqueue_links()
-            
-            # Create and run the crawler
-            from crawlee import PlaywrightCrawler
-            
-            crawler = PlaywrightCrawler(
-                max_request_retries=3,
-                max_requests_per_crawl=actor_input.get('maxRequests', 100),
-            )
-            
-            crawler.router.default_handler(request_handler)
-            
-            await crawler.run(start_urls)
+                await browser.close()
         
-        Actor.log.info('Crawling finished!')
+        Actor.log.info(f'Crawling finished! Processed {pages_crawled} pages.')
 
 
 if __name__ == '__main__':
