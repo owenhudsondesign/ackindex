@@ -7,12 +7,14 @@
       "title": "Portal URL",
       "type": "string",
       "description": "CivicClerk portal root (e.g., https://nantucketma.portal.civicclerk.com/)",
-      "default": "https://nantucketma.portal.civicclerk.com/"
+      "default": "https://nantucketma.portal.civicclerk.com/",
+      "editor": "textfield"
     },
     "maxEvents": {
       "title": "Max events to scan",
       "type": "integer",
-      "default": 50
+      "default": 50,
+      "editor": "number"
     }
   },
   "required": ["portalUrl"]
