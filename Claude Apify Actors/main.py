@@ -265,7 +265,7 @@ async def main():
                 await context.enqueue_links()
         
             # Create and run the crawler
-            from crawlee.playwright_crawler import PlaywrightCrawler
+            from crawlee import PlaywrightCrawler
             
             crawler = PlaywrightCrawler(
                 max_request_retries=3,
