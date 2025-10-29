@@ -278,12 +278,17 @@ async def main():
                     try:
                         Actor.log.info(f'Processing ({pages_crawled}/{max_pages}): {url}')
                         
-                        # Navigate to page
-                        await page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                        # Navigate to page and wait for full load
+                        await page.goto(url, wait_until='networkidle', timeout=60000)
                         
-                        # Get HTML content
+                        # Additional wait for dynamic content to render
+                        await page.wait_for_timeout(2000)
+                        
+                        # Get HTML content after JavaScript has executed
                         html = await page.content()
                         page_title = await page.title()
+                        
+                        Actor.log.info(f'Page loaded: {page_title} (content length: {len(html)} bytes)')
                         
                         # Extract PDF links from this page
                         pdf_links = await crawler_instance.extract_pdf_links(html, url)
@@ -302,17 +307,35 @@ async def main():
                         # Extract text content from the page
                         soup = BeautifulSoup(html, 'html.parser')
                         
-                        # Remove script and style elements
-                        for script in soup(["script", "style", "nav", "header", "footer"]):
-                            script.decompose()
+                        # Remove script and style elements, ads, and navigation
+                        for element in soup(["script", "style", "nav", "header", "footer", "iframe", "noscript"]):
+                            element.decompose()
+                        
+                        # Remove common ad and tracking elements
+                        for element in soup.find_all(class_=re.compile(r'(ad|advertisement|tracking|social-share)', re.I)):
+                            element.decompose()
+                        
+                        # Try to find main content areas (prioritize article, main, content divs)
+                        main_content = None
+                        for selector in ['article', 'main', '[role="main"]', '.content', '.main-content', '#content', '#main']:
+                            main_content = soup.select_one(selector)
+                            if main_content:
+                                Actor.log.info(f'Found main content using selector: {selector}')
+                                break
+                        
+                        # Use main content if found, otherwise use entire body
+                        content_element = main_content if main_content else soup.body if soup.body else soup
                         
                         # Get text content
-                        page_text = soup.get_text(separator='\n', strip=True)
+                        page_text = content_element.get_text(separator='\n', strip=True)
                         
                         # Clean up whitespace
                         lines = (line.strip() for line in page_text.splitlines())
                         chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
                         page_text = '\n'.join(chunk for chunk in chunks if chunk)
+                        
+                        Actor.log.info(f'Extracted text length: {len(page_text)} characters')
+                        Actor.log.info(f'Text preview: {page_text[:200]}...')
                         
                         # Save page data with content
                         await Actor.push_data({
