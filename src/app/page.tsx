@@ -27,59 +27,11 @@ export default function Home() {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
       console.log('Auth check result:', currentUser ? 'Logged in' : 'Not logged in');
-      
-      // If user is logged in, try to create admin profile
-      if (currentUser) {
-        await createAdminProfile(currentUser.id);
-      }
     } catch (error) {
       console.error('Auth check error:', error);
       setUser(null);
     } finally {
       setAuthLoading(false);
-    }
-  };
-
-  const createAdminProfile = async (userId: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data: existingProfile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (existingProfile) {
-        console.log('Profile already exists:', existingProfile);
-        return;
-      }
-
-      // Create admin profile
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: userId,
-          full_name: 'Owen Hudson',
-          subscription_tier: 'premium',
-          subscription_status: 'active',
-          monthly_token_limit: 50000,
-          role: 'admin',
-          email_updates_enabled: true,
-          email_updates_frequency: 'weekly'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating profile:', error);
-      } else {
-        console.log('✅ Created admin profile:', profile);
-        console.log('🎉 You now have admin access! Visit /admin to upload URLs');
-      }
-    } catch (error) {
-      console.error('Error creating admin profile:', error);
     }
   };
 
