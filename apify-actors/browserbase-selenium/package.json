@@ -1,0 +1,15 @@
+{
+  "name": "browserbase-selenium",
+  "version": "1.0.0",
+  "description": "Apify actor using Browserbase REST + Selenium to scrape CivicClerk PDFs",
+  "type": "module",
+  "main": "main.js",
+  "scripts": { "start": "node main.js" },
+  "dependencies": {
+    "apify": "^3.0.0",
+    "axios": "^1.7.7",
+    "selenium-webdriver": "^4.24.0"
+  }
+}
+
+

@@ -1,0 +1,37 @@
+{
+  "title": "Browserbase Selenium Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "portalUrl": {
+      "title": "Portal URL",
+      "type": "string",
+      "description": "CivicClerk portal root (e.g., https://nantucketma.portal.civicclerk.com/)",
+      "default": "https://nantucketma.portal.civicclerk.com/",
+      "editor": "textfield"
+    },
+    "maxEvents": {
+      "title": "Max events",
+      "type": "integer",
+      "description": "Upper bound on event pages to visit",
+      "default": 20,
+      "editor": "number"
+    },
+    "browserbaseApiKey": {
+      "title": "Browserbase API Key",
+      "type": "string",
+      "description": "If empty, will read from BROWSERBASE_API_KEY env",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "browserbaseProjectId": {
+      "title": "Browserbase Project ID",
+      "type": "string",
+      "description": "If empty, will read from BROWSERBASE_PROJECT_ID env",
+      "editor": "textfield"
+    }
+  },
+  "required": ["portalUrl"]
+}
+
+
