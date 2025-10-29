@@ -13,6 +13,7 @@
     "maxEvents": {
       "title": "Max events to scan",
       "type": "integer",
+      "description": "Upper bound on number of event files pages to visit (keeps runs fast)",
       "default": 50,
       "editor": "number"
     }
