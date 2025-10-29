@@ -101,8 +101,8 @@ async function processUrlScraping(
 
     // Start Apify scrape job
     const runId = await startScrapeJob(url, {
-      maxDepth: 2,
-      maxPages: 20,
+      maxDepth: 1,
+      maxPages: 5,
       extractPDFs: true,
     });
 
