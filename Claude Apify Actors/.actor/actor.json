@@ -1,7 +1,56 @@
 {
-	"actorSpecification": 1,
-	"name": "ackindex-pdf-actor",
-	"version": "0.0",
-	"buildTag": "latest",
-	"environmentVariables": {}
+  "actorSpecification": 1,
+  "name": "ackindex-pdf-actor",
+  "title": "Nantucket PDF Scraper",
+  "description": "Crawls Nantucket government websites, extracts PDFs, and parses content with table support",
+  "version": "1.0",
+  "dockerfile": "./Dockerfile",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": {
+            "fields": [
+              "url",
+              "title",
+              "type",
+              "status",
+              "num_pages",
+              "total_tables",
+              "text_length"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "url": {
+                "label": "URL",
+                "format": "link"
+              },
+              "title": {
+                "label": "Title"
+              },
+              "type": {
+                "label": "Type"
+              },
+              "status": {
+                "label": "Status"
+              },
+              "num_pages": {
+                "label": "Pages"
+              },
+              "total_tables": {
+                "label": "Tables"
+              },
+              "text_length": {
+                "label": "Text Length"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }

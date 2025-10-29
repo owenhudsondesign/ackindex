@@ -299,12 +299,30 @@ async def main():
                             for pdf_info in pdf_links:
                                 await Actor.push_data(pdf_info)
                         
-                        # Save page data
+                        # Extract text content from the page
+                        soup = BeautifulSoup(html, 'html.parser')
+                        
+                        # Remove script and style elements
+                        for script in soup(["script", "style", "nav", "header", "footer"]):
+                            script.decompose()
+                        
+                        # Get text content
+                        page_text = soup.get_text(separator='\n', strip=True)
+                        
+                        # Clean up whitespace
+                        lines = (line.strip() for line in page_text.splitlines())
+                        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                        page_text = '\n'.join(chunk for chunk in chunks if chunk)
+                        
+                        # Save page data with content
                         await Actor.push_data({
                             'url': url,
                             'type': 'page',
                             'title': page_title,
-                            'pdf_count': len(pdf_links)
+                            'text': page_text,
+                            'text_length': len(page_text),
+                            'pdf_count': len(pdf_links),
+                            'tables': []  # HTML pages don't have tables extracted yet
                         })
                         
                         # Extract more links to crawl
