@@ -1,10 +1,7 @@
 # Use Apify's Playwright image with Node.js 20
 FROM apify/actor-node-playwright-chrome:20
 
-# Set working directory
-WORKDIR /usr/src/app
-
-# Copy package files
+# Copy package files first
 COPY package*.json ./
 
 # Install dependencies
