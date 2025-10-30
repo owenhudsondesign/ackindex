@@ -12,6 +12,7 @@ import BatchURLUpload from '@/components/BatchURLUpload';
 import SignOutButton from '@/components/SignOutButton';
 import ActivityFeed from '@/components/ActivityFeed';
 import EmbeddingsManager from '@/components/EmbeddingsManager';
+import ScheduledScrapesManager from '@/components/ScheduledScrapesManager';
 import Loading from '@/components/Loading';
 import Card from '@/components/Card';
 
@@ -157,6 +158,11 @@ export default function AdminPage() {
           {/* Batch Upload */}
           <div className="mb-8">
             <BatchURLUpload />
+          </div>
+
+          {/* Scheduled Scrapes Manager */}
+          <div className="mb-8">
+            <ScheduledScrapesManager />
           </div>
 
           {/* Upload Forms */}

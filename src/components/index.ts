@@ -23,3 +23,4 @@ export { default as PDFUpload } from './PDFUpload';
 export { default as SignOutButton } from './SignOutButton';
 export { default as ActivityFeed } from './ActivityFeed';
 export { default as EmbeddingsManager } from './EmbeddingsManager';
+export { default as ScheduledScrapesManager } from './ScheduledScrapesManager';
