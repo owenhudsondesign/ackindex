@@ -53,6 +53,10 @@ await Actor.main(async () => {
   const visited = new Set();
   const queue = [{ url: startUrl, depth: 0 }];
   let pagesProcessed = 0;
+  
+  // Extract base domain to prevent going to parent/different sites
+  const startDomain = new URL(startUrl).hostname;
+  console.log(`🔒 Restricting crawl to domain: ${startDomain}`);
 
   try {
     while (queue.length > 0 && pagesProcessed < maxPages) {
@@ -62,13 +66,28 @@ await Actor.main(async () => {
       if (visited.has(url) || depth > maxDepth) {
         continue;
       }
+      
+      // Skip URLs that go to a different domain (prevents going backwards to parent sites)
+      try {
+        const urlDomain = new URL(url).hostname;
+        if (urlDomain !== startDomain) {
+          console.log(`⏭️ Skipping ${url} (different domain: ${urlDomain})`);
+          continue;
+        }
+      } catch (e) {
+        console.log(`⚠️ Invalid URL: ${url}`);
+        continue;
+      }
 
       visited.add(url);
       console.log(`📄 Processing (${pagesProcessed + 1}/${maxPages}): ${url}`);
 
       try {
-        // Navigate to page
-        await stagehand.page.goto(url, { waitUntil: 'networkidle' });
+        // Navigate to page with timeout
+        await stagehand.page.goto(url, { 
+          waitUntil: 'networkidle',
+          timeout: 20000 // 20 second timeout
+        });
         
         // Extract page content using AI
         const pageData = await stagehand.page.extract({
@@ -135,18 +154,25 @@ await Actor.main(async () => {
         // Find links for crawling (if not at max depth)
         if (depth < maxDepth) {
           const links = await stagehand.page.extract({
-            instruction: 'Find all navigation links and document links on this page that are relevant to the main content. Return absolute URLs only.',
+            instruction: 'Find links to meeting pages, agendas, agenda packets, and documents. DO NOT include navigation menus, breadcrumbs, or links to parent/home pages. Only return links that go deeper into meeting content or documents.',
             schema: z.object({
-              links: z.array(z.string()).describe('Array of absolute URLs found on the page')
+              links: z.array(z.string()).describe('Array of absolute URLs to meetings, agendas, and documents')
             })
           });
 
           if (links.links && Array.isArray(links.links)) {
+            console.log(`🔗 Found ${links.links.length} potential links to follow`);
             for (const link of links.links) {
               try {
                 const linkUrl = new URL(link, url).href;
-                if (!visited.has(linkUrl) && linkUrl.startsWith('http')) {
+                const linkDomain = new URL(linkUrl).hostname;
+                
+                // Only queue links within the same domain
+                if (!visited.has(linkUrl) && linkUrl.startsWith('http') && linkDomain === startDomain) {
+                  console.log(`➕ Queuing: ${linkUrl}`);
                   queue.push({ url: linkUrl, depth: depth + 1 });
+                } else if (linkDomain !== startDomain) {
+                  console.log(`⏭️ Skipping external link: ${linkUrl}`);
                 }
               } catch (e) {
                 // Invalid URL, skip
