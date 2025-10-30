@@ -8,17 +8,14 @@ export default function TestAPIPage() {
   const [chatResult, setChatResult] = useState<any>(null);
   const [loading, setLoading] = useState<string | null>(null);
 
-  // Note: Using anon key for testing. For admin operations, you should be authenticated.
-  const [apiKey, setApiKey] = useState('');
-
   async function testScrape() {
     setLoading('scrape');
     try {
+      // Call server-side endpoint that uses service key internally
       const response = await fetch('/api/admin/scrape-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           url: 'https://www.nantucket-ma.gov/1450/Building-Permits'
@@ -39,7 +36,6 @@ export default function TestAPIPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({ batchSize: 50 })
       });
@@ -58,7 +54,6 @@ export default function TestAPIPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           message: 'What are the requirements for building permits in Nantucket?'
@@ -76,21 +71,11 @@ export default function TestAPIPage() {
     <div style={{ maxWidth: '800px', margin: '50px auto', padding: '20px', fontFamily: 'monospace' }}>
       <h1>AckIndex API Tester</h1>
 
-      <section style={{ marginBottom: '40px', padding: '15px', background: '#fff3cd', borderRadius: '5px' }}>
-        <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>
-          API Key (paste your Supabase service role key):
-        </label>
-        <input
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="Paste your API key here"
-          style={{ width: '100%', padding: '10px', fontSize: '14px', fontFamily: 'monospace' }}
-        />
-        <p style={{ fontSize: '12px', color: '#856404', marginTop: '10px' }}>
-          ⚠️ Never commit API keys to git. This key is only stored in memory.
-        </p>
-      </section>
+      <p style={{ padding: '15px', background: '#d1ecf1', borderRadius: '5px', marginBottom: '30px' }}>
+        ℹ️ This page uses server-side authentication. All API keys are kept secure on the server.
+        <br/>
+        <strong>Note:</strong> You must be logged in as an admin to use these endpoints.
+      </p>
 
       <section style={{ marginBottom: '40px' }}>
         <h2>Step 1: Scrape URL</h2>
