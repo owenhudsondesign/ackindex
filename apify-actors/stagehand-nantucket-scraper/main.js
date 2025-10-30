@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { Stagehand } from '@stagehand/stagehand';
+import { Stagehand } from '@browserbasehq/stagehand';
 import pdfParse from 'pdf-parse';
 
 // Helper to clean extracted text

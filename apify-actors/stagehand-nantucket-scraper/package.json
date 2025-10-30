@@ -7,7 +7,7 @@
     "start": "node main.js"
   },
   "dependencies": {
-    "@stagehand/stagehand": "^1.0.0",
+    "@browserbasehq/stagehand": "^1.6.0",
     "apify": "^3.0.0",
     "pdf-parse": "^1.1.1"
   },
