@@ -1,5 +1,6 @@
 import { Actor } from 'apify';
 import { Stagehand } from '@browserbasehq/stagehand';
+import { z } from 'zod';
 import pdfParse from 'pdf-parse';
 
 // Helper to clean extracted text
@@ -72,11 +73,11 @@ await Actor.main(async () => {
         // Extract page content using AI
         const pageData = await stagehand.page.extract({
           instruction: 'Extract the main title, all body text content, and find all PDF links. Return clean, readable text without navigation menus or boilerplate.',
-          schema: {
-            title: 'string',
-            text: 'string',
-            pdfLinks: 'array of URLs to PDF files'
-          }
+          schema: z.object({
+            title: z.string().describe('The main page title'),
+            text: z.string().describe('All readable body text content'),
+            pdfLinks: z.array(z.string()).describe('Array of URLs to PDF files found on the page')
+          })
         });
 
         const cleanedText = cleanText(pageData.text);
@@ -135,9 +136,9 @@ await Actor.main(async () => {
         if (depth < maxDepth) {
           const links = await stagehand.page.extract({
             instruction: 'Find all navigation links and document links on this page that are relevant to the main content. Return absolute URLs only.',
-            schema: {
-              links: 'array of URLs'
-            }
+            schema: z.object({
+              links: z.array(z.string()).describe('Array of absolute URLs found on the page')
+            })
           });
 
           if (links.links && Array.isArray(links.links)) {
