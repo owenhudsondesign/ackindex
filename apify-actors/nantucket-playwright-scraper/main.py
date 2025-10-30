@@ -423,7 +423,9 @@ async def main():
 
                         # Find main content
                         main_content = None
-                        for selector in ['article', 'main', '[role="main"]', '.content', '.main-content', '#content', '#main']:
+                        # CivicEngage-specific selectors first, then generic ones
+                        for selector in ['.fr-view', '#PageContent', '.PageContent', '.module', '#panel',
+                                        'article', 'main', '[role="main"]', '.content', '.main-content', '#content', '#main']:
                             main_content = soup.select_one(selector)
                             if main_content:
                                 Actor.log.info(f'📍 Found main content: {selector}')
