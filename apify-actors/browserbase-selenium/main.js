@@ -15,10 +15,21 @@ try {
   const session = await axios.post('https://api.browserbase.com/v1/sessions', { projectId: bbProject }, {
     headers: { 'x-bb-api-key': bbKey, 'content-type': 'application/json' },
   });
-  const { seleniumRemoteUrl, id: sessionId } = session.data;
+  const { seleniumRemoteUrl, signingKey, id: sessionId } = session.data;
   console.log(`[Browserbase] Session: ${sessionId}`);
 
-  const driver = await new Builder().forBrowser('chrome').usingServer(seleniumRemoteUrl).build();
+  // Browserbase Selenium: embed signingKey in URL if provided
+  let remoteUrl = seleniumRemoteUrl;
+  if (signingKey) {
+    const url = new URL(seleniumRemoteUrl);
+    url.searchParams.set('signingKey', signingKey);
+    remoteUrl = url.href;
+  }
+  
+  const driver = await new Builder()
+    .forBrowser('chrome')
+    .usingServer(remoteUrl)
+    .build();
 
   const startUrl = /\/events/i.test(portalUrl) ? portalUrl : new URL('/events', portalUrl).href;
   await driver.get(startUrl);
