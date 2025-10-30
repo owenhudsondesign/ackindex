@@ -28,6 +28,20 @@ async function getSupabaseClient() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Basic env preflight to fail fast with clear messages
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return NextResponse.json({ message: 'Supabase URL/Anon key not configured' }, { status: 500 });
+    }
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn('[Scrape API] SUPABASE_SERVICE_ROLE_KEY is not set; DB writes may fail due to RLS');
+    }
+    if (!process.env.APIFY_API_TOKEN) {
+      return NextResponse.json({ message: 'APIFY_API_TOKEN is not configured' }, { status: 500 });
+    }
+    if (process.env.USE_STAGEHAND_ACTOR === 'true' && !process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ message: 'OPENAI_API_KEY required when USE_STAGEHAND_ACTOR=true' }, { status: 500 });
+    }
+
     // Check authentication
     const supabase = await getSupabaseClient();
     const {
