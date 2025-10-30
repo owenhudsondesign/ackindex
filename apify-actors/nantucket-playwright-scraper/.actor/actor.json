@@ -1,0 +1,10 @@
+{
+  "actorSpecification": 1,
+  "name": "nantucket-playwright-scraper",
+  "title": "Nantucket Government PDF Scraper (Playwright)",
+  "description": "Scrapes government websites using Playwright for JavaScript rendering, extracts PDFs and content",
+  "version": "1.0",
+  "buildTag": "latest",
+  "dockerfile": "./Dockerfile",
+  "input": "./input_schema.json"
+}
