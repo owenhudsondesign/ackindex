@@ -39,3 +39,20 @@ next-env.d.ts
 
 .env.local.bak
 .env
+
+# Python virtual environments
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Apify
+apify-actors/**/.venv/
+apify-actors/**/node_modules/
+apify-actors/**/__pycache__/
+*.zip
+
+# Additional app directories
+ackindex-app/

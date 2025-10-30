@@ -8,6 +8,7 @@ import PageLayout from '@/components/PageLayout';
 import Container from '@/components/Container';
 import URLUpload from '@/components/URLUpload';
 import PDFUpload from '@/components/PDFUpload';
+import BatchURLUpload from '@/components/BatchURLUpload';
 import SignOutButton from '@/components/SignOutButton';
 import ActivityFeed from '@/components/ActivityFeed';
 import EmbeddingsManager from '@/components/EmbeddingsManager';
@@ -151,6 +152,11 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Batch Upload */}
+          <div className="mb-8">
+            <BatchURLUpload />
           </div>
 
           {/* Upload Forms */}
