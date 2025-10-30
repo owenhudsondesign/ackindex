@@ -382,11 +382,17 @@ async def main():
                         Actor.log.info(f'📄 Processing ({pages_crawled}/{max_pages}): {url}')
 
                         # ⭐ FIX: Use Playwright to navigate and render JavaScript ⭐
-                        await page.goto(url, wait_until='networkidle', timeout=45000)
+                        try:
+                            await page.goto(url, wait_until='networkidle', timeout=60000)
+                        except Exception as e:
+                            # If networkidle times out, try with domcontentloaded
+                            Actor.log.warning(f'⚠️ Networkidle timeout, trying domcontentloaded: {str(e)}')
+                            await page.goto(url, wait_until='domcontentloaded', timeout=30000)
+
                         Actor.log.info('✅ Page loaded with Playwright')
 
                         # Wait for any dynamic content
-                        await page.wait_for_timeout(2000)
+                        await page.wait_for_timeout(3000)
 
                         # Get rendered HTML
                         html = await page.content()
