@@ -101,29 +101,50 @@ export async function POST(request: NextRequest) {
     
     const cronUrl = `${baseUrl}/api/cron/scrape`;
 
-    console.log(`[Manual Trigger] Calling cron endpoint: ${cronUrl}`);
+        console.log(`[Manual Trigger] Calling cron endpoint: ${cronUrl}`);
 
-    // Call the cron endpoint
-    const cronResponse = await fetch(cronUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${cronSecret}`,
-      },
-    });
+        // Call the cron endpoint
+        const cronResponse = await fetch(cronUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${cronSecret}`,
+          },
+        });
 
-    const cronResult = await cronResponse.json();
+        console.log(`[Manual Trigger] Cron response status: ${cronResponse.status}`);
 
-    if (!cronResponse.ok) {
-      console.error('[Manual Trigger] Cron job failed:', cronResult);
-      return NextResponse.json(
-        {
-          error: 'Cron job failed',
-          details: cronResult,
-          cronUrl,
-        },
-        { status: 500 }
-      );
-    }
+        // Get the response text first
+        const responseText = await cronResponse.text();
+        console.log(`[Manual Trigger] Cron response (first 500 chars): ${responseText.substring(0, 500)}`);
+
+        // Try to parse as JSON
+        let cronResult;
+        try {
+          cronResult = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('[Manual Trigger] Failed to parse cron response as JSON:', parseError);
+          return NextResponse.json(
+            {
+              error: 'Cron endpoint returned invalid response',
+              responseStatus: cronResponse.status,
+              responsePreview: responseText.substring(0, 500),
+              hint: 'The cron endpoint might be missing environment variables like CRON_SECRET, NEXT_PUBLIC_SUPABASE_URL, or SUPABASE_SERVICE_ROLE_KEY',
+            },
+            { status: 500 }
+          );
+        }
+
+        if (!cronResponse.ok) {
+          console.error('[Manual Trigger] Cron job failed:', cronResult);
+          return NextResponse.json(
+            {
+              error: 'Cron job failed',
+              details: cronResult,
+              cronUrl,
+            },
+            { status: 500 }
+          );
+        }
 
     console.log('[Manual Trigger] Cron job completed successfully:', cronResult);
 
