@@ -137,17 +137,17 @@ Return ONLY the cleaned, meaningful content."""
 
             async with session.get(pdf_info['url'], timeout=30) as response:
                 if response.status == 200:
-                    # Skip large PDFs (10 MB cap to save memory)
+                    # Skip large PDFs (5 MB cap for ultra-low memory)
                     try:
                         content_len = response.headers.get('content-length')
-                        if content_len and int(content_len) > 10 * 1024 * 1024:
-                            Actor.log.warning(f"⚠️ Skipping large PDF (>10MB)")
+                        if content_len and int(content_len) > 5 * 1024 * 1024:
+                            Actor.log.warning(f"⚠️ Skipping large PDF (>5MB)")
                             return { **pdf_info, 'status': 'skipped_large' }
                     except Exception:
                         pass
 
                     pdf_content = await response.read()
-                    if len(pdf_content) > 10 * 1024 * 1024:
+                    if len(pdf_content) > 5 * 1024 * 1024:
                         Actor.log.warning(f"⚠️ Skipping large PDF after download")
                         return { **pdf_info, 'status': 'skipped_large' }
 
@@ -400,14 +400,16 @@ async def main():
                         pdf_links = await crawler_instance.extract_pdf_links(html, url)
                         Actor.log.info(f'🔗 Found {len(pdf_links)} PDF(s) on {url}')
 
-                        # Process PDFs - limit to 5 per page to save memory
+                        # Process PDFs - limit to 2 per page for ultra-low memory (1GB tier)
                         if download_pdfs and pdf_links:
-                            Actor.log.info(f'📥 Processing {min(5, len(pdf_links))} PDFs (out of {len(pdf_links)} found)')
-                            for pdf_info in pdf_links[:5]:
+                            Actor.log.info(f'📥 Processing {min(2, len(pdf_links))} PDFs (out of {len(pdf_links)} found)')
+                            for pdf_info in pdf_links[:2]:
                                 result = await crawler_instance.download_and_parse_pdf(session, pdf_info)
                                 await Actor.push_data(result)
                                 del result
                                 gc.collect()
+                                # Brief pause to allow garbage collection
+                                await asyncio.sleep(0.1)
                         elif pdf_links:
                             for pdf_info in pdf_links:
                                 await Actor.push_data(pdf_info)
