@@ -68,20 +68,35 @@ export async function POST(request: NextRequest) {
       console.log('[Manual Trigger] Updated all pending scrapes to run immediately');
     }
 
+    console.log('[Manual Trigger] URLs updated, now triggering cron job...');
+
     // Now trigger the cron job
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret) {
       console.error('[Manual Trigger] CRON_SECRET not configured');
       return NextResponse.json(
-        { error: 'Cron job not properly configured' },
+        { 
+          error: 'CRON_SECRET not configured',
+          hint: 'Add CRON_SECRET to your environment variables'
+        },
         { status: 500 }
       );
     }
 
     // Get the base URL for the cron endpoint
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   `https://${process.env.VERCEL_URL}` ||
-                   'http://localhost:3000';
+                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+    
+    if (!baseUrl) {
+      console.error('[Manual Trigger] No base URL available');
+      return NextResponse.json(
+        { 
+          error: 'Cannot determine base URL',
+          hint: 'Set NEXT_PUBLIC_SITE_URL or VERCEL_URL environment variable'
+        },
+        { status: 500 }
+      );
+    }
     
     const cronUrl = `${baseUrl}/api/cron/scrape`;
 
@@ -103,6 +118,7 @@ export async function POST(request: NextRequest) {
         {
           error: 'Cron job failed',
           details: cronResult,
+          cronUrl,
         },
         { status: 500 }
       );
@@ -132,34 +148,45 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Manual Trigger GET] Fetching scheduled scrapes...');
+    
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const status = searchParams.get('status') || 'active';
 
-    const query = supabase
+    console.log(`[Manual Trigger GET] Query params - limit: ${limit}, status: ${status}`);
+
+    // Build query
+    let query = supabase
       .from('scheduled_scrapes')
       .select('*')
       .order('priority', { ascending: false })
-      .order('next_scrape_at', { ascending: true })
+      .order('next_scrape_at', { ascending: true, nullsFirst: true })
       .limit(limit);
 
     if (status !== 'all') {
-      query.eq('status', status);
+      query = query.eq('status', status);
     }
 
     const { data, error } = await query;
 
     if (error) {
-      console.error('[Manual Trigger] Error fetching scheduled scrapes:', error);
+      console.error('[Manual Trigger GET] Error fetching scheduled scrapes:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch scheduled scrapes' },
+        { 
+          error: 'Failed to fetch scheduled scrapes',
+          details: error.message,
+          hint: error.hint || 'Check RLS policies and service role key',
+        },
         { status: 500 }
       );
     }
 
+    console.log(`[Manual Trigger GET] Successfully fetched ${data?.length || 0} scrapes`);
+
     return NextResponse.json({ scrapes: data || [] });
   } catch (error) {
-    console.error('[Manual Trigger] Error:', error);
+    console.error('[Manual Trigger GET] Unexpected error:', error);
     return NextResponse.json(
       {
         error: 'Internal server error',
