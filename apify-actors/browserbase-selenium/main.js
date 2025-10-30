@@ -61,17 +61,21 @@ try {
     }
   }
 
-  const { seleniumRemoteUrl, signingKey, id } = session.data;
+  const { seleniumRemoteUrl, connectUrl, signingKey, id } = session.data;
   sessionId = id;
   console.log(`[Browserbase] Session: ${sessionId}`);
 
-  // Browserbase Selenium: embed signingKey in URL if provided
-  let remoteUrl = seleniumRemoteUrl;
-  if (signingKey) {
-    const url = new URL(seleniumRemoteUrl);
-    url.searchParams.set('signingKey', signingKey);
+  // Prefer connectUrl if provided; otherwise embed apiKey and signingKey
+  let remoteUrl = connectUrl || seleniumRemoteUrl;
+  try {
+    const url = new URL(remoteUrl);
+    // If no username present, embed API key as basic auth
+    if (!url.username && bbHeaders && bbHeaders['x-bb-api-key']) {
+      url.username = bbHeaders['x-bb-api-key'];
+    }
+    if (signingKey) url.searchParams.set('signingKey', signingKey);
     remoteUrl = url.href;
-  }
+  } catch {}
   
   const driver = await new Builder()
     .forBrowser('chrome')
