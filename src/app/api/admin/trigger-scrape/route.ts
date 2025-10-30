@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { executeScheduledScraping } from '@/lib/scheduledScraping';
 
 // Server-side Supabase client with service role key
 const supabase = createClient(
@@ -15,8 +16,8 @@ const supabase = createClient(
 
 /**
  * Manually trigger scraping for specific URLs or all pending URLs
- * This is a synchronous trigger - it calls the cron endpoint internally
- * Updated: 2025-10-30
+ * This directly executes the scraping logic without needing to call the cron endpoint
+ * Updated: 2025-10-30 - Refactored to use shared scraping logic
  */
 export async function POST(request: NextRequest) {
   try {
@@ -69,89 +70,17 @@ export async function POST(request: NextRequest) {
       console.log('[Manual Trigger] Updated all pending scrapes to run immediately');
     }
 
-    console.log('[Manual Trigger] URLs updated, now triggering cron job...');
+    console.log('[Manual Trigger] URLs updated, now executing scraping...');
 
-    // Now trigger the cron job
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) {
-      console.error('[Manual Trigger] CRON_SECRET not configured');
-      return NextResponse.json(
-        { 
-          error: 'CRON_SECRET not configured',
-          hint: 'Add CRON_SECRET to your environment variables'
-        },
-        { status: 500 }
-      );
-    }
+    // Execute the scraping directly using shared logic
+    const results = await executeScheduledScraping(5); // Process 5 URLs at a time
 
-    // Get the base URL for the cron endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
-    
-    if (!baseUrl) {
-      console.error('[Manual Trigger] No base URL available');
-      return NextResponse.json(
-        { 
-          error: 'Cannot determine base URL',
-          hint: 'Set NEXT_PUBLIC_SITE_URL or VERCEL_URL environment variable'
-        },
-        { status: 500 }
-      );
-    }
-    
-    const cronUrl = `${baseUrl}/api/cron/scrape`;
-
-        console.log(`[Manual Trigger] Calling cron endpoint: ${cronUrl}`);
-
-        // Call the cron endpoint
-        const cronResponse = await fetch(cronUrl, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${cronSecret}`,
-          },
-        });
-
-        console.log(`[Manual Trigger] Cron response status: ${cronResponse.status}`);
-
-        // Get the response text first
-        const responseText = await cronResponse.text();
-        console.log(`[Manual Trigger] Cron response (first 500 chars): ${responseText.substring(0, 500)}`);
-
-        // Try to parse as JSON
-        let cronResult;
-        try {
-          cronResult = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('[Manual Trigger] Failed to parse cron response as JSON:', parseError);
-          return NextResponse.json(
-            {
-              error: 'Cron endpoint returned invalid response',
-              responseStatus: cronResponse.status,
-              responsePreview: responseText.substring(0, 500),
-              hint: 'The cron endpoint might be missing environment variables like CRON_SECRET, NEXT_PUBLIC_SUPABASE_URL, or SUPABASE_SERVICE_ROLE_KEY',
-            },
-            { status: 500 }
-          );
-        }
-
-        if (!cronResponse.ok) {
-          console.error('[Manual Trigger] Cron job failed:', cronResult);
-          return NextResponse.json(
-            {
-              error: 'Cron job failed',
-              details: cronResult,
-              cronUrl,
-            },
-            { status: 500 }
-          );
-        }
-
-    console.log('[Manual Trigger] Cron job completed successfully:', cronResult);
+    console.log('[Manual Trigger] Scraping completed successfully:', results);
 
     return NextResponse.json({
       success: true,
       message: 'Scraping triggered successfully',
-      result: cronResult,
+      result: results,
     });
   } catch (error) {
     console.error('[Manual Trigger] Error:', error);
