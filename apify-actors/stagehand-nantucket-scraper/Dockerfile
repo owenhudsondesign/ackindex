@@ -1,24 +1,25 @@
 # Use plain Apify Node.js 20 image (let Stagehand manage its own Playwright)
 FROM apify/actor-node:20
 
-# Install system dependencies for Playwright (Alpine Linux)
+# Install system dependencies needed for Playwright's Chromium (Alpine Linux)
 RUN apk add --no-cache \
+    chromium \
     nss \
     freetype \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
-    chromium
+    font-noto-emoji \
+    wqy-zenhei
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (Stagehand will bring its own Playwright)
+# Install Node.js dependencies
 RUN npm install --production
 
-# Set environment variable to use system Chromium
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+# Install Playwright's Chromium browser
+RUN npx playwright install chromium
 
 # Copy source code
 COPY . ./
