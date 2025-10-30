@@ -225,7 +225,13 @@ export default function BatchURLUpload() {
         )}
       </div>
 
-      {toast.show && <Toast message={toast.message} type={toast.type} />}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ show: false, message: '', type: 'success' })}
+        />
+      )}
     </>
   );
 }
