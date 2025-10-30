@@ -4,6 +4,9 @@ import { Builder, By, until } from 'selenium-webdriver';
 
 await Actor.init();
 
+let sessionId;
+let bbHeaders;
+
 try {
   const input = (await Actor.getInput()) || {};
   const portalUrl = input.portalUrl || 'https://nantucketma.portal.civicclerk.com/';
@@ -12,10 +15,54 @@ try {
   const bbProject = input.browserbaseProjectId || process.env.BROWSERBASE_PROJECT_ID;
   if (!bbKey || !bbProject) throw new Error('Missing Browserbase credentials');
 
-  const session = await axios.post('https://api.browserbase.com/v1/sessions', { projectId: bbProject }, {
-    headers: { 'x-bb-api-key': bbKey, 'content-type': 'application/json' },
-  });
-  const { seleniumRemoteUrl, signingKey, id: sessionId } = session.data;
+  bbHeaders = { 'x-bb-api-key': bbKey, 'content-type': 'application/json' };
+
+  // Check for and close any active sessions to avoid 429 errors
+  console.log('[Browserbase] Checking for active sessions...');
+  try {
+    const activeSessions = await axios.get(`https://api.browserbase.com/v1/sessions?projectId=${bbProject}&status=active`, {
+      headers: bbHeaders,
+    });
+    if (activeSessions.data && activeSessions.data.length > 0) {
+      console.log(`[Browserbase] Found ${activeSessions.data.length} active session(s), closing...`);
+      for (const sess of activeSessions.data) {
+        try {
+          await axios.delete(`https://api.browserbase.com/v1/sessions/${sess.id}`, { headers: bbHeaders });
+          console.log(`[Browserbase] Closed session: ${sess.id}`);
+          await Actor.sleep(2000); // Wait a bit between closes
+        } catch (e) {
+          console.log(`[Browserbase] Could not close session ${sess.id}: ${e.message}`);
+        }
+      }
+      await Actor.sleep(3000); // Wait for sessions to fully close
+    }
+  } catch (e) {
+    console.log(`[Browserbase] Could not check active sessions: ${e.message}`);
+  }
+
+  // Create new session with retry logic for rate limits
+  let session;
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      session = await axios.post('https://api.browserbase.com/v1/sessions', { projectId: bbProject }, {
+        headers: bbHeaders,
+      });
+      break; // Success
+    } catch (e) {
+      if (e.response?.status === 429 && retries > 1) {
+        const waitTime = 10; // seconds
+        console.log(`[Browserbase] Rate limited (429). Waiting ${waitTime}s before retry (${retries - 1} attempts left)...`);
+        await Actor.sleep(waitTime * 1000);
+        retries--;
+      } else {
+        throw e; // Re-throw if not 429 or out of retries
+      }
+    }
+  }
+
+  const { seleniumRemoteUrl, signingKey, id } = session.data;
+  sessionId = id;
   console.log(`[Browserbase] Session: ${sessionId}`);
 
   // Browserbase Selenium: embed signingKey in URL if provided
@@ -80,8 +127,25 @@ try {
   }
 
   await driver.quit();
+  console.log('[Selenium] WebDriver quit');
+
+  // Close Browserbase session
+  try {
+    await axios.delete(`https://api.browserbase.com/v1/sessions/${sessionId}`, { headers: bbHeaders });
+    console.log(`[Browserbase] Session ${sessionId} closed`);
+  } catch (e) {
+    console.log(`[Browserbase] Could not close session ${sessionId}: ${e.message}`);
+  }
 } catch (e) {
   console.error('Actor failed:', e);
+  // Try to close session even on error
+  if (sessionId && bbHeaders) {
+    try {
+      await axios.delete(`https://api.browserbase.com/v1/sessions/${sessionId}`, { headers: bbHeaders });
+    } catch (closeErr) {
+      console.log(`[Browserbase] Could not close session on error: ${closeErr.message}`);
+    }
+  }
   throw e;
 } finally {
   await Actor.exit();
