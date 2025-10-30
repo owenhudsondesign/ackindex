@@ -56,7 +56,24 @@ await Actor.main(async () => {
   
   // Extract base domain to prevent going to parent/different sites
   const startDomain = new URL(startUrl).hostname;
-  console.log(`🔒 Restricting crawl to domain: ${startDomain}`);
+
+  // Special handling for CivicClerk portals - allow following to associated government domain
+  const allowedDomains = [startDomain];
+  if (startDomain.includes('civicclerk.com')) {
+    // Extract government domain from CivicClerk subdomain
+    // e.g., "nantucketma.portal.civicclerk.com" -> "nantucket-ma.gov"
+    const match = startDomain.match(/^([^.]+)\.portal\.civicclerk\.com$/);
+    if (match) {
+      const govSlug = match[1]; // "nantucketma"
+      // Convert to government domain format (nantucketma -> nantucket-ma.gov)
+      const govDomain = govSlug.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase() + '.gov';
+      allowedDomains.push(`www.${govDomain}`);
+      allowedDomains.push(govDomain);
+      console.log(`🔓 CivicClerk portal detected - also allowing: ${govDomain}`);
+    }
+  }
+
+  console.log(`🔒 Restricting crawl to domains: ${allowedDomains.join(', ')}`);
 
   try {
     while (queue.length > 0 && pagesProcessed < maxPages) {
@@ -70,8 +87,8 @@ await Actor.main(async () => {
       // Skip URLs that go to a different domain (prevents going backwards to parent sites)
       try {
         const urlDomain = new URL(url).hostname;
-        if (urlDomain !== startDomain) {
-          console.log(`⏭️ Skipping ${url} (different domain: ${urlDomain})`);
+        if (!allowedDomains.includes(urlDomain)) {
+          console.log(`⏭️ Skipping ${url} (domain ${urlDomain} not in allowed list)`);
           continue;
         }
       } catch (e) {
@@ -167,12 +184,12 @@ await Actor.main(async () => {
                 const linkUrl = new URL(link, url).href;
                 const linkDomain = new URL(linkUrl).hostname;
                 
-                // Only queue links within the same domain
-                if (!visited.has(linkUrl) && linkUrl.startsWith('http') && linkDomain === startDomain) {
+                // Only queue links within allowed domains
+                if (!visited.has(linkUrl) && linkUrl.startsWith('http') && allowedDomains.includes(linkDomain)) {
                   console.log(`➕ Queuing: ${linkUrl}`);
                   queue.push({ url: linkUrl, depth: depth + 1 });
-                } else if (linkDomain !== startDomain) {
-                  console.log(`⏭️ Skipping external link: ${linkUrl}`);
+                } else if (!allowedDomains.includes(linkDomain)) {
+                  console.log(`⏭️ Skipping external link: ${linkUrl} (domain ${linkDomain} not allowed)`);
                 }
               } catch (e) {
                 // Invalid URL, skip
