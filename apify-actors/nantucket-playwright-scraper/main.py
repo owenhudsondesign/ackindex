@@ -137,17 +137,17 @@ Return ONLY the cleaned, meaningful content."""
 
             async with session.get(pdf_info['url'], timeout=30) as response:
                 if response.status == 200:
-                    # Skip huge PDFs (25 MB cap)
+                    # Skip large PDFs (10 MB cap to save memory)
                     try:
                         content_len = response.headers.get('content-length')
-                        if content_len and int(content_len) > 25 * 1024 * 1024:
-                            Actor.log.warning(f"⚠️ Skipping large PDF (>25MB)")
+                        if content_len and int(content_len) > 10 * 1024 * 1024:
+                            Actor.log.warning(f"⚠️ Skipping large PDF (>10MB)")
                             return { **pdf_info, 'status': 'skipped_large' }
                     except Exception:
                         pass
 
                     pdf_content = await response.read()
-                    if len(pdf_content) > 25 * 1024 * 1024:
+                    if len(pdf_content) > 10 * 1024 * 1024:
                         Actor.log.warning(f"⚠️ Skipping large PDF after download")
                         return { **pdf_info, 'status': 'skipped_large' }
 
@@ -400,9 +400,10 @@ async def main():
                         pdf_links = await crawler_instance.extract_pdf_links(html, url)
                         Actor.log.info(f'🔗 Found {len(pdf_links)} PDF(s) on {url}')
 
-                        # Process PDFs
+                        # Process PDFs - limit to 5 per page to save memory
                         if download_pdfs and pdf_links:
-                            for pdf_info in pdf_links[:10]:
+                            Actor.log.info(f'📥 Processing {min(5, len(pdf_links))} PDFs (out of {len(pdf_links)} found)')
+                            for pdf_info in pdf_links[:5]:
                                 result = await crawler_instance.download_and_parse_pdf(session, pdf_info)
                                 await Actor.push_data(result)
                                 del result
@@ -466,6 +467,10 @@ async def main():
                         if pages_crawled < max_pages and max_depth > 0:
                             page_links = await crawler_instance.extract_page_links(html, url, start_urls[0])
                             urls_to_visit.extend(page_links[:max_pages - pages_crawled])
+
+                        # Clean up memory after processing each page
+                        del html, soup, page_text, final_text
+                        gc.collect()
 
                     except Exception as e:
                         Actor.log.error(f'❌ Error processing {url}: {str(e)}')
