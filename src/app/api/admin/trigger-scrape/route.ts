@@ -16,6 +16,7 @@ const supabase = createClient(
 /**
  * Manually trigger scraping for specific URLs or all pending URLs
  * This is a synchronous trigger - it calls the cron endpoint internally
+ * Updated: 2025-10-30
  */
 export async function POST(request: NextRequest) {
   try {
