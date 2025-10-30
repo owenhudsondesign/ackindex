@@ -1,11 +1,12 @@
-# Use Apify's Node.js 18 base image
-FROM apify/actor-node:18
+# Use Apify's Node.js 18 base image with Playwright support
+FROM apify/actor-node-playwright-chrome:18
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
+# Install dependencies and Playwright browsers
+RUN npm install --production && \
+    npx playwright install --with-deps chromium
 
 # Copy source code
 COPY . ./

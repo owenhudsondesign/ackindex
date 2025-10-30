@@ -38,8 +38,9 @@ await Actor.main(async () => {
   // Initialize Stagehand
   const stagehand = new Stagehand({
     apiKey: openaiApiKey,
-    env: 'BROWSERBASE', // Use Browserbase for cloud execution
+    env: 'LOCAL', // Use local Playwright in Docker
     verbose: 1,
+    headless: true, // Run in headless mode for Docker
   });
 
   await stagehand.init();
