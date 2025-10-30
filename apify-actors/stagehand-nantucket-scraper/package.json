@@ -1,6 +1,7 @@
 {
   "name": "stagehand-nantucket-scraper",
   "version": "1.0.0",
+  "type": "module",
   "description": "AI-powered web scraper using Stagehand for dynamic content extraction",
   "main": "main.js",
   "scripts": {
