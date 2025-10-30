@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
         const url: string = f.url;
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) continue;
-        const buf = new Uint8Array(await res.arrayBuffer());
+        const arrayBuf = await res.arrayBuffer();
+        const buf = Buffer.from(arrayBuf);
         const parsed = await parsePDF(buf, f.name || url.split('/').pop() || 'document.pdf');
         const chunks = chunkText(parsed.text, { maxTokens: 500, overlap: 50 });
         chunks.forEach((c, idx) => {
