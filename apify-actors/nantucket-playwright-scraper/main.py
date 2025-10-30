@@ -1,13 +1,14 @@
 """
-Apify Actor Main File - Nantucket Town Government PDF Scraper (FIXED)
-Now actually uses Playwright for browser rendering!
+Apify Actor Main File - Nantucket Town Government PDF Scraper (COMPLIANT)
+✅ Now includes robots.txt checking, rate limiting, and error handling
+✅ Follows web scraping best practices and respects server resources
 """
 
 from apify import Actor
 import asyncio
 from bs4 import BeautifulSoup
 import re
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlunsplit
 import PyPDF2
 import io
 import aiohttp
@@ -16,12 +17,20 @@ import gc
 from openai import OpenAI
 import os
 from datetime import datetime
+from urllib.robotparser import RobotFileParser
+import random
 
 class NantucketPDFCrawler:
-    def __init__(self, openai_api_key=None):
+    def __init__(self, openai_api_key=None, min_delay=5.0, max_delay=10.0, respect_robots=True):
         self.pdf_results = []
         self.visited_urls = set()
         self.openai_client = None
+        self.robots_cache = {}  # Cache robots.txt parsers by domain
+        self.min_delay = min_delay  # Minimum delay between requests (seconds)
+        self.max_delay = max_delay  # Maximum delay between requests (seconds)
+        self.respect_robots = respect_robots
+        self.retry_count = {}  # Track retries per URL
+        self.max_retries = 3
 
         # Initialize OpenAI if API key is provided
         if openai_api_key:
@@ -29,6 +38,86 @@ class NantucketPDFCrawler:
             Actor.log.info('✅ OpenAI enabled for AI-powered content extraction')
         else:
             Actor.log.info('ℹ️ OpenAI API key not provided - using basic extraction')
+
+        Actor.log.info(f'⚖️ Compliance mode: respect_robots={respect_robots}, delay={min_delay}-{max_delay}s')
+
+    async def check_robots_txt(self, url: str, session: aiohttp.ClientSession) -> tuple[bool, float]:
+        """
+        Check robots.txt for the given URL.
+        Returns: (is_allowed, crawl_delay)
+        """
+        if not self.respect_robots:
+            return True, 0
+
+        parsed = urlparse(url)
+        domain = f"{parsed.scheme}://{parsed.netloc}"
+
+        # Check cache
+        if domain in self.robots_cache:
+            rp, crawl_delay = self.robots_cache[domain]
+            is_allowed = rp.can_fetch('AckindexBot', url)
+            return is_allowed, crawl_delay
+
+        # Fetch and parse robots.txt
+        robots_url = f"{domain}/robots.txt"
+        Actor.log.info(f'🤖 Checking robots.txt: {robots_url}')
+
+        try:
+            async with session.get(robots_url, timeout=10) as response:
+                if response.status == 200:
+                    robots_content = await response.text()
+                    rp = RobotFileParser()
+                    rp.parse(robots_content.splitlines())
+
+                    # Try to extract crawl-delay
+                    crawl_delay = 0
+                    for line in robots_content.splitlines():
+                        if 'crawl-delay' in line.lower():
+                            try:
+                                crawl_delay = float(line.split(':')[1].strip())
+                                Actor.log.info(f'⏱️ Found crawl-delay: {crawl_delay}s')
+                            except:
+                                pass
+
+                    self.robots_cache[domain] = (rp, crawl_delay)
+                    is_allowed = rp.can_fetch('AckindexBot', url)
+
+                    if not is_allowed:
+                        Actor.log.warning(f'🚫 robots.txt disallows: {url}')
+                    else:
+                        Actor.log.info(f'✅ robots.txt allows: {url}')
+
+                    return is_allowed, crawl_delay
+                else:
+                    # No robots.txt or error - assume allowed
+                    Actor.log.info(f'ℹ️ No robots.txt found (HTTP {response.status}), assuming allowed')
+                    rp = RobotFileParser()
+                    rp.set_url(robots_url)
+                    rp.allow_all = True
+                    self.robots_cache[domain] = (rp, 0)
+                    return True, 0
+
+        except Exception as e:
+            Actor.log.warning(f'⚠️ Could not fetch robots.txt: {str(e)}, assuming allowed')
+            rp = RobotFileParser()
+            rp.allow_all = True
+            self.robots_cache[domain] = (rp, 0)
+            return True, 0
+
+    async def rate_limit_delay(self, crawl_delay: float = 0):
+        """
+        Apply rate limiting with random jitter to appear more human-like.
+        Respects crawl-delay from robots.txt if provided.
+        """
+        # Use the maximum of configured delay and robots.txt crawl-delay
+        effective_min = max(self.min_delay, crawl_delay)
+        effective_max = max(self.max_delay, crawl_delay)
+
+        # Add random jitter for more natural behavior
+        delay = random.uniform(effective_min, effective_max)
+
+        Actor.log.info(f'⏳ Rate limiting: waiting {delay:.1f}s before next request')
+        await asyncio.sleep(delay)
 
     async def extract_pdf_links(self, html: str, page_url: str):
         """Extract all PDF links from HTML"""
@@ -342,7 +431,19 @@ async def main():
 
         openai_api_key = actor_input.get('openaiApiKey') or os.environ.get('OPENAI_API_KEY')
 
-        crawler_instance = NantucketPDFCrawler(openai_api_key=openai_api_key)
+        # Compliance settings
+        min_delay = actor_input.get('minDelay', 5.0)
+        max_delay = actor_input.get('maxDelay', 10.0)
+        respect_robots = actor_input.get('respectRobots', True)
+
+        Actor.log.info(f'⚖️ Compliance settings: min_delay={min_delay}s, max_delay={max_delay}s, respect_robots={respect_robots}')
+
+        crawler_instance = NantucketPDFCrawler(
+            openai_api_key=openai_api_key,
+            min_delay=min_delay,
+            max_delay=max_delay,
+            respect_robots=respect_robots
+        )
 
         # ⭐ FIX: USE PLAYWRIGHT FOR BROWSER RENDERING ⭐
         async with async_playwright() as p:
@@ -375,119 +476,152 @@ async def main():
                         Actor.log.info(f'⏭️ Skipping direct PDF URL: {url}')
                         continue
 
+                    # ⚖️ Check robots.txt before crawling
+                    is_allowed, crawl_delay = await crawler_instance.check_robots_txt(url, session)
+                    if not is_allowed:
+                        Actor.log.warning(f'🚫 Skipping (robots.txt disallows): {url}')
+                        continue
+
                     crawler_instance.visited_urls.add(url)
                     pages_crawled += 1
 
-                    try:
-                        Actor.log.info(f'📄 Processing ({pages_crawled}/{max_pages}): {url}')
+                    # ⏳ Apply rate limiting BEFORE request
+                    if pages_crawled > 1:  # Skip delay for first request
+                        await crawler_instance.rate_limit_delay(crawl_delay)
 
-                        # ⭐ FIX: Use Playwright to navigate and render JavaScript ⭐
+                    retry_attempt = 0
+                    max_retries = 3
+                    success = False
+
+                    while not success and retry_attempt < max_retries:
                         try:
-                            await page.goto(url, wait_until='networkidle', timeout=60000)
+                            Actor.log.info(f'📄 Processing ({pages_crawled}/{max_pages}): {url}')
+
+                            # ⭐ Use Playwright to navigate and render JavaScript ⭐
+                            try:
+                                await page.goto(url, wait_until='networkidle', timeout=60000)
+                            except Exception as e:
+                                # If networkidle times out, try with domcontentloaded
+                                Actor.log.warning(f'⚠️ Networkidle timeout, trying domcontentloaded: {str(e)}')
+                                await page.goto(url, wait_until='domcontentloaded', timeout=30000)
+
+                            Actor.log.info('✅ Page loaded with Playwright')
+
+                            # Wait for any dynamic content
+                            await page.wait_for_timeout(3000)
+
+                            # Get rendered HTML
+                            html = await page.content()
+                            Actor.log.info(f'📄 HTML length: {len(html)} bytes')
+
+                            # Get page title
+                            page_title = await page.title()
+                            Actor.log.info(f'📌 Page title: {page_title}')
+
+                            # Extract PDF links
+                            pdf_links = await crawler_instance.extract_pdf_links(html, url)
+                            Actor.log.info(f'🔗 Found {len(pdf_links)} PDF(s) on {url}')
+
+                            # Process PDFs - limit to 2 per page for ultra-low memory (1GB tier)
+                            if download_pdfs and pdf_links:
+                                Actor.log.info(f'📥 Processing {min(2, len(pdf_links))} PDFs (out of {len(pdf_links)} found)')
+                                for pdf_info in pdf_links[:2]:
+                                    result = await crawler_instance.download_and_parse_pdf(session, pdf_info)
+                                    await Actor.push_data(result)
+                                    del result
+                                    gc.collect()
+                                    # Brief pause to allow garbage collection
+                                    await asyncio.sleep(0.1)
+                            elif pdf_links:
+                                for pdf_info in pdf_links:
+                                    await Actor.push_data(pdf_info)
+
+                            # Extract text content using BeautifulSoup
+                            soup = BeautifulSoup(html, 'html.parser')
+
+                            # Remove unwanted elements
+                            for element in soup(["script", "style", "nav", "header", "footer", "iframe", "noscript"]):
+                                element.decompose()
+
+                            for element in soup.find_all(class_=re.compile(r'(ad|advertisement|tracking|social-share)', re.I)):
+                                element.decompose()
+
+                            # Find main content
+                            main_content = None
+                            # CivicEngage-specific selectors first, then generic ones
+                            for selector in ['.fr-view', '#PageContent', '.PageContent', '.module', '#panel',
+                                            'article', 'main', '[role="main"]', '.content', '.main-content', '#content', '#main']:
+                                main_content = soup.select_one(selector)
+                                if main_content:
+                                    Actor.log.info(f'📍 Found main content: {selector}')
+                                    break
+
+                            content_element = main_content if main_content else soup.body if soup.body else soup
+                            page_text = content_element.get_text(separator='\n', strip=True)
+
+                            # Clean whitespace
+                            lines = (line.strip() for line in page_text.splitlines())
+                            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                            page_text = '\n'.join(chunk for chunk in chunks if chunk)
+
+                            Actor.log.info(f'📝 Extracted text: {len(page_text)} chars')
+
+                            # AI enhancement if available
+                            if openai_api_key and len(page_text) > 100:
+                                final_text = crawler_instance.ai_extract_content(page_text, page_title)
+                            else:
+                                final_text = page_text
+
+                            # Save page data
+                            await Actor.push_data({
+                                'url': url,
+                                'type': 'page',
+                                'title': page_title,
+                                'text': final_text,
+                                'text_length': len(final_text),
+                                'pdf_count': len(pdf_links),
+                                'tables': [],
+                                'ai_processed': bool(openai_api_key and len(page_text) > 100),
+                                'scraped_at': datetime.now().isoformat()
+                            })
+
+                            Actor.log.info('✅ Saved page data')
+
+                            # Extract more links
+                            if pages_crawled < max_pages and max_depth > 0:
+                                page_links = await crawler_instance.extract_page_links(html, url, start_urls[0])
+                                urls_to_visit.extend(page_links[:max_pages - pages_crawled])
+
+                            # Clean up memory after processing each page
+                            del html, soup, page_text, final_text
+                            gc.collect()
+
+                            # Mark as successful
+                            success = True
+
                         except Exception as e:
-                            # If networkidle times out, try with domcontentloaded
-                            Actor.log.warning(f'⚠️ Networkidle timeout, trying domcontentloaded: {str(e)}')
-                            await page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                            retry_attempt += 1
+                            error_msg = str(e)
 
-                        Actor.log.info('✅ Page loaded with Playwright')
+                            # Check for rate limiting (429 errors)
+                            if '429' in error_msg or 'too many requests' in error_msg.lower():
+                                Actor.log.warning(f'⚠️ Rate limited (429) on {url}')
 
-                        # Wait for any dynamic content
-                        await page.wait_for_timeout(3000)
-
-                        # Get rendered HTML
-                        html = await page.content()
-                        Actor.log.info(f'📄 HTML length: {len(html)} bytes')
-
-                        # Get page title
-                        page_title = await page.title()
-                        Actor.log.info(f'📌 Page title: {page_title}')
-
-                        # Extract PDF links
-                        pdf_links = await crawler_instance.extract_pdf_links(html, url)
-                        Actor.log.info(f'🔗 Found {len(pdf_links)} PDF(s) on {url}')
-
-                        # Process PDFs - limit to 2 per page for ultra-low memory (1GB tier)
-                        if download_pdfs and pdf_links:
-                            Actor.log.info(f'📥 Processing {min(2, len(pdf_links))} PDFs (out of {len(pdf_links)} found)')
-                            for pdf_info in pdf_links[:2]:
-                                result = await crawler_instance.download_and_parse_pdf(session, pdf_info)
-                                await Actor.push_data(result)
-                                del result
-                                gc.collect()
-                                # Brief pause to allow garbage collection
-                                await asyncio.sleep(0.1)
-                        elif pdf_links:
-                            for pdf_info in pdf_links:
-                                await Actor.push_data(pdf_info)
-
-                        # Extract text content using BeautifulSoup
-                        soup = BeautifulSoup(html, 'html.parser')
-
-                        # Remove unwanted elements
-                        for element in soup(["script", "style", "nav", "header", "footer", "iframe", "noscript"]):
-                            element.decompose()
-
-                        for element in soup.find_all(class_=re.compile(r'(ad|advertisement|tracking|social-share)', re.I)):
-                            element.decompose()
-
-                        # Find main content
-                        main_content = None
-                        # CivicEngage-specific selectors first, then generic ones
-                        for selector in ['.fr-view', '#PageContent', '.PageContent', '.module', '#panel',
-                                        'article', 'main', '[role="main"]', '.content', '.main-content', '#content', '#main']:
-                            main_content = soup.select_one(selector)
-                            if main_content:
-                                Actor.log.info(f'📍 Found main content: {selector}')
-                                break
-
-                        content_element = main_content if main_content else soup.body if soup.body else soup
-                        page_text = content_element.get_text(separator='\n', strip=True)
-
-                        # Clean whitespace
-                        lines = (line.strip() for line in page_text.splitlines())
-                        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-                        page_text = '\n'.join(chunk for chunk in chunks if chunk)
-
-                        Actor.log.info(f'📝 Extracted text: {len(page_text)} chars')
-
-                        # AI enhancement if available
-                        if openai_api_key and len(page_text) > 100:
-                            final_text = crawler_instance.ai_extract_content(page_text, page_title)
-                        else:
-                            final_text = page_text
-
-                        # Save page data
-                        await Actor.push_data({
-                            'url': url,
-                            'type': 'page',
-                            'title': page_title,
-                            'text': final_text,
-                            'text_length': len(final_text),
-                            'pdf_count': len(pdf_links),
-                            'tables': [],
-                            'ai_processed': bool(openai_api_key and len(page_text) > 100),
-                            'scraped_at': datetime.now().isoformat()
-                        })
-
-                        Actor.log.info('✅ Saved page data')
-
-                        # Extract more links
-                        if pages_crawled < max_pages and max_depth > 0:
-                            page_links = await crawler_instance.extract_page_links(html, url, start_urls[0])
-                            urls_to_visit.extend(page_links[:max_pages - pages_crawled])
-
-                        # Clean up memory after processing each page
-                        del html, soup, page_text, final_text
-                        gc.collect()
-
-                    except Exception as e:
-                        Actor.log.error(f'❌ Error processing {url}: {str(e)}')
-                        await Actor.push_data({
-                            'type': 'error',
-                            'url': url,
-                            'error': str(e),
-                            'scraped_at': datetime.now().isoformat()
-                        })
+                            if retry_attempt < max_retries:
+                                # Exponential backoff: 5s, 10s, 20s
+                                backoff_delay = min(5 * (2 ** retry_attempt), 60)
+                                Actor.log.warning(f'⚠️ Attempt {retry_attempt}/{max_retries} failed: {error_msg}')
+                                Actor.log.info(f'⏳ Retrying in {backoff_delay}s...')
+                                await asyncio.sleep(backoff_delay)
+                            else:
+                                Actor.log.error(f'❌ Max retries ({max_retries}) exceeded for {url}: {error_msg}')
+                                await Actor.push_data({
+                                    'type': 'error',
+                                    'url': url,
+                                    'error': error_msg,
+                                    'retries': retry_attempt,
+                                    'scraped_at': datetime.now().isoformat()
+                                })
 
             await browser.close()
             Actor.log.info('✅ Browser closed')
