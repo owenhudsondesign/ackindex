@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults, deduplicateResults } from '@/lib/retrieval';
 import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
 import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -20,19 +22,50 @@ const supabase = createClient(
   }
 );
 
-// Get user from request headers (server-side)
+// Get user from request (checks cookies first, then Bearer token)
 async function getUserFromRequest(request: NextRequest) {
+  // First, try to get user from cookies (for browser requests)
+  try {
+    const cookieStore = await cookies();
+    const supabaseSSR = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
+    const { data: { session } } = await supabaseSSR.auth.getSession();
+
+    if (session?.user) {
+      return {
+        id: session.user.id,
+        email: session.user.email || '',
+      };
+    }
+  } catch (error) {
+    console.log('[Chat API] Cookie auth check failed:', error);
+  }
+
+  // Fall back to Bearer token (for API requests)
   const authHeader = request.headers.get('authorization');
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
 
   const token = authHeader.substring(7);
-  
+
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    
+
     if (error || !user) {
       console.log('[Chat API] Auth error:', error?.message);
       return null;
