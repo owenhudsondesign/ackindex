@@ -95,6 +95,9 @@ export async function startScrapeJob(
         downloadPdfs: extractPDFs,
         maxCrawlDepth: maxDepth,
         maxRequests: maxPages,
+        minDelay: 5.0,
+        maxDelay: 10.0,
+        respectRobots: true,
         proxyConfiguration: {
           useApifyProxy: false,
         },
