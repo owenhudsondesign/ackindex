@@ -45,6 +45,31 @@
       "description": "Optional OpenAI API key for AI-powered content extraction",
       "editor": "textfield",
       "isSecret": true
+    },
+    "minDelay": {
+      "title": "Min Delay Between Requests (seconds)",
+      "type": "number",
+      "description": "Minimum delay between requests for rate limiting",
+      "default": 5.0,
+      "minimum": 0,
+      "maximum": 60,
+      "editor": "number"
+    },
+    "maxDelay": {
+      "title": "Max Delay Between Requests (seconds)",
+      "type": "number",
+      "description": "Maximum delay between requests for rate limiting",
+      "default": 10.0,
+      "minimum": 0,
+      "maximum": 120,
+      "editor": "number"
+    },
+    "respectRobots": {
+      "title": "Respect robots.txt",
+      "type": "boolean",
+      "description": "Check and respect robots.txt rules",
+      "default": true,
+      "editor": "checkbox"
     }
   },
   "required": ["startUrls"]
