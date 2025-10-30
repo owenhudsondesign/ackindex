@@ -1,16 +1,33 @@
-# Use plain Apify Node.js 20 image (let Stagehand manage its own Playwright)
-FROM apify/actor-node:20
+# Use official Node.js 20 on Debian (Playwright needs glibc, not available on Alpine)
+FROM node:20-bullseye-slim
 
-# Install system dependencies needed for Playwright's Chromium (Alpine Linux)
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
+# Install Apify SDK and required system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
     ca-certificates \
-    ttf-freefont \
-    font-noto-emoji \
-    wqy-zenhei
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libatspi2.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libwayland-client0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    xvfb \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /usr/src/app
 
 # Copy package files
 COPY package*.json ./
@@ -19,11 +36,11 @@ COPY package*.json ./
 RUN npm install --production
 
 # Install Playwright's Chromium browser
-RUN npx playwright install chromium
+RUN npx playwright install chromium --with-deps
 
 # Copy source code
 COPY . ./
 
-# Run the actor
-CMD npm start
+# Run with xvfb for headless Chrome
+CMD ["xvfb-run", "-a", "-s", "-ac -screen 0 1920x1080x24+32 -nolisten tcp", "npm", "start"]
 
