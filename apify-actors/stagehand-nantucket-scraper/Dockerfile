@@ -1,5 +1,5 @@
-# Use Apify's Node.js 18 base image with Playwright support
-FROM apify/actor-node-playwright-chrome:18
+# Use Apify's Node.js 20 base image with Playwright support (required for Stagehand)
+FROM apify/actor-node-playwright-chrome:20
 
 # Copy package files
 COPY package*.json ./
