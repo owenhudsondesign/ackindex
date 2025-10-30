@@ -46,6 +46,31 @@ export interface ScrapeOptions {
 }
 
 /**
+ * Determine if a URL needs Stagehand (AI-powered) or Python (PDF-optimized) scraper
+ * Stagehand is better for: dynamic sites, JavaScript-heavy portals, sites with complex interactions
+ * Python is better for: static sites with PDFs, document archives, sites with tables
+ */
+function shouldUseStagehand(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    
+    // Sites that need Stagehand (dynamic/JavaScript-heavy)
+    const stagehandDomains = [
+      'civicclerk.com',     // CivicClerk portal - needs JavaScript interaction
+      'legistar.com',       // Legistar portal - dynamic content
+      'civicplus.com',      // CivicPlus - JavaScript-heavy
+      'granicusideas.com',  // Granicus - dynamic platform
+    ];
+    
+    // Check if URL matches any Stagehand-required domains
+    return stagehandDomains.some(domain => hostname.includes(domain));
+  } catch (error) {
+    console.error('[Apify] Error parsing URL for actor selection:', error);
+    return false; // Default to Python actor
+  }
+}
+
+/**
  * Start a web scraping job with Apify
  * 
  * @param url - The URL to scrape
@@ -68,13 +93,16 @@ export async function startScrapeJob(
   try {
     const apifyClient = getApifyClient();
     
-    // Choose actor based on environment variable
-    const useStagehand = process.env.USE_STAGEHAND_ACTOR === 'true';
+    // Auto-detect which actor to use based on URL
+    // Stagehand for dynamic/JavaScript-heavy sites, Python for static sites with PDFs
+    const needsStagehand = shouldUseStagehand(url);
+    const useStagehand = process.env.USE_STAGEHAND_ACTOR === 'true' || needsStagehand;
+    
     const actorId = useStagehand 
       ? (process.env.STAGEHAND_ACTOR_ID || 'legible_radish/stagehand-nantucket-scraper')
-      : (process.env.APIFY_ACTOR_ID || 'legible_radish/ackindex-pdf-actor');
+      : (process.env.APIFY_ACTOR_ID || 'legible_radish/ackindex-3');
 
-    console.log(`[Apify] Using ${useStagehand ? 'Stagehand' : 'Python'} actor: ${actorId}`);
+    console.log(`[Apify] Using ${useStagehand ? 'Stagehand (AI-powered)' : 'Python (PDF-optimized)'} actor: ${actorId}`);
     
     let runConfig: any;
     
