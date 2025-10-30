@@ -49,8 +49,16 @@ export interface ScrapeOptions {
  * Determine if a URL needs Stagehand (AI-powered) or Python (PDF-optimized) scraper
  * Stagehand is better for: dynamic sites, JavaScript-heavy portals, sites with complex interactions
  * Python is better for: static sites with PDFs, document archives, sites with tables
+ * 
+ * NOTE: Stagehand auto-detection is DISABLED until the actor is deployed
+ * Set ENABLE_STAGEHAND_AUTO_DETECT=true in env to enable
  */
 function shouldUseStagehand(url: string): boolean {
+  // Disable auto-detection until Stagehand actor is deployed
+  if (process.env.ENABLE_STAGEHAND_AUTO_DETECT !== 'true') {
+    return false;
+  }
+  
   try {
     const hostname = new URL(url).hostname.toLowerCase();
     

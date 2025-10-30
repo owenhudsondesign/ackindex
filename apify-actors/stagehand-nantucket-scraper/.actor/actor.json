@@ -1,0 +1,59 @@
+{
+  "actorSpecification": 1,
+  "name": "stagehand-nantucket-scraper",
+  "title": "Stagehand AI-Powered Scraper",
+  "description": "AI-powered web scraper using Stagehand for dynamic content extraction. Handles JavaScript-heavy sites, portals, and complex interactions.",
+  "version": "1.0",
+  "meta": {
+    "templateId": "javascript-node"
+  },
+  "input": "./.actor/input_schema.json",
+  "dockerfile": "./Dockerfile",
+  "readme": "./README.md",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "title": "Scraped Data",
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": {
+            "fields": [
+              "url",
+              "title",
+              "type",
+              "text_length",
+              "pdf_count"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "url": {
+                "label": "URL",
+                "format": "text"
+              },
+              "title": {
+                "label": "Title",
+                "format": "text"
+              },
+              "type": {
+                "label": "Type",
+                "format": "text"
+              },
+              "text_length": {
+                "label": "Text Length",
+                "format": "number"
+              },
+              "pdf_count": {
+                "label": "PDFs",
+                "format": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
