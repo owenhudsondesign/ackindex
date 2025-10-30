@@ -35,9 +35,11 @@ await Actor.main(async () => {
   console.log(`📍 Start URL: ${startUrl}`);
   console.log(`📊 Max pages: ${maxPages}, Max depth: ${maxDepth}`);
 
+  // Set OpenAI API key as environment variable (required by Stagehand)
+  process.env.OPENAI_API_KEY = openaiApiKey;
+
   // Initialize Stagehand
   const stagehand = new Stagehand({
-    apiKey: openaiApiKey,
     env: 'LOCAL', // Use local Playwright in Docker
     verbose: 1,
     headless: true, // Run in headless mode for Docker
