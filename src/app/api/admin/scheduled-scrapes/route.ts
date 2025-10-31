@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 
-// Server-side Supabase client with service role key
-const supabase = createClient(
+// Server-side Supabase client with service role key (for database operations)
+const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   {
@@ -18,6 +19,13 @@ const supabase = createClient(
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication and admin authorization
+    const authSupabase = await createAdminSupabaseClient();
+    const { data: { session } } = await authSupabase.auth.getSession();
+
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
+
     const body = await request.json();
     const { url, title, scrape_frequency = '1 week', priority = 5, status = 'active' } = body;
 
@@ -33,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if URL already exists
-    const { data: existing } = await supabase
+    const { data: existing } = await serviceSupabase
       .from('scheduled_scrapes')
       .select('id')
       .eq('url', url)
@@ -43,8 +51,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'URL already scheduled' }, { status: 409 });
     }
 
-    // Insert new scheduled scrape
-    const { data, error } = await supabase
+    // Insert new scheduled scrape (use service role for insert, but set created_by to admin user)
+    const { data, error } = await serviceSupabase
       .from('scheduled_scrapes')
       .insert({
         url,
@@ -52,6 +60,7 @@ export async function POST(request: NextRequest) {
         scrape_frequency,
         priority,
         status,
+        created_by: adminOrError.id, // Set admin as creator
         next_scrape_at: new Date().toISOString(), // Schedule for immediate scraping
       })
       .select()
@@ -77,6 +86,13 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
+    // Check authentication and admin authorization
+    const authSupabase = await createAdminSupabaseClient();
+    const { data: { session } } = await authSupabase.auth.getSession();
+
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
+
     const body = await request.json();
     const { id, url, title, scrape_frequency, priority, status } = body;
 
@@ -98,7 +114,7 @@ export async function PATCH(request: NextRequest) {
     if (priority !== undefined) updates.priority = priority;
     if (status !== undefined) updates.status = status;
 
-    const { data, error } = await supabase
+    const { data, error } = await serviceSupabase
       .from('scheduled_scrapes')
       .update(updates)
       .eq('id', id)
@@ -125,6 +141,13 @@ export async function PATCH(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    // Check authentication and admin authorization
+    const authSupabase = await createAdminSupabaseClient();
+    const { data: { session } } = await authSupabase.auth.getSession();
+
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -132,7 +155,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Scrape ID is required' }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await serviceSupabase
       .from('scheduled_scrapes')
       .delete()
       .eq('id', id);

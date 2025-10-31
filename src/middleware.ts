@@ -48,6 +48,22 @@ export async function middleware(req: NextRequest) {
       redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
       return NextResponse.redirect(redirectUrl);
     }
+
+    // Check if user has admin role
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    // If not admin, redirect to home page
+    if (error || !profile || profile.role !== 'admin') {
+      console.warn(`[Middleware] Non-admin user ${session.user.email} attempted to access ${req.nextUrl.pathname}`);
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = '/';
+      redirectUrl.searchParams.set('error', 'admin_required');
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   return res;

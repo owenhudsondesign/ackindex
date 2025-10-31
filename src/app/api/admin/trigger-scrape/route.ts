@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { executeScheduledScraping } from '@/lib/scheduledScraping';
 
-// Server-side Supabase client with service role key
-const supabase = createClient(
+// Server-side Supabase client with service role key (for database operations)
+const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   {
@@ -21,6 +22,13 @@ const supabase = createClient(
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication and admin authorization
+    const authSupabase = await createAdminSupabaseClient();
+    const { data: { session } } = await authSupabase.auth.getSession();
+
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
+
     const body = await request.json();
     const { scrapeIds, triggerAll = false } = body;
 
@@ -35,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // If specific IDs provided, update their next_scrape_at to now
     if (scrapeIds && scrapeIds.length > 0) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await serviceSupabase
         .from('scheduled_scrapes')
         .update({ next_scrape_at: new Date().toISOString() })
         .in('id', scrapeIds);
@@ -53,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // If triggerAll, update all active scrapes that haven't been scraped yet
     if (triggerAll) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await serviceSupabase
         .from('scheduled_scrapes')
         .update({ next_scrape_at: new Date().toISOString() })
         .eq('status', 'active')
@@ -99,8 +107,15 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Check authentication and admin authorization
+    const authSupabase = await createAdminSupabaseClient();
+    const { data: { session } } = await authSupabase.auth.getSession();
+
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
+
     console.log('[Manual Trigger GET] Fetching scheduled scrapes...');
-    
+
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const status = searchParams.get('status') || 'active';
@@ -108,7 +123,7 @@ export async function GET(request: NextRequest) {
     console.log(`[Manual Trigger GET] Query params - limit: ${limit}, status: ${status}`);
 
     // Build query
-    let query = supabase
+    let query = serviceSupabase
       .from('scheduled_scrapes')
       .select('*')
       .order('priority', { ascending: false })

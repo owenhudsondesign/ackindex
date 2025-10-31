@@ -1,40 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { getChunksWithoutEmbeddings, updateChunkEmbedding, getEmbeddingStats } from '@/lib/database';
 import { generateEmbeddingsBatch, estimateEmbeddingCost } from '@/lib/embeddings';
 
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
-}
-
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const supabase = await getSupabaseClient();
+    // Check authentication and admin authorization
+    const supabase = await createAdminSupabaseClient();
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (!session) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
     const { batchSize = 50 } = body;

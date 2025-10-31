@@ -2,6 +2,16 @@
 
 The cron job endpoint requires a secret key to prevent unauthorized access.
 
+## Generate a Secret
+
+First, generate a random secret (never commit this to git):
+
+```bash
+openssl rand -base64 32
+```
+
+Copy the output - this is your CRON_SECRET.
+
 ## Steps
 
 1. Go to your Vercel Dashboard: https://vercel.com/
@@ -9,9 +19,17 @@ The cron job endpoint requires a secret key to prevent unauthorized access.
 3. Go to **Settings** → **Environment Variables**
 4. Add a new environment variable:
    - **Name**: `CRON_SECRET`
-   - **Value**: `x9Eogkw2xD6PgL6xBvbQpyndPAp2lmJOkWsXnhLbtZg=`
+   - **Value**: `<paste your generated secret here>`
    - **Environments**: Select all (Production, Preview, Development)
 5. Click **Save**
+
+## Update Local .env.local
+
+Also add it to your local `.env.local` file:
+
+```bash
+CRON_SECRET=<paste your generated secret here>
+```
 
 ## Verification
 
@@ -21,8 +39,8 @@ After deployment, verify the cron endpoint is protected:
 # This should fail with 401 Unauthorized
 curl https://your-domain.vercel.app/api/cron/scrape
 
-# This should work (with correct secret)
-curl -H "Authorization: Bearer x9Eogkw2xD6PgL6xBvbQpyndPAp2lmJOkWsXnhLbtZg=" \
+# This should work (with YOUR secret)
+curl -H "Authorization: Bearer YOUR_SECRET_HERE" \
   https://your-domain.vercel.app/api/cron/scrape
 ```
 
