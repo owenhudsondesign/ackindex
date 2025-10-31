@@ -81,15 +81,14 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const supabase = await getSupabaseClient();
+    // Check authentication and admin authorization
+    const supabase = await createAdminSupabaseClient();
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (!session) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
 
     // Get embedding stats
     const stats = await getEmbeddingStats();
