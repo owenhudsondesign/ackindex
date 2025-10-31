@@ -64,10 +64,42 @@ function shouldUseStagehand(url: string): boolean {
     
     // Sites that need Stagehand (dynamic/JavaScript-heavy)
     const stagehandDomains = [
-      'civicclerk.com',     // CivicClerk portal - needs JavaScript interaction
-      'legistar.com',       // Legistar portal - dynamic content
-      'civicplus.com',      // CivicPlus - JavaScript-heavy
-      'granicusideas.com',  // Granicus - dynamic platform
+      // Meeting/Agenda Management Platforms
+      'civicclerk.com',         // CivicClerk portal - needs JavaScript interaction
+      'legistar.com',           // Legistar portal - dynamic content
+      'granicusideas.com',      // Granicus - dynamic platform
+      'granicus.com',           // Granicus main domain
+      'novusagenda.com',        // NovusAgenda - meeting management
+      'primegov.com',           // PrimeGov - agenda management
+      'swagit.com',             // Swagit - video streaming + agendas
+
+      // Civic Engagement Platforms
+      'civicplus.com',          // CivicPlus - JavaScript-heavy
+      'civicengage.com',        // CivicEngage - citizen engagement
+      'opengov.com',            // OpenGov - transparency platform
+      'seeclickfix.com',        // SeeClickFix - issue reporting
+      'citizenlab.co',          // CitizenLab - participation platform
+      'polco.us',               // Polco - polling/engagement
+      'zencity.io',             // Zencity - civic analytics
+
+      // Document/Records Management
+      'laserfiche.com',         // Laserfiche - document management
+      'acomrapps.net',          // ACOM - agenda/records system
+      'municode.com',           // Municode - online code/documents
+      'generalcode.com',        // General Code - municipal codes
+      'qcode.us',               // Qcode - municipal code platform
+
+      // Permit/Planning Systems
+      'clarityintuitivetech.com', // Clarity - permit tracking
+      'viewpointcloud.com',     // Viewpoint - project management
+      'accela.com',             // Accela - civic apps/permits
+      'cityworks.com',          // Cityworks - asset management
+
+      // Other Common Platforms
+      'revize.com',             // Revize - CMS for government
+      'govqa.com',              // GovQA - request management
+      'nextrequest.com',        // NextRequest - FOIA/records
+      'caseware.com',           // CaseWare - financial reporting
     ];
     
     // Check if URL matches any Stagehand-required domains
@@ -121,7 +153,7 @@ export async function startScrapeJob(
         maxPages: maxPages,
         maxDepth: maxDepth,
         extractPDFs: extractPDFs,
-        // OpenAI key should be set as environment variable in Apify actor
+        openaiApiKey: process.env.OPENAI_API_KEY, // Required for Stagehand AI
       };
       console.log('[Apify] Using Stagehand AI-powered scraper');
     } else {

@@ -6,12 +6,9 @@ import { getCurrentUser } from '@/lib/auth';
 import { getAdminUser } from '@/lib/adminAuth';
 import PageLayout from '@/components/PageLayout';
 import Container from '@/components/Container';
-import URLUpload from '@/components/URLUpload';
 import PDFUpload from '@/components/PDFUpload';
-import BatchURLUpload from '@/components/BatchURLUpload';
 import SignOutButton from '@/components/SignOutButton';
 import ActivityFeed from '@/components/ActivityFeed';
-import EmbeddingsManager from '@/components/EmbeddingsManager';
 import ScheduledScrapesManager from '@/components/ScheduledScrapesManager';
 import Loading from '@/components/Loading';
 import Card from '@/components/Card';
@@ -144,20 +141,15 @@ export default function AdminPage() {
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-blue-800">
-                  Content Management Workflow
+                  Automated Content Management
                 </h3>
                 <div className="mt-2 text-sm text-blue-700">
                   <p>
-                    1. Upload URLs or PDFs • 2. Generate embeddings • 3. Chatbot becomes searchable
+                    Schedule URLs for automatic scraping • Upload PDFs directly • Monitor scraping activity
                   </p>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Batch Upload */}
-          <div className="mb-8">
-            <BatchURLUpload />
           </div>
 
           {/* Scheduled Scrapes Manager */}
@@ -165,15 +157,9 @@ export default function AdminPage() {
             <ScheduledScrapesManager />
           </div>
 
-          {/* Upload Forms */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <URLUpload onUploadSuccess={() => console.log('URL upload success')} />
-            <PDFUpload onUploadSuccess={() => console.log('PDF upload success')} />
-          </div>
-
-          {/* Embeddings Manager */}
+          {/* PDF Upload */}
           <div className="mb-8">
-            <EmbeddingsManager />
+            <PDFUpload onUploadSuccess={() => console.log('PDF upload success')} />
           </div>
 
           {/* Activity Feed */}

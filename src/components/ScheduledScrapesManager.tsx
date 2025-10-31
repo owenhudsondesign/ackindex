@@ -25,6 +25,8 @@ export default function ScheduledScrapesManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [toast, setToast] = useState<{
     show: boolean;
     message: string;
@@ -35,9 +37,30 @@ export default function ScheduledScrapesManager() {
     type: 'success',
   });
 
+  // Form state for add/edit
+  const [formData, setFormData] = useState({
+    url: '',
+    title: '',
+    scrape_frequency: '1 week',
+    priority: 5,
+    status: 'active' as 'active' | 'paused' | 'failed',
+  });
+
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 5000);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      url: '',
+      title: '',
+      scrape_frequency: '1 week',
+      priority: 5,
+      status: 'active',
+    });
+    setEditingId(null);
+    setShowAddForm(false);
   };
 
   const fetchScrapes = async () => {
@@ -65,6 +88,108 @@ export default function ScheduledScrapesManager() {
   useEffect(() => {
     fetchScrapes();
   }, []);
+
+  const handleAddUrl = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.url.trim()) {
+      showToast('URL is required', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/scheduled-scrapes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add URL');
+      }
+
+      showToast('URL added successfully!', 'success');
+      resetForm();
+      fetchScrapes();
+    } catch (error) {
+      console.error('Error adding URL:', error);
+      showToast(
+        error instanceof Error ? error.message : 'Failed to add URL',
+        'error'
+      );
+    }
+  };
+
+  const handleEdit = (scrape: ScheduledScrape) => {
+    setFormData({
+      url: scrape.url,
+      title: scrape.title || '',
+      scrape_frequency: scrape.scrape_frequency,
+      priority: scrape.priority,
+      status: scrape.status,
+    });
+    setEditingId(scrape.id);
+    setShowAddForm(false);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editingId) return;
+
+    try {
+      const response = await fetch('/api/admin/scheduled-scrapes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingId, ...formData }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update URL');
+      }
+
+      showToast('URL updated successfully!', 'success');
+      resetForm();
+      fetchScrapes();
+    } catch (error) {
+      console.error('Error updating URL:', error);
+      showToast(
+        error instanceof Error ? error.message : 'Failed to update URL',
+        'error'
+      );
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this scheduled scrape?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/scheduled-scrapes?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete URL');
+      }
+
+      showToast('URL deleted successfully!', 'success');
+      fetchScrapes();
+    } catch (error) {
+      console.error('Error deleting URL:', error);
+      showToast(
+        error instanceof Error ? error.message : 'Failed to delete URL',
+        'error'
+      );
+    }
+  };
 
   const handleTriggerSelected = async () => {
     if (selectedIds.size === 0) {
@@ -224,6 +349,16 @@ export default function ScheduledScrapesManager() {
 
           <div className="flex gap-2">
             <Button
+              onClick={() => {
+                resetForm();
+                setShowAddForm(!showAddForm);
+              }}
+              variant="secondary"
+              size="sm"
+            >
+              {showAddForm ? 'Cancel' : '+ Add URL'}
+            </Button>
+            <Button
               onClick={() => fetchScrapes()}
               disabled={isLoading}
               variant="secondary"
@@ -243,6 +378,98 @@ export default function ScheduledScrapesManager() {
           </div>
         </div>
 
+        {/* Add URL Form */}
+        {showAddForm && (
+          <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">Add New URL</h4>
+            <form onSubmit={handleAddUrl} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    URL *
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.url}
+                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                    placeholder="https://example.com/meeting"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Optional title"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Frequency
+                  </label>
+                  <select
+                    value={formData.scrape_frequency}
+                    onChange={(e) => setFormData({ ...formData, scrape_frequency: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                  >
+                    <option value="1 day">Daily</option>
+                    <option value="1 week">Weekly</option>
+                    <option value="2 weeks">Bi-weekly</option>
+                    <option value="1 month">Monthly</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Priority (1-10)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formData.priority}
+                    onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                  >
+                    <option value="active">Active</option>
+                    <option value="paused">Paused</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  onClick={resetForm}
+                  variant="secondary"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm">
+                  Add URL
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loading />
@@ -261,7 +488,7 @@ export default function ScheduledScrapesManager() {
               <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p>No scheduled scrapes yet</p>
-            <p className="text-sm mt-2">Use the Batch URL Upload tool above to schedule some.</p>
+            <p className="text-sm mt-2">Click &quot;Add URL&quot; above to schedule your first scrape.</p>
           </div>
         ) : (
           <>
@@ -310,59 +537,171 @@ export default function ScheduledScrapesManager() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Next Scrape
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {scrapes.map((scrape) => (
-                    <tr
-                      key={scrape.id}
-                      className={`hover:bg-gray-50 ${selectedIds.has(scrape.id) ? 'bg-blue-50' : ''}`}
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(scrape.id)}
-                          onChange={() => toggleSelection(scrape.id)}
-                          className="rounded border-gray-300 text-ack-blue focus:ring-ack-blue"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="max-w-md">
-                          <div className="text-sm font-medium text-gray-900 truncate">
-                            {scrape.title || 'Untitled'}
+                    editingId === scrape.id ? (
+                      // Edit Row
+                      <tr key={scrape.id} className="bg-blue-50">
+                        <td className="px-4 py-3" colSpan={8}>
+                          <form onSubmit={handleUpdate} className="space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  URL
+                                </label>
+                                <input
+                                  type="url"
+                                  value={formData.url}
+                                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Title
+                                </label>
+                                <input
+                                  type="text"
+                                  value={formData.title}
+                                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Frequency
+                                </label>
+                                <select
+                                  value={formData.scrape_frequency}
+                                  onChange={(e) => setFormData({ ...formData, scrape_frequency: e.target.value })}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                >
+                                  <option value="1 day">Daily</option>
+                                  <option value="1 week">Weekly</option>
+                                  <option value="2 weeks">Bi-weekly</option>
+                                  <option value="1 month">Monthly</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Priority (1-10)
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="10"
+                                  value={formData.priority}
+                                  onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Status
+                                </label>
+                                <select
+                                  value={formData.status}
+                                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                >
+                                  <option value="active">Active</option>
+                                  <option value="paused">Paused</option>
+                                  <option value="failed">Failed</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                type="button"
+                                onClick={resetForm}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Cancel
+                              </Button>
+                              <Button type="submit" size="sm">
+                                Save Changes
+                              </Button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    ) : (
+                      // Regular Row
+                      <tr
+                        key={scrape.id}
+                        className={`hover:bg-gray-50 ${selectedIds.has(scrape.id) ? 'bg-blue-50' : ''}`}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(scrape.id)}
+                            onChange={() => toggleSelection(scrape.id)}
+                            className="rounded border-gray-300 text-ack-blue focus:ring-ack-blue"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="max-w-md">
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {scrape.title || 'Untitled'}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">{scrape.url}</div>
                           </div>
-                          <div className="text-xs text-gray-500 truncate">{scrape.url}</div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(scrape.status)}`}
-                        >
-                          {scrape.status}
-                        </span>
-                        {scrape.error_count > 0 && (
-                          <div className="text-xs text-red-600 mt-1">
-                            {scrape.error_count} error{scrape.error_count !== 1 ? 's' : ''}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(scrape.status)}`}
+                          >
+                            {scrape.status}
+                          </span>
+                          {scrape.error_count > 0 && (
+                            <div className="text-xs text-red-600 mt-1">
+                              {scrape.error_count} error{scrape.error_count !== 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {scrape.priority}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {scrape.scrape_frequency}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {scrape.last_scraped_at
+                            ? new Date(scrape.last_scraped_at).toLocaleDateString()
+                            : 'Never'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-sm text-gray-900">
+                            {formatDate(scrape.next_scrape_at)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEdit(scrape)}
+                              className="text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(scrape.id)}
+                              className="text-red-600 hover:text-red-800 font-medium"
+                            >
+                              Delete
+                            </button>
                           </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {scrape.priority}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {scrape.scrape_frequency}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {scrape.last_scraped_at
-                          ? new Date(scrape.last_scraped_at).toLocaleDateString()
-                          : 'Never'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="text-sm text-gray-900">
-                          {formatDate(scrape.next_scrape_at)}
-                        </span>
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
+                    )
                   ))}
                 </tbody>
               </table>
@@ -381,4 +720,3 @@ export default function ScheduledScrapesManager() {
     </>
   );
 }
-
