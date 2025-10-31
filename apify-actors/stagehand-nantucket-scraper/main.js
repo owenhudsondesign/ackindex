@@ -101,11 +101,26 @@ await Actor.main(async () => {
 
       try {
         // Navigate to page with timeout
-        await stagehand.page.goto(url, { 
+        await stagehand.page.goto(url, {
           waitUntil: 'networkidle',
           timeout: 20000 // 20 second timeout
         });
-        
+
+        // Special handling for CivicClerk portals - scroll to load dynamic content
+        if (url.includes('civicclerk.com')) {
+          console.log('🗓️ CivicClerk portal detected - scrolling to load meetings...');
+          try {
+            // Scroll down to trigger lazy-loaded content
+            await stagehand.page.act({
+              action: 'Scroll down the page slowly to load all meetings'
+            });
+            // Wait for content to load
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          } catch (scrollError) {
+            console.log('⚠️ Scroll action failed, continuing anyway:', scrollError.message);
+          }
+        }
+
         // Extract page content using AI
         const pageData = await stagehand.page.extract({
           instruction: 'Extract the main title, all body text content, and find all PDF links. Return clean, readable text without navigation menus or boilerplate.',
@@ -170,8 +185,13 @@ await Actor.main(async () => {
 
         // Find links for crawling (if not at max depth)
         if (depth < maxDepth) {
+          // Customize instruction based on page type
+          const linkInstruction = url.includes('civicclerk.com')
+            ? 'Find ALL links to specific meetings, agendas, minutes, and documents. Look for calendar events, meeting dates, committee names, and document links. Include links that go to www.nantucket-ma.gov for meeting details. DO NOT include navigation, login, or help links.'
+            : 'Find links to meeting pages, agendas, agenda packets, and documents. DO NOT include navigation menus, breadcrumbs, or links to parent/home pages. Only return links that go deeper into meeting content or documents.';
+
           const links = await stagehand.page.extract({
-            instruction: 'Find links to meeting pages, agendas, agenda packets, and documents. DO NOT include navigation menus, breadcrumbs, or links to parent/home pages. Only return links that go deeper into meeting content or documents.',
+            instruction: linkInstruction,
             schema: z.object({
               links: z.array(z.string()).describe('Array of absolute URLs to meetings, agendas, and documents')
             })
