@@ -41,11 +41,11 @@ export async function POST(request: NextRequest) {
       source_type: 'pdf',
       filename: file.name,
       title: file.name.replace('.pdf', ''),
-      created_by: session.user.id,
+      created_by: adminOrError.id,
     });
 
     // Process PDF in the background
-    processPDFUpload(document.id, file, session.user.id).catch(error => {
+    processPDFUpload(document.id, file, adminOrError.id).catch(error => {
       console.error('[PDF API] Background processing failed:', error);
     });
 

@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
       source_type: 'url',
       source_url: url,
       title: url,
-      created_by: session.user.id,
+      created_by: adminOrError.id,
     });
 
     // Start processing in the background
-    processUrlScraping(document.id, url, session.user.id).catch(error => {
+    processUrlScraping(document.id, url, adminOrError.id).catch(error => {
       console.error('[Scrape API] Background processing failed:', error);
     });
 

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       source_type: 'external',
       source_url: sourceUrl || 'external',
       title,
-      created_by: session.user.id,
+      created_by: adminOrError.id,
     } as any);
 
     try {

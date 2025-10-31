@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Batch Schedule] Processing ${urls.length} URLs for user ${session.user.id}`);
+    console.log(`[Batch Schedule] Processing ${urls.length} URLs for user ${adminOrError.id}`);
 
     const results = {
       success: 0,
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             scrape_frequency: frequency,
             priority,
             status: 'active',
-            created_by: session.user.id,
+            created_by: adminOrError.id,
             next_scrape_at: new Date().toISOString(), // Schedule immediately
           },
           {
