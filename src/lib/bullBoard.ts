@@ -1,22 +1,11 @@
 /**
- * Bull Board Configuration
+ * Bull Board Utility Functions
  *
- * Provides a visual dashboard for monitoring BullMQ job queues.
+ * Provides utility functions for managing BullMQ job queues.
  * This should only be used in authenticated admin contexts.
  */
 
-import { createBullBoard } from '@bull-board/api';
-import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { scrapingQueue, embeddingQueue } from './queues';
-
-// Create Bull Board instance with our queues
-export const { addQueue, removeQueue, setQueues, replaceQueues, getQueues } = createBullBoard({
-  queues: [
-    new BullMQAdapter(scrapingQueue),
-    new BullMQAdapter(embeddingQueue),
-  ],
-  serverAdapter: undefined, // We'll handle the UI rendering in the API route
-});
 
 /**
  * Get queue statistics for all queues

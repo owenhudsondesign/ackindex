@@ -15,8 +15,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
-import { createBullBoard } from '@bull-board/api';
-import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { scrapingQueue, embeddingQueue } from '@/lib/queues';
 
 // We need a custom UI handler for Next.js
@@ -43,17 +41,7 @@ export async function GET(
     const { path } = await params;
     const uiPath = path ? path.join('/') : '';
 
-    // Create Bull Board with queues
-    const serverAdapter = createBullBoard({
-      queues: [
-        new BullMQAdapter(scrapingQueue),
-        new BullMQAdapter(embeddingQueue),
-      ],
-      serverAdapter: undefined,
-    });
-
-    // For now, return a basic HTML page with queue information
-    // In production, you'd use @bull-board/ui to render the full UI
+    // Get queue statistics directly (we're serving custom HTML, not using Bull Board UI)
     const [scrapingCounts, embeddingCounts] = await Promise.all([
       scrapingQueue.getJobCounts(),
       embeddingQueue.getJobCounts(),
