@@ -1,92 +1,136 @@
 # AckIndex Documentation Index
 
-## START HERE
+## START HERE 🚀
 
-### 1. **PROJECT_OVERVIEW.md** (15 KB)
-**The Complete System Architecture**
-- Database schema (9 tables with relationships)
-- All 9 stages of development
-- OpenAI embeddings & chat integration
-- Apify scraping configuration
-- API endpoints (8+ routes)
-- What's built vs what needs to be built
-- Integration flow diagram
-- File structure reference
+### New to AckIndex?
+1. Read **README.md** (5 min) - Project overview
+2. Read **ARCHITECTURE.md** (15 min) - Technical architecture & decisions
+3. Read **NEXT_STEPS.md** (10 min) - Roadmap & priorities
 
-**Read this if you want:** Full understanding of the entire system
+### Need Quick Reference?
+→ **QUICK_REFERENCE.md** - Commands, APIs, troubleshooting
 
-### 2. **QUICK_REFERENCE.md** (8 KB)
+### Need Setup Help?
+→ **SETUP-CHECKLIST.md** - Step-by-step setup guide
+
+---
+
+## Core Documentation
+
+### 1. **README.md**
+**Project Overview**
+- What is AckIndex
+- Tech stack summary
+- Getting started
+- Project structure
+
+### 2. **ARCHITECTURE.md** ⭐ NEW
+**Technical Architecture & Decisions**
+- Complete tech stack breakdown
+- Database schema with relationships
+- Architecture decisions & trade-offs
+- Data flow diagrams
+- Security considerations
+- Performance optimizations
+- Cost structure
+- Known limitations
+
+### 3. **NEXT_STEPS.md** ⭐ NEW
+**Roadmap & Action Plan**
+- Current status (what's done vs. what's missing)
+- Immediate priorities (next 2 weeks)
+- Short-term goals (1 month)
+- Medium-term goals (3 months)
+- Long-term vision (6-12 months)
+- Success metrics
+- Resource requirements
+
+### 4. **QUICK_REFERENCE.md**
 **Quick Lookup Guide**
 - ASCII architecture diagram
 - Data flow visualization
 - Database schema summary table
 - Key functions by module
-- API endpoint examples (with curl commands)
-- Subscription tiers
-- Environment variables checklist
+- API endpoint examples (curl commands)
 - Common issues & solutions
-- Performance notes
-- Production checklist
+- Environment variables
 
-**Read this if you want:** Fast reference for common questions
+### 5. **PROJECT_OVERVIEW.md**
+**Detailed System Overview**
+- Database schema (all tables)
+- AI/LLM integration details
+- Data ingestion pipelines
+- Apify actor configuration
+- API endpoints (complete list)
+- Integration flow diagrams
+- File structure reference
 
-### 3. **INTEGRATION_GUIDE.md** (12 KB)
+### 6. **INTEGRATION_GUIDE.md**
 **Code Examples & Data Flow**
-- Complete code snippets for each stage
-- Apify output format (Python)
-- Data ingestion pipeline (TypeScript)
-- Embedding generation process
-- Semantic search RPC function (SQL)
-- Chat endpoint with context building
-- Database schema details
-- Complete flow summary with numbered steps
-- Testing examples (curl commands)
-
-**Read this if you want:** To understand how everything connects with actual code
+- Complete code snippets
+- Apify output format
+- Data ingestion pipeline
+- Embedding generation
+- Semantic search RPC functions
+- Chat endpoint implementation
+- Testing examples
 
 ---
 
-## QUICK NAVIGATION
+## Setup & Configuration
 
-### Setup & Configuration
-- **SETUP-CHECKLIST.md** - Initial project setup
-- **SUPABASE-AUTH-SETUP.md** - Authentication configuration
+### Getting Started
+- **SETUP-CHECKLIST.md** - Complete setup checklist
+- **EMAIL-SETUP.md** - Resend email configuration
+- **SUPABASE-AUTH-SETUP.md** - Authentication setup
 - **STRIPE-SETUP.md** - Payment processing
-- **EMAIL-SETUP.md** - SendGrid configuration
+- **SQL-MIGRATIONS-GUIDE.md** - Database migrations
 
-### Database & Migrations
-- **SQL-MIGRATIONS-GUIDE.md** - How to apply database migrations
-- **STAGE-7-COMPLETE.md** - Document/chunk tables (detailed)
-- **STAGE-8-COMPLETE.md** - Vector embeddings (detailed)
-- **STAGE-9-COMPLETE.md** - User profiles & subscriptions (detailed)
+### For Users
+- **USER-GUIDE.md** - End-user documentation
+- **ADDING_WEBSITES_GUIDE.md** - How to add new websites
+- **MANUAL-SCRAPE-TRIGGER-GUIDE.md** - Manual scraping
 
-### Apify Scrapers
-- **ACTOR-COMPARISON.md** - Stagehand vs Python actor comparison
-- **APIFY-ACTOR-FIX-SUMMARY.md** - Recent fixes and improvements
-- **APIFY-DEPLOYMENT-CHECKLIST.md** - Deployment steps
-- **STAGEHAND-ACTOR-SUMMARY.md** - Stagehand-specific details
+---
 
-### Troubleshooting
-- **DIAGNOSIS-AND-FIX.md** - Common issues and solutions
-- **EMBEDDING-FIX-REQUIRED.md** - Embedding type issues
-- **APIFY-DEBUGGING-NEXT-STEPS.md** - Debugging Apify issues
-- **IMMEDIATE-ACTION-PLAN.md** - Priority fixes
+## All Documentation Files
+
+### Core Files
+- `README.md` - Project overview
+- `ARCHITECTURE.md` ⭐ - Technical architecture
+- `NEXT_STEPS.md` ⭐ - Roadmap & priorities
+- `QUICK_REFERENCE.md` - Quick reference guide
+- `PROJECT_OVERVIEW.md` - Detailed system overview
+- `INTEGRATION_GUIDE.md` - Code examples
+- `DOCUMENTATION_INDEX.md` - This file
+
+### Setup Guides
+- `SETUP-CHECKLIST.md` - Setup checklist
+- `EMAIL-SETUP.md` - Email configuration
+- `SUPABASE-AUTH-SETUP.md` - Auth setup
+- `STRIPE-SETUP.md` - Payment setup
+- `SQL-MIGRATIONS-GUIDE.md` - Database migrations
 
 ### User Guides
-- **USER-GUIDE.md** - How to use the application
-- **README.md** - Project README
+- `USER-GUIDE.md` - End-user guide
+- `ADDING_WEBSITES_GUIDE.md` - Adding websites
+- `MANUAL-SCRAPE-TRIGGER-GUIDE.md` - Manual scraping
 
 ---
 
-## FILE LOCATIONS (Absolute Paths)
+## File Locations
 
-### Documentation Files
+### Documentation (Root)
 ```
 /Users/owenhudson/ackindex/
-├── PROJECT_OVERVIEW.md              ← Start here for overview
-├── QUICK_REFERENCE.md               ← Start here for quick lookup
-├── INTEGRATION_GUIDE.md             ← Start here for code examples
-└── DOCUMENTATION_INDEX.md           ← You are here
+├── README.md
+├── ARCHITECTURE.md              ← NEW
+├── NEXT_STEPS.md                ← NEW
+├── QUICK_REFERENCE.md
+├── PROJECT_OVERVIEW.md
+├── INTEGRATION_GUIDE.md
+├── DOCUMENTATION_INDEX.md
+└── ... (other .md files)
 ```
 
 ### Source Code - Core Libraries
@@ -314,22 +358,38 @@ Apply in this order:
 
 ---
 
-## SUPPORT MATRIX
+## Quick Task Guide
 
-| Feature | Status | Doc Location |
-|---------|--------|--------------|
-| Database Schema | ✅ Complete | PROJECT_OVERVIEW.md § 1 |
-| Vector Embeddings | ✅ Complete | INTEGRATION_GUIDE.md § 5 |
-| Semantic Search | ✅ Complete | INTEGRATION_GUIDE.md § 6 |
-| Chat/RAG | ✅ Complete | INTEGRATION_GUIDE.md § 7 |
-| Web Scraping | ✅ Complete | INTEGRATION_GUIDE.md § 2-3 |
-| User Auth | ✅ Complete | SUPABASE-AUTH-SETUP.md |
-| Payments | ✅ Complete | STRIPE-SETUP.md |
-| Frontend UI | ⚠️ Partial | USER-GUIDE.md |
-| Admin Dashboard | ❌ Missing | PROJECT_OVERVIEW.md § 6 |
-| Caching Layer | ❌ Missing | PROJECT_OVERVIEW.md § 8 |
-| Job Queue | ❌ Missing | PROJECT_OVERVIEW.md § 8 |
+| I want to... | Read this |
+|--------------|-----------|
+| Understand the architecture | ARCHITECTURE.md |
+| Know what to build next | NEXT_STEPS.md |
+| Set up the project | SETUP-CHECKLIST.md |
+| Find API endpoints | QUICK_REFERENCE.md |
+| See code examples | INTEGRATION_GUIDE.md |
+| Configure Stripe | STRIPE-SETUP.md |
+| Add new websites | ADDING_WEBSITES_GUIDE.md |
+| Help end users | USER-GUIDE.md |
 
 ---
 
-Last Updated: October 30, 2024
+## Project Status
+
+| Component | Status | Documentation |
+|-----------|--------|---------------|
+| Database Schema | ✅ Complete | ARCHITECTURE.md, PROJECT_OVERVIEW.md |
+| Vector Embeddings | ✅ Complete | ARCHITECTURE.md, INTEGRATION_GUIDE.md |
+| Semantic Search | ✅ Complete | INTEGRATION_GUIDE.md |
+| Chat/RAG Pipeline | ✅ Complete | INTEGRATION_GUIDE.md |
+| Web Scraping | ✅ Complete | ADDING_WEBSITES_GUIDE.md |
+| Authentication | ✅ Complete | SUPABASE-AUTH-SETUP.md |
+| Payments | ✅ Complete | STRIPE-SETUP.md |
+| Frontend UI | ⚠️ Partial | NEXT_STEPS.md (see priorities) |
+| Admin Dashboard | ⚠️ Basic | NEXT_STEPS.md (see enhancements) |
+| Job Queue | ❌ Missing | NEXT_STEPS.md (immediate priority) |
+| Caching | ❌ Missing | NEXT_STEPS.md (short-term) |
+| Analytics | ❌ Missing | NEXT_STEPS.md (medium-term) |
+
+---
+
+Last Updated: 2025-11-02

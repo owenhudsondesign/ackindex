@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
-import { getChunksWithoutEmbeddings, updateChunkEmbedding, getEmbeddingStats } from '@/lib/database';
-import { generateEmbeddingsBatch, estimateEmbeddingCost } from '@/lib/embeddings';
+import { getChunksWithoutEmbeddings, getEmbeddingStats } from '@/lib/database';
+import { estimateEmbeddingCost } from '@/lib/embeddings';
+import { embeddingQueue } from '@/lib/queues';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,35 +39,34 @@ export async function POST(request: NextRequest) {
       `[Generate Embeddings] Estimated cost: $${costEstimate.estimatedCost} for ${costEstimate.estimatedTokens} tokens`
     );
 
-    // Generate embeddings in batch
-    const texts = chunks.map(chunk => chunk.content);
-    const embeddings = await generateEmbeddingsBatch(texts);
-
-    // Update database
-    let successCount = 0;
-    let failCount = 0;
-
-    for (let i = 0; i < chunks.length; i++) {
-      try {
-        await updateChunkEmbedding(chunks[i].id, embeddings[i]);
-        successCount++;
-      } catch (error) {
-        console.error(`[Generate Embeddings] Failed to update chunk ${chunks[i].id}:`, error);
-        failCount++;
+    // Add job to queue
+    const job = await embeddingQueue.add(
+      'generate-embeddings',
+      {
+        chunks: chunks.map(chunk => ({
+          id: chunk.id,
+          content: chunk.content,
+        })),
+      },
+      {
+        priority: 5, // Normal priority
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
       }
-    }
-
-    console.log(
-      `[Generate Embeddings] Completed: ${successCount} successful, ${failCount} failed`
     );
 
-    // Get updated stats
+    console.log(`[Generate Embeddings] Queued embedding job ${job.id} for ${chunks.length} chunks`);
+
+    // Get current stats
     const stats = await getEmbeddingStats();
 
     return NextResponse.json({
-      message: `Successfully generated embeddings for ${successCount} chunks`,
-      processed: successCount,
-      failed: failCount,
+      message: `Queued embedding generation for ${chunks.length} chunks`,
+      jobId: job.id,
+      chunkCount: chunks.length,
       stats,
       cost: costEstimate,
     });

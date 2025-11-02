@@ -1,0 +1,63 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
+import { scrapingQueue, embeddingQueue } from '@/lib/queues';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { jobId: string } }
+) {
+  try {
+    // Check authentication and admin authorization
+    const supabase = await createAdminSupabaseClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
+
+    const { jobId } = params;
+
+    // Check both queues for the job
+    let job = await scrapingQueue.getJob(jobId);
+    let queueName = 'scraping';
+
+    if (!job) {
+      job = await embeddingQueue.getJob(jobId);
+      queueName = 'embedding';
+    }
+
+    if (!job) {
+      return NextResponse.json(
+        { message: 'Job not found' },
+        { status: 404 }
+      );
+    }
+
+    const state = await job.getState();
+    const progress = job.progress;
+    const returnValue = job.returnvalue;
+    const failedReason = job.failedReason;
+
+    return NextResponse.json({
+      jobId: job.id,
+      queue: queueName,
+      name: job.name,
+      state, // 'completed' | 'failed' | 'active' | 'waiting' | 'delayed'
+      progress,
+      data: job.data,
+      returnValue,
+      failedReason,
+      timestamp: job.timestamp,
+      processedOn: job.processedOn,
+      finishedOn: job.finishedOn,
+      attemptsMade: job.attemptsMade,
+    });
+  } catch (error) {
+    console.error('[Job Status] Error:', error);
+    return NextResponse.json(
+      { message: 'Failed to get job status', error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
