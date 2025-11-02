@@ -15,7 +15,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
-import { scrapingQueue, embeddingQueue } from '@/lib/queues';
 
 // We need a custom UI handler for Next.js
 // Bull Board provides UI assets that we'll serve
@@ -33,6 +32,28 @@ export async function GET(request: NextRequest) {
       // User is not authenticated or not an admin
       return adminOrError;
     }
+
+    // Check if Redis is configured
+    if (!process.env.REDIS_URL) {
+      return new NextResponse(
+        `<!DOCTYPE html>
+<html>
+<head><title>Queue Dashboard - Not Configured</title></head>
+<body style="font-family: sans-serif; padding: 40px; text-align: center;">
+  <h1>⚠️ Queue Dashboard Not Available</h1>
+  <p>Redis URL is not configured. Please add REDIS_URL to your Vercel environment variables.</p>
+  <p><a href="/admin">← Back to Admin Panel</a></p>
+</body>
+</html>`,
+        {
+          status: 503,
+          headers: { 'Content-Type': 'text/html' },
+        }
+      );
+    }
+
+    // Lazy import queues to avoid module-level connection errors
+    const { scrapingQueue, embeddingQueue } = await import('@/lib/queues');
 
     // User is authenticated and has admin role - serve Bull Board UI
     // Get queue statistics directly (we're serving custom HTML, not using Bull Board UI)
@@ -268,6 +289,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Lazy import queues
+    const { scrapingQueue, embeddingQueue } = await import('@/lib/queues');
     const queue = queueName === 'scraping' ? scrapingQueue : embeddingQueue;
     const job = await queue.getJob(jobId);
 
