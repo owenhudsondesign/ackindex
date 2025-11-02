@@ -35,7 +35,7 @@ npm install bull @bull-board/api @bull-board/express
 ```
 
 **Tasks**:
-- [ ] Set up Redis (Upstash free tier)
+- [✅] Set up Redis (Upstash free tier)
 - [ ] Create scraping queue
 - [ ] Create embedding queue
 - [ ] Add job monitoring dashboard

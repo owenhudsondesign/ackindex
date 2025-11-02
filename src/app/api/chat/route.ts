@@ -5,6 +5,7 @@ import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { captureException, setUserContext } from '@/lib/sentry';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -262,6 +263,19 @@ Remember: Your knowledge is limited to the context above. Do not make up informa
     });
   } catch (error) {
     console.error('[Chat API] Error:', error);
+
+    // Capture error in Sentry
+    captureException(error, {
+      tags: {
+        endpoint: '/api/chat',
+        operation: 'chat-query',
+      },
+      extra: {
+        message: body?.message,
+        hasConversationHistory: conversationHistory?.length > 0,
+      },
+    });
+
     return NextResponse.json(
       {
         error: 'Failed to process your request',

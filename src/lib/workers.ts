@@ -1,5 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
+import * as Sentry from '@sentry/node';
 import {
   startScrapeJob,
   waitForJob,
@@ -266,10 +267,31 @@ scrapingWorker.on('completed', (job) => {
 
 scrapingWorker.on('failed', (job, err) => {
   console.error(`[Worker] Scraping job ${job?.id} failed:`, err.message);
+
+  // Send to Sentry
+  Sentry.captureException(err, {
+    tags: {
+      worker: 'scraping',
+      jobId: job?.id,
+      queue: 'scraping',
+    },
+    extra: {
+      jobData: job?.data,
+      attemptsMade: job?.attemptsMade,
+    },
+  });
 });
 
 scrapingWorker.on('error', (err) => {
   console.error('[Worker] Scraping worker error:', err);
+
+  // Send to Sentry
+  Sentry.captureException(err, {
+    tags: {
+      worker: 'scraping',
+      type: 'worker-error',
+    },
+  });
 });
 
 // Event handlers for embedding worker
@@ -279,10 +301,31 @@ embeddingWorker.on('completed', (job) => {
 
 embeddingWorker.on('failed', (job, err) => {
   console.error(`[Worker] Embedding job ${job?.id} failed:`, err.message);
+
+  // Send to Sentry
+  Sentry.captureException(err, {
+    tags: {
+      worker: 'embedding',
+      jobId: job?.id,
+      queue: 'embedding',
+    },
+    extra: {
+      jobData: job?.data,
+      attemptsMade: job?.attemptsMade,
+    },
+  });
 });
 
 embeddingWorker.on('error', (err) => {
   console.error('[Worker] Embedding worker error:', err);
+
+  // Send to Sentry
+  Sentry.captureException(err, {
+    tags: {
+      worker: 'embedding',
+      type: 'worker-error',
+    },
+  });
 });
 
 // Graceful shutdown handler

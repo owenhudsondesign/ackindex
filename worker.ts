@@ -26,6 +26,40 @@ if (existsSync('.env.local')) {
   console.log('📝 Using environment variables from platform (Railway, Vercel, etc.)...');
 }
 
+// Initialize Sentry for error tracking in workers
+import * as Sentry from '@sentry/node';
+
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'production',
+    tracesSampleRate: 0.1,
+
+    // Add worker-specific tags
+    initialScope: {
+      tags: {
+        worker: 'bullmq',
+        runtime: 'node',
+      },
+    },
+
+    beforeSend(event) {
+      // Filter out sensitive environment variables
+      if (event.contexts?.runtime?.environment) {
+        const env = event.contexts.runtime.environment as any;
+        delete env.SUPABASE_SERVICE_ROLE_KEY;
+        delete env.OPENAI_API_KEY;
+        delete env.STRIPE_SECRET_KEY;
+        delete env.APIFY_API_TOKEN;
+        delete env.REDIS_URL;
+      }
+      return event;
+    },
+  });
+
+  console.log('✅ Sentry initialized for worker error tracking');
+}
+
 // Validate required environment variables
 function validateEnvVars() {
   const required = [
@@ -96,5 +130,20 @@ async function startWorkers() {
 // Start the workers
 startWorkers().catch((error) => {
   console.error('❌ Failed to start workers:', error);
-  process.exit(1);
+
+  // Send error to Sentry
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    Sentry.captureException(error, {
+      tags: {
+        location: 'worker-startup',
+      },
+    });
+
+    // Flush Sentry before exiting
+    Sentry.close(2000).then(() => {
+      process.exit(1);
+    });
+  } else {
+    process.exit(1);
+  }
 });
