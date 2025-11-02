@@ -20,10 +20,7 @@ import { scrapingQueue, embeddingQueue } from '@/lib/queues';
 // We need a custom UI handler for Next.js
 // Bull Board provides UI assets that we'll serve
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ path?: string[] }> }
-) {
+export async function GET(request: NextRequest) {
   try {
     // SECURITY: Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -38,9 +35,6 @@ export async function GET(
     }
 
     // User is authenticated and has admin role - serve Bull Board UI
-    const { path } = await params;
-    const uiPath = path ? path.join('/') : '';
-
     // Get queue statistics directly (we're serving custom HTML, not using Bull Board UI)
     const [scrapingCounts, embeddingCounts] = await Promise.all([
       scrapingQueue.getJobCounts(),
