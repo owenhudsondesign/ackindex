@@ -137,26 +137,6 @@ export async function GET(request: NextRequest) {
             margin-bottom: 1rem;
             color: #191919;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-center;
-            font-size: 1.25rem;
-        }
-        .icon-scraping {
-            background: #dbeafe;
-            color: #2e90c6;
-        }
-        .icon-embedding {
-            background: #e0e7ff;
-            color: #6366f1;
         }
         .stats {
             display: grid;
@@ -179,12 +159,8 @@ export async function GET(request: NextRequest) {
         .stat-value {
             font-size: 1.5rem;
             font-weight: 600;
+            color: #191919;
         }
-        .stat-value.waiting { color: #2e90c6; }
-        .stat-value.active { color: #10b981; }
-        .stat-value.completed { color: #8b5cf6; }
-        .stat-value.failed { color: #ef4444; }
-        .stat-value.delayed { color: #f59e0b; }
         .actions {
             display: flex;
             justify-content: center;
@@ -266,72 +242,54 @@ export async function GET(request: NextRequest) {
         <div class="grid">
             <!-- Scraping Queue -->
             <div class="card">
-                <h2>
-                    <div class="icon icon-scraping">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M2 12h20"/>
-                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                        </svg>
-                    </div>
-                    Scraping Queue
-                </h2>
+                <h2>Scraping Queue</h2>
                 <div class="stats">
                     <div class="stat">
                         <span class="stat-label">Waiting</span>
-                        <span class="stat-value waiting">${scrapingCounts.waiting || 0}</span>
+                        <span class="stat-value">${scrapingCounts.waiting || 0}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">Active</span>
-                        <span class="stat-value active">${scrapingCounts.active || 0}</span>
+                        <span class="stat-value">${scrapingCounts.active || 0}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">Completed</span>
-                        <span class="stat-value completed">${scrapingCounts.completed || 0}</span>
+                        <span class="stat-value">${scrapingCounts.completed || 0}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">Failed</span>
-                        <span class="stat-value failed">${scrapingCounts.failed || 0}</span>
+                        <span class="stat-value">${scrapingCounts.failed || 0}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">Delayed</span>
-                        <span class="stat-value delayed">${scrapingCounts.delayed || 0}</span>
+                        <span class="stat-value">${scrapingCounts.delayed || 0}</span>
                     </div>
                 </div>
             </div>
 
             <!-- Embedding Queue -->
             <div class="card">
-                <h2>
-                    <div class="icon icon-embedding">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                            <path d="M2 17l10 5 10-5"/>
-                            <path d="M2 12l10 5 10-5"/>
-                        </svg>
-                    </div>
-                    Embedding Queue
-                </h2>
+                <h2>Embedding Queue</h2>
                 <div class="stats">
                     <div class="stat">
                         <span class="stat-label">Waiting</span>
-                        <span class="stat-value waiting">${embeddingCounts.waiting || 0}</span>
+                        <span class="stat-value">${embeddingCounts.waiting || 0}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">Active</span>
-                        <span class="stat-value active">${embeddingCounts.active || 0}</span>
+                        <span class="stat-value">${embeddingCounts.active || 0}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">Completed</span>
-                        <span class="stat-value completed">${embeddingCounts.completed || 0}</span>
+                        <span class="stat-value">${embeddingCounts.completed || 0}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">Failed</span>
-                        <span class="stat-value failed">${embeddingCounts.failed || 0}</span>
+                        <span class="stat-value">${embeddingCounts.failed || 0}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">Delayed</span>
-                        <span class="stat-value delayed">${embeddingCounts.delayed || 0}</span>
+                        <span class="stat-value">${embeddingCounts.delayed || 0}</span>
                     </div>
                 </div>
             </div>
