@@ -4,7 +4,7 @@ import { scrapingQueue, embeddingQueue } from '@/lib/queues';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
     // Check authentication and admin authorization
@@ -16,7 +16,8 @@ export async function GET(
     const adminOrError = await requireAdminApi(session);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
-    const { jobId } = params;
+    // Next.js 16: params is now a Promise
+    const { jobId } = await params;
 
     // Check both queues for the job
     let job = await scrapingQueue.getJob(jobId);
