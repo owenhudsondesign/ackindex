@@ -13,11 +13,45 @@
  * For Upstash serverless workers, this will be invoked automatically.
  */
 
-// Load environment variables first (for local development)
+// Load environment variables first (for local development only)
+// Railway and other platforms will provide env vars directly
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+import { existsSync } from 'fs';
+
+// Only load .env.local if it exists (local development)
+if (existsSync('.env.local')) {
+  console.log('📝 Loading .env.local for local development...');
+  dotenv.config({ path: '.env.local' });
+} else {
+  console.log('📝 Using environment variables from platform (Railway, Vercel, etc.)...');
+}
+
+// Validate required environment variables
+function validateEnvVars() {
+  const required = [
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'OPENAI_API_KEY',
+    'REDIS_URL',
+    'APIFY_API_TOKEN'
+  ];
+
+  const missing = required.filter(varName => !process.env[varName]);
+
+  if (missing.length > 0) {
+    console.error('❌ Missing required environment variables:');
+    missing.forEach(varName => console.error(`   - ${varName}`));
+    console.error('\n💡 Set these in Railway dashboard under "Variables" tab');
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  console.log('✅ All required environment variables are set');
+}
 
 async function startWorkers() {
+  // Validate environment first
+  validateEnvVars();
+
   // Import workers after environment is loaded
   const { scrapingWorker, embeddingWorker } = await import('./src/lib/workers');
 
@@ -25,7 +59,9 @@ async function startWorkers() {
   console.log('🚀 AckIndex BullMQ Workers Starting...');
   console.log('==============================================');
   console.log(`Time: ${new Date().toISOString()}`);
+  console.log(`Node Version: ${process.version}`);
   console.log(`Redis URL: ${process.env.REDIS_URL ? 'Connected' : 'Not configured'}`);
+  console.log(`Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Connected' : 'Not configured'}`);
   console.log('----------------------------------------------');
 
   // Log worker status
