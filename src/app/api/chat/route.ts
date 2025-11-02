@@ -83,9 +83,15 @@ async function getUserFromRequest(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Declare variables outside try block so they're accessible in catch
+  let body: any;
+  let message: string | undefined;
+  let conversationHistory: any[] = [];
+
   try {
-    const body = await request.json();
-    const { message, conversationHistory = [] } = body;
+    body = await request.json();
+    message = body.message;
+    conversationHistory = body.conversationHistory || [];
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(

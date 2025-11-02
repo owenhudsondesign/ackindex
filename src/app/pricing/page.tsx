@@ -276,13 +276,15 @@ export default function PricingPage() {
               </li>
             </ul>
 
-            <Button
-              fullWidth
-              onClick={handleUpgrade}
-              disabled={loading === 'premium'}
-            >
-              {loading === 'premium' ? 'Loading...' : 'Upgrade to Premium'}
-            </Button>
+            <div className="relative">
+              <Button
+                fullWidth
+                disabled={true}
+                className="cursor-not-allowed opacity-60"
+              >
+                Coming Soon
+              </Button>
+            </div>
           </Card>
         </div>
 

@@ -11,11 +11,6 @@ const nextConfig = {
     ],
   },
 
-  // Enable instrumentation for Sentry
-  experimental: {
-    instrumentationHook: true,
-  },
-
   // Enable source maps for production (required for GlitchTip source map uploads)
   productionBrowserSourceMaps: true,
 };
