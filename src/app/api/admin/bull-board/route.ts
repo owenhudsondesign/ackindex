@@ -68,7 +68,10 @@ export async function GET(request: NextRequest) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AckIndex Queue Dashboard</title>
+    <title>Queue Dashboard - AckIndex</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -76,43 +79,84 @@ export async function GET(request: NextRequest) {
             box-sizing: border-box;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #0f172a;
-            color: #e2e8f0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            color: #191919;
             padding: 2rem;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
         }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
         h1 {
-            font-size: 2rem;
+            font-size: 1.875rem;
             margin-bottom: 0.5rem;
-            color: #f1f5f9;
+            color: #191919;
+            font-weight: 700;
         }
         .subtitle {
-            color: #94a3b8;
-            margin-bottom: 2rem;
+            color: #4d4d4d;
+            font-size: 0.875rem;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #2e90c6;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            transition: background-color 0.2s;
+        }
+        .back-link:hover {
+            background: #efefef;
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
         .card {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 0.5rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
             padding: 1.5rem;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         }
         .card h2 {
-            font-size: 1.25rem;
+            font-size: 1.125rem;
             margin-bottom: 1rem;
-            color: #f1f5f9;
+            color: #191919;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
+        }
+        .icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-center;
+            font-size: 1.25rem;
+        }
+        .icon-scraping {
+            background: #dbeafe;
+            color: #2e90c6;
+        }
+        .icon-embedding {
+            background: #e0e7ff;
+            color: #6366f1;
         }
         .stats {
             display: grid;
@@ -122,58 +166,116 @@ export async function GET(request: NextRequest) {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.75rem;
-            background: #0f172a;
-            border-radius: 0.375rem;
-            border: 1px solid #334155;
+            padding: 0.875rem;
+            background: #f9fafb;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
         }
         .stat-label {
-            color: #cbd5e1;
-            font-size: 0.875rem;
-        }
-        .stat-value {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-        .stat-value.waiting { color: #60a5fa; }
-        .stat-value.active { color: #34d399; }
-        .stat-value.completed { color: #a78bfa; }
-        .stat-value.failed { color: #f87171; }
-        .stat-value.delayed { color: #fbbf24; }
-        .refresh-btn {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem;
-            cursor: pointer;
+            color: #4d4d4d;
             font-size: 0.875rem;
             font-weight: 500;
-            transition: background 0.2s;
         }
-        .refresh-btn:hover {
-            background: #2563eb;
-        }
-        .last-updated {
-            color: #64748b;
-            font-size: 0.875rem;
-            text-align: center;
-            margin-top: 1rem;
-        }
-        .icon {
+        .stat-value {
             font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .stat-value.waiting { color: #2e90c6; }
+        .stat-value.active { color: #10b981; }
+        .stat-value.completed { color: #8b5cf6; }
+        .stat-value.failed { color: #ef4444; }
+        .stat-value.delayed { color: #f59e0b; }
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: #2e90c6;
+            color: white;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+        .btn-primary:hover {
+            background: #2680b3;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .footer {
+            text-align: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer-text {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        .auto-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #2e90c6;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2e90c6;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 AckIndex Queue Dashboard</h1>
-        <p class="subtitle">Real-time monitoring for scraping and embedding jobs</p>
+        <div class="header">
+            <div>
+                <h1>Queue Dashboard</h1>
+                <p class="subtitle">Real-time monitoring for scraping and embedding jobs</p>
+            </div>
+            <a href="/admin" class="back-link">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 12L6 8L10 4"/>
+                </svg>
+                Back to Admin
+            </a>
+        </div>
 
         <div class="grid">
             <!-- Scraping Queue -->
             <div class="card">
-                <h2><span class="icon">🌐</span> Scraping Queue</h2>
+                <h2>
+                    <div class="icon icon-scraping">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M2 12h20"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                    </div>
+                    Scraping Queue
+                </h2>
                 <div class="stats">
                     <div class="stat">
                         <span class="stat-label">Waiting</span>
@@ -200,7 +302,16 @@ export async function GET(request: NextRequest) {
 
             <!-- Embedding Queue -->
             <div class="card">
-                <h2><span class="icon">🧠</span> Embedding Queue</h2>
+                <h2>
+                    <div class="icon icon-embedding">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    Embedding Queue
+                </h2>
                 <div class="stats">
                     <div class="stat">
                         <span class="stat-label">Waiting</span>
@@ -226,17 +337,28 @@ export async function GET(request: NextRequest) {
             </div>
         </div>
 
-        <div style="text-align: center;">
-            <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Dashboard</button>
+        <div class="actions">
+            <button class="btn btn-primary" onclick="location.reload()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+                Refresh Now
+            </button>
         </div>
 
-        <p class="last-updated">Last updated: ${new Date().toLocaleString()}</p>
-        <p class="last-updated">Logged in as: ${adminOrError.email} (Admin)</p>
+        <div class="footer">
+            <p class="footer-text">Last updated: ${new Date().toLocaleString()}</p>
+            <p class="footer-text">Logged in as ${adminOrError.email}</p>
+            <div class="auto-refresh">
+                <span class="pulse"></span>
+                Auto-refreshing every 10 seconds
+            </div>
+        </div>
     </div>
 
     <script>
-        // Auto-refresh every 5 seconds
-        setTimeout(() => location.reload(), 5000);
+        // Auto-refresh every 10 seconds
+        setTimeout(() => location.reload(), 10000);
     </script>
 </body>
 </html>
