@@ -162,22 +162,13 @@ export function addBreadcrumb(
 }
 
 /**
- * Start a performance transaction
+ * Start a performance span (replaces deprecated startTransaction)
  *
  * @example
- * const transaction = startTransaction('scrape-url', { url });
- * try {
+ * await startSpan('scrape-url', async () => {
  *   await scrapeUrl(url);
- *   transaction.finish();
- * } catch (error) {
- *   transaction.setStatus('error');
- *   transaction.finish();
- *   throw error;
- * }
+ * });
  */
-export function startTransaction(name: string, data?: Record<string, any>) {
-  return Sentry.startTransaction({
-    name,
-    data,
-  });
+export function startSpan(name: string, callback: () => Promise<any>) {
+  return Sentry.startSpan({ name }, callback);
 }
