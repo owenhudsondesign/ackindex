@@ -51,9 +51,10 @@ async function getUserFromRequest(request: NextRequest) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const log = logger.child({ endpoint: '/api/conversations/[id]', conversationId: params.id });
+  const { id } = await params;
+  const log = logger.child({ endpoint: '/api/conversations/[id]', conversationId: id });
 
   try {
     const user = await getUserFromRequest(request);
@@ -65,7 +66,7 @@ export async function GET(
       );
     }
 
-    const messages = await getConversationMessages(params.id, user.id);
+    const messages = await getConversationMessages(id, user.id);
 
     return NextResponse.json({
       success: true,
@@ -82,9 +83,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const log = logger.child({ endpoint: '/api/conversations/[id]', conversationId: params.id });
+  const { id } = await params;
+  const log = logger.child({ endpoint: '/api/conversations/[id]', conversationId: id });
 
   try {
     const user = await getUserFromRequest(request);
@@ -96,7 +98,7 @@ export async function DELETE(
       );
     }
 
-    const success = await deleteConversation(params.id, user.id);
+    const success = await deleteConversation(id, user.id);
 
     if (!success) {
       return NextResponse.json(
