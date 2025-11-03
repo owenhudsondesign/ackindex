@@ -279,9 +279,15 @@ export async function POST(request: NextRequest) {
     // Step 4: Generate response with LLM using secure system prompt
     const systemPrompt = createSecureSystemPrompt(context);
 
+    // Map conversation history to valid OpenAI message params and drop legacy roles
+    const mappedHistory: OpenAI.Chat.ChatCompletionMessageParam[] = conversationHistory
+      .slice(-6)
+      .filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'system')
+      .map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }));
+
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: 'system', content: systemPrompt },
-      ...conversationHistory.slice(-6), // Include last 6 messages for context (3 turns)
+      ...mappedHistory, // Include last 6 messages for context (3 turns)
       { role: 'user', content: sanitizedMessage },
     ];
 
