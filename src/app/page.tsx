@@ -285,7 +285,7 @@ export default function Home() {
           </h1>
 
           {/* Subheading */}
-          <p className="text-center text-ack-dark-gray dark:text-gray-300 mb-8 max-w-lg mx-auto">
+          <p className="text-center text-gray-700 dark:text-gray-300 mb-8 max-w-lg mx-auto">
             Want to know what&apos;s going on in Town? Have a question about zoning permits? AckIndex is here to help.
           </p>
 
@@ -362,7 +362,7 @@ export default function Home() {
               />
 
               {/* Helper text */}
-              <p className="text-center text-xs text-ack-dark-gray dark:text-gray-400 mt-4">
+              <p className="text-center text-xs text-gray-600 dark:text-gray-400 mt-4">
                 AckIndex searches through town meeting minutes, planning board documents, and public records.
               </p>
             </>
