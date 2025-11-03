@@ -95,11 +95,11 @@ export default function PDFUpload({ onUploadSuccess }: PDFUploadProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center mb-4">
-        <div className="w-10 h-10 rounded-lg bg-ack-blue/10 flex items-center justify-center mr-3">
+        <div className="w-10 h-10 rounded-lg bg-ack-blue/10 dark:bg-ack-blue/20 flex items-center justify-center mr-3">
           <svg
-            className="w-5 h-5 text-ack-blue"
+            className="w-5 h-5 text-ack-blue dark:text-blue-400"
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -111,8 +111,8 @@ export default function PDFUpload({ onUploadSuccess }: PDFUploadProps) {
           </svg>
         </div>
         <div>
-          <h3 className="font-semibold text-ack-black">Upload PDF</h3>
-          <p className="text-sm text-ack-dark-gray">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Upload PDF</h3>
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             Upload and parse a PDF document
           </p>
         </div>
@@ -122,11 +122,11 @@ export default function PDFUpload({ onUploadSuccess }: PDFUploadProps) {
         <div>
           <label
             htmlFor="pdf-file"
-            className="block text-sm font-medium text-ack-black mb-2"
+            className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
           >
             PDF File
           </label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-ack-blue transition-colors cursor-pointer">
+          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-ack-blue dark:hover:border-blue-400 transition-colors cursor-pointer bg-gray-50 dark:bg-gray-700/50">
             <input
               ref={fileInputRef}
               id="pdf-file"
@@ -141,7 +141,7 @@ export default function PDFUpload({ onUploadSuccess }: PDFUploadProps) {
               className="cursor-pointer flex flex-col items-center"
             >
               <svg
-                className="w-12 h-12 text-gray-400 mb-2"
+                className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-2"
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -153,19 +153,19 @@ export default function PDFUpload({ onUploadSuccess }: PDFUploadProps) {
               </svg>
               {file ? (
                 <div>
-                  <p className="text-sm font-medium text-ack-black">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {file.name}
                   </p>
-                  <p className="text-xs text-ack-dark-gray mt-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm font-medium text-ack-black">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     Click to upload or drag and drop
                   </p>
-                  <p className="text-xs text-ack-dark-gray mt-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                     PDF files only (Max 10MB)
                   </p>
                 </div>

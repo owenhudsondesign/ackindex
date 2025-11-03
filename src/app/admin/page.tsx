@@ -67,9 +67,9 @@ export default function AdminPage() {
           <div className="max-w-2xl mx-auto">
             <Card className="p-8 text-center">
               <div className="mb-6">
-                <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
                   <svg
-                    className="w-8 h-8 text-red-600"
+                    className="w-8 h-8 text-red-600 dark:text-red-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -82,10 +82,10 @@ export default function AdminPage() {
                     />
                   </svg>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   Access Denied
                 </h1>
-                <p className="text-gray-600 mb-6">
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
                   You don't have permission to access the admin panel. Only administrators can view this page.
                 </p>
                 <button
@@ -113,10 +113,10 @@ export default function AdminPage() {
           {/* Header */}
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-ack-black mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                 Admin Panel
               </h1>
-              <p className="text-ack-dark-gray">
+              <p className="text-gray-700 dark:text-gray-300">
                 Manage content and data sources • Signed in as {user.email}
               </p>
             </div>
@@ -157,9 +157,9 @@ export default function AdminPage() {
             <Card className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg
-                      className="w-5 h-5 text-ack-blue"
+                      className="w-5 h-5 text-ack-blue dark:text-blue-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -173,10 +173,10 @@ export default function AdminPage() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-base font-semibold text-ack-black">
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                       Queue Dashboard
                     </h3>
-                    <p className="text-sm text-ack-dark-gray">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
                       Monitor scraping and embedding job queues in real-time
                     </p>
                   </div>

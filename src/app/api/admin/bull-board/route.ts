@@ -75,6 +75,17 @@ export async function GET(request: NextRequest) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Check for dark mode preference and apply class immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('ackindex-theme');
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
     <style>
         * {
             margin: 0;
@@ -86,6 +97,11 @@ export async function GET(request: NextRequest) {
             background: #f9fafb;
             color: #191919;
             padding: 2rem;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .dark body {
+            background: #111827;
+            color: #f9fafb;
         }
         .container {
             max-width: 1200px;
@@ -102,10 +118,18 @@ export async function GET(request: NextRequest) {
             margin-bottom: 0.5rem;
             color: #191919;
             font-weight: 700;
+            transition: color 0.2s;
+        }
+        .dark h1 {
+            color: #f9fafb;
         }
         .subtitle {
             color: #4d4d4d;
             font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+        .dark .subtitle {
+            color: #9ca3af;
         }
         .back-link {
             display: inline-flex;
@@ -117,10 +141,16 @@ export async function GET(request: NextRequest) {
             font-weight: 500;
             padding: 0.5rem 1rem;
             border-radius: 9999px;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, color 0.2s;
         }
         .back-link:hover {
             background: #efefef;
+        }
+        .dark .back-link {
+            color: #60a5fa;
+        }
+        .dark .back-link:hover {
+            background: #1f2937;
         }
         .grid {
             display: grid;
@@ -134,12 +164,21 @@ export async function GET(request: NextRequest) {
             border-radius: 0.75rem;
             padding: 1.5rem;
             box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .dark .card {
+            background: #1f2937;
+            border: 1px solid #374151;
         }
         .card h2 {
             font-size: 1.125rem;
             margin-bottom: 1rem;
             color: #191919;
             font-weight: 600;
+            transition: color 0.2s;
+        }
+        .dark .card h2 {
+            color: #f9fafb;
         }
         .stats {
             display: grid;
@@ -153,16 +192,29 @@ export async function GET(request: NextRequest) {
             background: #f9fafb;
             border-radius: 0.5rem;
             border: 1px solid #e5e7eb;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .dark .stat {
+            background: #111827;
+            border: 1px solid #374151;
         }
         .stat-label {
             color: #4d4d4d;
             font-size: 0.875rem;
             font-weight: 500;
+            transition: color 0.2s;
+        }
+        .dark .stat-label {
+            color: #9ca3af;
         }
         .stat-value {
             font-size: 1.5rem;
             font-weight: 600;
             color: #191919;
+            transition: color 0.2s;
+        }
+        .dark .stat-value {
+            color: #f9fafb;
         }
         .actions {
             display: flex;
@@ -196,11 +248,19 @@ export async function GET(request: NextRequest) {
             text-align: center;
             padding-top: 1.5rem;
             border-top: 1px solid #e5e7eb;
+            transition: border-color 0.2s;
+        }
+        .dark .footer {
+            border-top: 1px solid #374151;
         }
         .footer-text {
             color: #6b7280;
             font-size: 0.875rem;
             margin-bottom: 0.5rem;
+            transition: color 0.2s;
+        }
+        .dark .footer-text {
+            color: #9ca3af;
         }
         .auto-refresh {
             display: inline-flex;
@@ -209,6 +269,10 @@ export async function GET(request: NextRequest) {
             color: #2e90c6;
             font-size: 0.875rem;
             font-weight: 500;
+            transition: color 0.2s;
+        }
+        .dark .auto-refresh {
+            color: #60a5fa;
         }
         .pulse {
             width: 8px;
@@ -216,6 +280,9 @@ export async function GET(request: NextRequest) {
             border-radius: 50%;
             background: #2e90c6;
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .dark .pulse {
+            background: #60a5fa;
         }
         @keyframes pulse {
             0%, 100% {
