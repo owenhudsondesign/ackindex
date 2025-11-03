@@ -53,15 +53,15 @@ export default function Home() {
       let subscriptionTier = 'free';
 
       // Check user's subscription tier
-      const { data: profile } = await supabase
+      const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('subscription_tier')
         .eq('id', currentUser.id)
         .single();
 
-      if (profile) {
-        subscriptionTier = profile.subscription_tier;
-        setIsPremium(profile.subscription_tier === 'premium');
+      if (existingProfile) {
+        subscriptionTier = existingProfile.subscription_tier;
+        setIsPremium(existingProfile.subscription_tier === 'premium');
       }
       let tokenLimit = 3500;
       
@@ -77,13 +77,7 @@ export default function Home() {
         console.log('✅ Setting up USER account for:', currentUser.email);
       }
 
-      // Check if profile already exists
-      const { data: existingProfile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', currentUser.id)
-        .single();
-
+      // Check if profile already exists (skip if we already checked above)
       if (existingProfile) {
         console.log('Profile already exists:', existingProfile);
         return;
