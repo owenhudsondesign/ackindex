@@ -4,7 +4,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 export default function DarkModeToggle() {
-  const { theme, setTheme, systemTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // Only render after mount to avoid hydration mismatch
@@ -29,13 +29,12 @@ export default function DarkModeToggle() {
     );
   }
 
-  // Get the current theme (fallback to system theme if not set)
-  const currentTheme = theme === 'system' ? systemTheme : theme;
-  const isDark = currentTheme === 'dark';
+  // Since enableSystem is false, theme will be either 'light' or 'dark'
+  const isDark = theme === 'dark';
 
   const toggleTheme = () => {
     const newTheme = isDark ? 'light' : 'dark';
-    console.log('Toggling theme from', currentTheme, 'to', newTheme);
+    console.log('Toggling theme from', theme, 'to', newTheme);
     setTheme(newTheme);
   };
 
