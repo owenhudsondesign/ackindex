@@ -248,8 +248,9 @@ export default function Home() {
 
           {/* Heading */}
           <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
-            <span className="text-ack-black">Nantucket Civic Data</span>
+            <span className="text-ack-black">Nantucket</span>
             <br />
+            <span className="text-ack-black">Civic Data </span>
             <span className="text-ack-blue">Made Accessible</span>
           </h1>
 
@@ -267,66 +268,84 @@ export default function Home() {
               </div>
             </div>
           ) : user ? (
-            <div className="flex justify-center mb-6">
-              <div className="flex items-center space-x-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-green-800 font-medium">
-                  Logged in as {user.email}
-                </span>
-                <Link 
-                  href="/account" 
-                  className="text-xs text-green-600 hover:text-green-800 underline"
-                >
-                  View Account
-                </Link>
-                <button 
-                  onClick={checkAuth}
-                  className="text-xs text-green-600 hover:text-green-800 underline ml-2"
-                  title="Refresh authentication status"
-                >
-                  Refresh
-                </button>
+            <div className="flex justify-center mb-6 px-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-green-800 font-medium">
+                    Logged in as {user.email}
+                  </span>
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <Link
+                    href="/account"
+                    className="text-sm text-green-600 hover:text-green-800 underline"
+                  >
+                    View Account
+                  </Link>
+                  <span className="text-green-300">•</span>
+                  <button
+                    onClick={checkAuth}
+                    className="text-sm text-green-600 hover:text-green-800 underline"
+                    title="Refresh authentication status"
+                  >
+                    Refresh
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex justify-center mb-6">
-              <div className="flex items-center space-x-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <span className="text-sm text-yellow-800">
-                  Not logged in - 
-                </span>
-                <Link 
-                  href="/signup" 
-                  className="text-xs text-yellow-600 hover:text-yellow-800 underline font-medium"
-                >
-                  Sign up
-                </Link>
-                <span className="text-sm text-yellow-800">or</span>
-                <Link 
-                  href="/login" 
-                  className="text-xs text-yellow-600 hover:text-yellow-800 underline font-medium"
-                >
-                  log in
-                </Link>
-                <span className="text-sm text-yellow-800">to use the chatbot</span>
+            <div className="flex justify-center mb-6 px-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm text-yellow-800 font-medium">
+                    Not logged in
+                  </span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-yellow-800">
+                  <Link
+                    href="/signup"
+                    className="text-sm text-yellow-600 hover:text-yellow-800 underline font-medium"
+                  >
+                    Sign up
+                  </Link>
+                  <span>or</span>
+                  <Link
+                    href="/login"
+                    className="text-sm text-yellow-600 hover:text-yellow-800 underline font-medium"
+                  >
+                    log in
+                  </Link>
+                  <span>to use the chatbot</span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Chat Input */}
-          <ChatInput 
-            onSubmit={handleSubmit}
-            isLoading={isLoading}
-          />
+          {/* Chat Input - only show when no messages */}
+          {!hasMessages && (
+            <>
+              <ChatInput
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+              />
 
-          {/* Helper text */}
-          <p className="text-center text-xs text-ack-dark-gray mt-4">
-            AckIndex searches through town meeting minutes, planning board documents, and public records.
-          </p>
+              {/* Helper text */}
+              <p className="text-center text-xs text-ack-dark-gray mt-4">
+                AckIndex searches through town meeting minutes, planning board documents, and public records.
+              </p>
+            </>
+          )}
 
           {/* Chat Dialogue or Empty State */}
           {hasMessages ? (
-            <ChatDialogue messages={messages} isVisible={hasMessages} />
+            <ChatDialogue
+              messages={messages}
+              isVisible={hasMessages}
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+            />
           ) : (
             <EmptyState />
           )}

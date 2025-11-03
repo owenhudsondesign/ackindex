@@ -2,14 +2,17 @@
 
 import { useEffect, useRef } from 'react';
 import ChatMessage from './ChatMessage';
+import ChatInput from './ChatInput';
 import { Message } from '@/lib/types';
 
 interface ChatDialogueProps {
   messages: Message[];
   isVisible: boolean;
+  onSubmit: (message: string) => void;
+  isLoading: boolean;
 }
 
-export default function ChatDialogue({ messages, isVisible }: ChatDialogueProps) {
+export default function ChatDialogue({ messages, isVisible, onSubmit, isLoading }: ChatDialogueProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -59,6 +62,15 @@ export default function ChatDialogue({ messages, isVisible }: ChatDialogueProps)
             />
           ))}
           <div ref={messagesEndRef} />
+        </div>
+
+        {/* Chat Input */}
+        <div className="px-6 py-4 bg-white border-t border-gray-200">
+          <ChatInput
+            onSubmit={onSubmit}
+            isLoading={isLoading}
+            placeholder="Ask a follow-up question..."
+          />
         </div>
 
         {/* Footer */}
