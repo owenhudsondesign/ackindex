@@ -215,27 +215,26 @@ export default function Home() {
   return (
     <PageLayout>
       <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8 relative bg-white dark:bg-gray-900">
-        {/* Subtle Grid Background */}
+        {/* Subtle Grid Background - Light Mode */}
         <div
-          className="absolute inset-0 -z-10"
+          className="absolute inset-0 -z-10 block dark:hidden"
           style={{
             backgroundImage: `
               linear-gradient(to right, rgb(200 200 200 / 0.2) 1px, transparent 1px),
               linear-gradient(to bottom, rgb(200 200 200 / 0.2) 1px, transparent 1px)
             `,
-            backgroundSize: '40px 40px',
-            opacity: 1
+            backgroundSize: '40px 40px'
           }}
         />
+        {/* Subtle Grid Background - Dark Mode */}
         <div
-          className="absolute inset-0 -z-10 dark:block hidden"
+          className="absolute inset-0 -z-10 hidden dark:block"
           style={{
             backgroundImage: `
-              linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
-              linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px)
+              linear-gradient(to right, rgb(255 255 255 / 0.08) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(255 255 255 / 0.08) 1px, transparent 1px)
             `,
-            backgroundSize: '40px 40px',
-            opacity: 1
+            backgroundSize: '40px 40px'
           }}
         />
         <div className="w-full max-w-3xl px-4">
