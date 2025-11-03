@@ -353,13 +353,23 @@ export async function POST(request: NextRequest) {
     // Save messages to conversation (PREMIUM ONLY) - AWAIT to ensure completion
     if (isPremium && activeConversationId) {
       try {
+        log.info({ conversationId: activeConversationId, isPremium, hasHistory: conversationHistory.length > 0 }, 'Starting to save conversation messages');
+
         // Save user message first
-        await addMessage(activeConversationId, 'user', sanitizedMessage, 0, []);
-        log.debug({ conversationId: activeConversationId }, 'Saved user message');
+        const userMessage = await addMessage(activeConversationId, 'user', sanitizedMessage, 0, []);
+        if (!userMessage) {
+          log.error({ conversationId: activeConversationId }, 'Failed to save user message - addMessage returned null');
+        } else {
+          log.debug({ conversationId: activeConversationId, messageId: userMessage.id }, 'Saved user message');
+        }
 
         // Save assistant response
-        await addMessage(activeConversationId, 'assistant', response, totalTokens, citations);
-        log.debug({ conversationId: activeConversationId }, 'Saved assistant message');
+        const assistantMessage = await addMessage(activeConversationId, 'assistant', response, totalTokens, citations);
+        if (!assistantMessage) {
+          log.error({ conversationId: activeConversationId }, 'Failed to save assistant message - addMessage returned null');
+        } else {
+          log.debug({ conversationId: activeConversationId, messageId: assistantMessage.id }, 'Saved assistant message');
+        }
 
         // Auto-generate descriptive title from first message (only if this is a new conversation)
         if (conversationHistory.length === 0) {
@@ -375,7 +385,7 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (err) {
-        log.error({ err, conversationId: activeConversationId }, 'Failed to save conversation messages');
+        log.error({ err, conversationId: activeConversationId }, 'Exception while saving conversation messages');
       }
     }
 

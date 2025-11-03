@@ -117,6 +117,8 @@ export async function addMessage(
   citations: any[] = []
 ): Promise<ConversationMessage | null> {
   try {
+    logger.debug({ conversationId, role, contentLength: content.length }, 'Attempting to add message');
+
     const { data, error } = await supabaseAdmin
       .from('conversation_messages')
       .insert({
@@ -130,13 +132,22 @@ export async function addMessage(
       .single();
 
     if (error) {
-      logger.error({ err: error, conversationId }, 'Failed to add message');
+      logger.error({
+        err: error,
+        conversationId,
+        role,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        errorCode: error.code
+      }, 'Failed to add message to database');
       return null;
     }
 
+    logger.info({ conversationId, role, messageId: data.id }, 'Successfully added message');
     return data;
   } catch (error) {
-    logger.error({ err: error, conversationId }, 'Exception adding message');
+    logger.error({ err: error, conversationId, role }, 'Exception adding message');
     return null;
   }
 }
