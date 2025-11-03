@@ -26,15 +26,15 @@ export default function Header() {
   };
 
   return (
-    <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-            <Image 
-              src="/logo.svg" 
-              alt="AckIndex Logo" 
-              width={150} 
+            <Image
+              src="/logo.svg"
+              alt="AckIndex Logo"
+              width={150}
               height={40}
               priority
             />
@@ -42,45 +42,45 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
-            <Link 
+            <Link
               href="/about"
-              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray"
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
             >
               About
             </Link>
-            <Link 
+            <Link
               href="/pricing"
-              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray"
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
             >
               Pricing
             </Link>
-            <Link 
+            <Link
               href="/contact"
-              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray"
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
             >
               Contact
             </Link>
-            
+
             {!loading && (
               <>
                 {user ? (
-                  <Link 
+                  <Link
                     href="/account"
-                    className="px-3 sm:px-5 py-2 text-sm font-medium text-white bg-ack-blue hover:bg-opacity-90 transition-all rounded-full shadow-sm hover:shadow-md"
+                    className="px-3 sm:px-5 py-2 text-sm font-medium text-white bg-ack-blue hover:bg-opacity-90 dark:hover:bg-blue-600 transition-all rounded-full shadow-sm hover:shadow-md"
                   >
                     My Account
                   </Link>
                 ) : (
                   <>
-                    <Link 
+                    <Link
                       href="/login"
-                      className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray"
+                      className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
                     >
                       Log In
                     </Link>
-                    <Link 
+                    <Link
                       href="/signup"
-                      className="px-3 sm:px-5 py-2 text-sm font-medium text-white bg-ack-blue hover:bg-opacity-90 transition-all rounded-full shadow-sm hover:shadow-md"
+                      className="px-3 sm:px-5 py-2 text-sm font-medium text-white bg-ack-blue hover:bg-opacity-90 dark:hover:bg-blue-600 transition-all rounded-full shadow-sm hover:shadow-md"
                     >
                       Sign Up
                     </Link>

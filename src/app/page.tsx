@@ -214,10 +214,10 @@ export default function Home() {
 
   return (
     <PageLayout>
-      <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8 relative">
+      <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8 relative bg-white dark:bg-gray-900">
         {/* Subtle Grid Background */}
-        <div 
-          className="absolute inset-0 -z-10 opacity-20"
+        <div
+          className="absolute inset-0 -z-10 opacity-20 dark:opacity-10"
           style={{
             backgroundImage: `
               linear-gradient(to right, rgb(200, 200, 200) 1px, transparent 1px),
@@ -229,7 +229,7 @@ export default function Home() {
         <div className="w-full max-w-3xl px-4">
           {/* Badge */}
           <div className="flex justify-center mb-8">
-            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 text-ack-blue">
+            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-300">
               For transparent government data
             </span>
           </div>
@@ -250,21 +250,21 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
             {/* Mobile version - Civic on second line */}
             <span className="inline md:hidden">
-              <span className="text-ack-black">Nantucket</span>
+              <span className="text-ack-black dark:text-gray-100">Nantucket</span>
               <br />
-              <span className="text-ack-black">Civic Data </span>
-              <span className="text-ack-blue">Made Accessible</span>
+              <span className="text-ack-black dark:text-gray-100">Civic Data </span>
+              <span className="text-ack-blue dark:text-blue-400">Made Accessible</span>
             </span>
             {/* Desktop version - Civic Data on first line */}
             <span className="hidden md:inline">
-              <span className="text-ack-black">Nantucket Civic Data</span>
+              <span className="text-ack-black dark:text-gray-100">Nantucket Civic Data</span>
               <br />
-              <span className="text-ack-blue">Made Accessible</span>
+              <span className="text-ack-blue dark:text-blue-400">Made Accessible</span>
             </span>
           </h1>
 
           {/* Subheading */}
-          <p className="text-center text-ack-dark-gray mb-8 max-w-lg mx-auto">
+          <p className="text-center text-ack-dark-gray dark:text-gray-400 mb-8 max-w-lg mx-auto">
             Want to know what&apos;s going on in Town? Have a question about zoning permits? AckIndex is here to help.
           </p>
 
@@ -341,7 +341,7 @@ export default function Home() {
               />
 
               {/* Helper text */}
-              <p className="text-center text-xs text-ack-dark-gray mt-4">
+              <p className="text-center text-xs text-ack-dark-gray dark:text-gray-400 mt-4">
                 AckIndex searches through town meeting minutes, planning board documents, and public records.
               </p>
             </>

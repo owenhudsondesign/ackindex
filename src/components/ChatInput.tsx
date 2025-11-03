@@ -25,11 +25,11 @@ export default function ChatInput({
 
   return (
     <form onSubmit={handleSubmit} className="relative">
-      <div className="flex items-center bg-white border-2 border-gray-300 rounded-full shadow-lg shadow-ack-blue/20 hover:shadow-xl hover:shadow-ack-blue/30 focus-within:shadow-xl focus-within:shadow-ack-blue/40 focus-within:border-ack-blue transition-all">
+      <div className="flex items-center bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-full shadow-lg shadow-ack-blue/20 dark:shadow-blue-900/30 hover:shadow-xl hover:shadow-ack-blue/30 dark:hover:shadow-blue-900/40 focus-within:shadow-xl focus-within:shadow-ack-blue/40 dark:focus-within:shadow-blue-900/50 focus-within:border-ack-blue dark:focus-within:border-blue-500 transition-all">
         {/* Search Icon */}
         <div className="pl-5 pr-3">
           <svg
-            className="w-5 h-5 text-ack-dark-gray"
+            className="w-5 h-5 text-ack-dark-gray dark:text-gray-300"
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -48,7 +48,7 @@ export default function ChatInput({
           onChange={(e) => setMessage(e.target.value)}
           placeholder={placeholder}
           disabled={isLoading}
-          className="flex-grow py-4 px-2 bg-transparent text-ack-black placeholder-gray-400 focus:outline-none text-sm md:text-base disabled:opacity-50"
+          className="flex-grow py-4 px-2 bg-transparent text-ack-black dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none text-sm md:text-base disabled:opacity-50"
           aria-label="Ask a question"
         />
 
@@ -56,7 +56,7 @@ export default function ChatInput({
         <button
           type="submit"
           disabled={!message.trim() || isLoading}
-          className="mr-2 p-3 bg-ack-blue hover:bg-blue-600 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mr-2 p-3 bg-ack-blue hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Submit query"
         >
           {isLoading ? (
