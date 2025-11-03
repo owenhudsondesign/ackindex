@@ -20,6 +20,7 @@ export default function Home() {
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(undefined);
   const [isPremium, setIsPremium] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Trigger sidebar refresh
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Sidebar open/collapsed state
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -278,9 +279,9 @@ export default function Home() {
   return (
     <PageLayout>
       <div className="flex min-h-screen">
-        {/* Conversation Sidebar - Only visible when authenticated */}
-        {user && (
-          <div className="hidden lg:block">
+        {/* Conversation Sidebar - Only visible when authenticated and open */}
+        {user && isSidebarOpen && (
+          <div className="hidden lg:block transition-all duration-300">
             <ConversationSidebar
               currentConversationId={currentConversationId}
               onSelectConversation={handleSelectConversation}
@@ -293,6 +294,31 @@ export default function Home() {
 
         {/* Main Chat Area */}
         <div className={`flex-1 flex flex-col py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center items-center min-h-screen' : ''}`}>
+        {/* Sidebar Toggle Button - Only show when authenticated */}
+        {user && (
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`hidden lg:flex fixed top-20 z-50 items-center justify-center w-10 h-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 ${
+              isSidebarOpen ? 'left-[272px]' : 'left-4'
+            }`}
+            title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          >
+            <svg
+              className="w-5 h-5 text-gray-700 dark:text-gray-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isSidebarOpen ? (
+                // Chevron left icon (collapse)
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              ) : (
+                // Chevron right icon (expand)
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              )}
+            </svg>
+          </button>
+        )}
         {/* Subtle Grid Background - Light Mode */}
         <div
           className="absolute inset-0 block dark:hidden pointer-events-none"
