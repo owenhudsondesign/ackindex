@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
   let body: any;
   let message: string | undefined;
   let conversationId: string | undefined;
+  let conversationHistory: { role: string; content: string }[] = [];
 
   try {
     body = await request.json();
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     // Step 0: Handle conversation (PREMIUM ONLY FEATURE)
     let activeConversationId = conversationId;
-    let conversationHistory: { role: string; content: string }[] = [];
+    conversationHistory = [];
 
     // Get user's subscription tier
     const dashboard = await getUserDashboard(user.id);
