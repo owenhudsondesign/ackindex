@@ -292,7 +292,7 @@ export default function Home() {
         )}
 
         {/* Main Chat Area */}
-        <div className={`flex-1 flex flex-col py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center min-h-screen' : ''}`}>
+        <div className={`flex-1 flex flex-col py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center items-center min-h-screen' : ''}`}>
         {/* Subtle Grid Background - Light Mode */}
         <div
           className="absolute inset-0 block dark:hidden pointer-events-none"
