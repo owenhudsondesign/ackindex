@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import SentryInit from "@/components/SentryInit";
 
 export const metadata: Metadata = {
   title: "AckIndex - Nantucket Civic Data Made Accessible",
@@ -19,7 +20,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <SentryInit />
+        {children}
+      </body>
     </html>
   );
 }
