@@ -220,11 +220,12 @@ export default function Home() {
           className="absolute inset-0 block dark:hidden pointer-events-none"
           style={{
             backgroundImage: `
-              linear-gradient(to right, rgb(200 200 200 / 0.4) 1px, transparent 1px),
-              linear-gradient(to bottom, rgb(200 200 200 / 0.4) 1px, transparent 1px)
+              linear-gradient(to right, rgb(200 200 200 / 0.15) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(200 200 200 / 0.15) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%)
             `,
-            backgroundSize: '40px 40px',
-            backgroundPosition: '0 0',
+            backgroundSize: '40px 40px, 40px 40px, 100% 100%',
+            backgroundPosition: '0 0, 0 0, center',
             zIndex: 0
           }}
         />
@@ -233,11 +234,12 @@ export default function Home() {
           className="absolute inset-0 hidden dark:block pointer-events-none"
           style={{
             backgroundImage: `
-              linear-gradient(to right, rgb(255 255 255 / 0.2) 1px, transparent 1px),
-              linear-gradient(to bottom, rgb(255 255 255 / 0.2) 1px, transparent 1px)
+              linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%)
             `,
-            backgroundSize: '40px 40px',
-            backgroundPosition: '0 0',
+            backgroundSize: '40px 40px, 40px 40px, 100% 100%',
+            backgroundPosition: '0 0, 0 0, center',
             zIndex: 0
           }}
         />
