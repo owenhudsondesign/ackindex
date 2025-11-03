@@ -10,7 +10,7 @@ interface ThemeProviderProps {
 export default function ThemeProvider({ children }: ThemeProviderProps) {
   return (
     <NextThemesProvider
-      attribute="data-theme"
+      attribute="class"
       defaultTheme="light"
       enableSystem={false}
       storageKey="ackindex-theme"
