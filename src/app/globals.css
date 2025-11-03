@@ -1,6 +1,5 @@
 @import "tailwindcss";
-
-@custom-variant dark (.dark &);
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-ack-blue: #2e90c6;
