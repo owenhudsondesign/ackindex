@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getUserProfile } from '@/lib/userProfile';
 import { createPortalSession } from '@/lib/stripe';
+import logger from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/stripe/portal' });
+
   try {
     // Check if user is authenticated
     const user = await getCurrentUser();
@@ -32,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
-    console.error('Error creating portal session:', error);
+    log.error({ err: error }, 'Error creating portal session');
     return NextResponse.json(
       { error: error.message || 'Failed to create portal session' },
       { status: 500 }

@@ -19,6 +19,10 @@ import {
 import { parsePDF } from '@/lib/pdfParser';
 import { chunkText } from '@/lib/chunking';
 import { generateEmbeddingsBatch } from '@/lib/embeddings';
+import { createLogger } from '@/lib/logger';
+
+// Create logger for worker operations
+const workerLogger = createLogger({ component: 'worker' });
 
 // Redis connection for Upstash
 const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
@@ -51,6 +55,8 @@ async function processUrlScraping(
   userId: string,
   job: Job
 ): Promise<void> {
+  const log = workerLogger.child({ jobId: job.id, documentId, userId, url });
+
   try {
     // Update status to processing
     await updateDocument(documentId, { status: 'processing' } as any);
@@ -70,7 +76,7 @@ async function processUrlScraping(
       apify_run_id: runId,
     });
 
-    console.log(`[Worker] Waiting for Apify job ${runId} to complete...`);
+    log.info({ runId }, 'Waiting for Apify job to complete');
     await job.updateProgress(20);
 
     // Wait for job to complete (with 2 minute timeout)
@@ -79,7 +85,7 @@ async function processUrlScraping(
 
     // Get results
     const results = await getJobResults(runId);
-    console.log(`[Worker] Retrieved ${results.length} pages from scrape`);
+    log.info({ pagesRetrieved: results.length }, 'Retrieved pages from scrape');
 
     // Update scrape job
     await updateScrapeJob(scrapeJob.id, {
@@ -123,7 +129,7 @@ async function processUrlScraping(
     for (const result of results) {
       for (const pdf of result.pdfs) {
         try {
-          console.log(`[Worker] Processing PDF: ${pdf.url}`);
+          log.info({ pdfUrl: pdf.url }, 'Processing PDF');
 
           const pdfBuffer = await downloadPDF(pdf.url);
           const parsed = await parsePDF(pdfBuffer, pdf.filename);
@@ -147,7 +153,7 @@ async function processUrlScraping(
             totalTokens += chunk.tokens;
           });
         } catch (pdfError) {
-          console.error(`[Worker] Failed to process PDF ${pdf.url}:`, pdfError);
+          log.error({ err: pdfError, pdfUrl: pdf.url }, 'Failed to process PDF');
         }
       }
     }
@@ -177,11 +183,12 @@ async function processUrlScraping(
 
     await job.updateProgress(100);
 
-    console.log(
-      `[Worker] Completed scraping ${url}: ${allChunks.length} chunks, ${totalTokens} tokens`
+    log.info(
+      { chunksCount: allChunks.length, totalTokens },
+      'Completed scraping successfully'
     );
   } catch (error) {
-    console.error('[Worker] Processing failed:', error);
+    log.error({ err: error }, 'Processing failed');
     await markDocumentFailed(
       documentId,
       error instanceof Error ? error.message : 'Unknown error occurred'
@@ -199,7 +206,7 @@ export const scrapingWorker = new Worker<ScrapingJobData>(
   async (job) => {
     const { documentId, url, userId } = job.data;
 
-    console.log(`[Worker] Starting scraping job ${job.id} for URL: ${url}`);
+    workerLogger.info({ jobId: job.id, url }, 'Starting scraping job');
 
     await processUrlScraping(documentId, url, userId, job);
 
@@ -224,7 +231,7 @@ export const embeddingWorker = new Worker<EmbeddingJobData>(
   async (job) => {
     const { chunks } = job.data;
 
-    console.log(`[Worker] Starting embedding job ${job.id} for ${chunks.length} chunks`);
+    workerLogger.info({ jobId: job.id, chunksCount: chunks.length }, 'Starting embedding job');
 
     await job.updateProgress(10);
 
@@ -241,12 +248,15 @@ export const embeddingWorker = new Worker<EmbeddingJobData>(
         await updateChunkEmbedding(chunks[i].id, embeddings[i]);
         successCount++;
       } catch (error) {
-        console.error(`[Worker] Failed to update chunk ${chunks[i].id}:`, error);
+        workerLogger.error({ err: error, chunkId: chunks[i].id }, 'Failed to update chunk');
       }
       await job.updateProgress(50 + (i / chunks.length) * 50);
     }
 
-    console.log(`[Worker] Completed embedding job ${job.id}: ${successCount}/${chunks.length} chunks processed`);
+    workerLogger.info(
+      { jobId: job.id, successCount, totalChunks: chunks.length },
+      'Completed embedding job'
+    );
 
     return { success: true, processed: successCount, total: chunks.length };
   },
@@ -262,11 +272,11 @@ export const embeddingWorker = new Worker<EmbeddingJobData>(
 
 // Event handlers for scraping worker
 scrapingWorker.on('completed', (job) => {
-  console.log(`[Worker] Scraping job ${job.id} completed successfully`);
+  workerLogger.info({ jobId: job.id }, 'Scraping job completed successfully');
 });
 
 scrapingWorker.on('failed', (job, err) => {
-  console.error(`[Worker] Scraping job ${job?.id} failed:`, err.message);
+  workerLogger.error({ jobId: job?.id, error: err.message }, 'Scraping job failed');
 
   // Send to Sentry
   Sentry.captureException(err, {
@@ -283,7 +293,7 @@ scrapingWorker.on('failed', (job, err) => {
 });
 
 scrapingWorker.on('error', (err) => {
-  console.error('[Worker] Scraping worker error:', err);
+  workerLogger.error({ err }, 'Scraping worker error');
 
   // Send to Sentry
   Sentry.captureException(err, {
@@ -296,11 +306,11 @@ scrapingWorker.on('error', (err) => {
 
 // Event handlers for embedding worker
 embeddingWorker.on('completed', (job) => {
-  console.log(`[Worker] Embedding job ${job.id} completed successfully`);
+  workerLogger.info({ jobId: job.id }, 'Embedding job completed successfully');
 });
 
 embeddingWorker.on('failed', (job, err) => {
-  console.error(`[Worker] Embedding job ${job?.id} failed:`, err.message);
+  workerLogger.error({ jobId: job?.id, error: err.message }, 'Embedding job failed');
 
   // Send to Sentry
   Sentry.captureException(err, {
@@ -317,7 +327,7 @@ embeddingWorker.on('failed', (job, err) => {
 });
 
 embeddingWorker.on('error', (err) => {
-  console.error('[Worker] Embedding worker error:', err);
+  workerLogger.error({ err }, 'Embedding worker error');
 
   // Send to Sentry
   Sentry.captureException(err, {
@@ -330,7 +340,7 @@ embeddingWorker.on('error', (err) => {
 
 // Graceful shutdown handler
 process.on('SIGTERM', async () => {
-  console.log('[Worker] SIGTERM received, shutting down workers...');
+  workerLogger.info('SIGTERM received, shutting down workers');
   await scrapingWorker.close();
   await embeddingWorker.close();
   await redisConnection.quit();
@@ -338,7 +348,7 @@ process.on('SIGTERM', async () => {
 });
 
 process.on('SIGINT', async () => {
-  console.log('[Worker] SIGINT received, shutting down workers...');
+  workerLogger.info('SIGINT received, shutting down workers');
   await scrapingWorker.close();
   await embeddingWorker.close();
   await redisConnection.quit();

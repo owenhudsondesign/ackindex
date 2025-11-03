@@ -3,8 +3,11 @@ import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAut
 import { validateUrl } from '@/lib/apifyScraper';
 import { createDocument } from '@/lib/database';
 import { scrapingQueue } from '@/lib/queues';
+import logger from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/scrape-url' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -34,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Scrape API] Starting scrape for: ${url}`);
+    log.info({ url }, 'Starting scrape');
 
     // Create document record
     const document = await createDocument({
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log(`[Scrape API] Queued scraping job ${job.id} for document ${document.id}`);
+    log.info({ jobId: job.id, documentId: document.id }, 'Queued scraping job');
 
     return NextResponse.json({
       message: 'URL scraping queued successfully',
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
       url,
     });
   } catch (error) {
-    console.error('Error in scrape-url endpoint:', error);
+    log.error({ err: error }, 'Scrape-url endpoint error');
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { message: errorMessage },

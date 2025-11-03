@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { scrapingWorker, embeddingWorker } from '@/lib/workers';
+import logger from '@/lib/logger';
 
 /**
  * GET endpoint to check worker status
  */
 export async function GET(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/workers', method: 'GET' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -32,7 +35,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Workers] Error getting status:', error);
+    log.error({ err: error }, 'Error getting worker status');
     return NextResponse.json(
       { message: 'Failed to get worker status', error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -44,6 +47,8 @@ export async function GET(request: NextRequest) {
  * POST endpoint to pause/resume workers
  */
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/workers', method: 'POST' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -91,7 +96,7 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error('[Workers] Error controlling workers:', error);
+    log.error({ err: error }, 'Error controlling workers');
     return NextResponse.json(
       { message: 'Failed to control workers', error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

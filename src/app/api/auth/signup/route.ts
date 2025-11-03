@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import logger from '@/lib/logger';
 
 // Service role client (bypasses RLS)
 const supabaseAdmin = createClient(
@@ -8,11 +9,13 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/auth/signup' });
+
   try {
     const body = await request.json();
     const { email, password, fullName, emailUpdates } = body;
 
-    console.log('[Signup API] Received request for:', email);
+    log.info({ email }, 'Received signup request');
 
     // Validate input
     if (!email || !password) {
@@ -24,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // Check environment variables
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('[Signup API] Missing Supabase environment variables');
+      log.error('Missing Supabase environment variables');
       return NextResponse.json(
         { error: 'Server configuration error. Please contact support.' },
         { status: 500 }
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user in Supabase Auth using regular signup
-    console.log('[Signup API] Attempting to create user...');
+    log.info('Attempting to create user');
     const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
       email,
       password,
@@ -52,8 +55,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError) {
-      console.error('[Signup API] Auth error:', authError.message, authError);
-      
+      log.error({ err: authError, message: authError.message }, 'Auth error during signup');
+
       // Check if user already exists
       if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
         return NextResponse.json(
@@ -61,7 +64,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      
+
       return NextResponse.json(
         { error: authError.message },
         { status: 400 }
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (profileError) {
-      console.error('Profile creation error:', profileError);
+      log.error({ err: profileError }, 'Profile creation error');
       // User is created, but profile failed - log it but don't fail the request
     }
 
@@ -110,7 +113,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Signup error:', error);
+    log.error({ err: error }, 'Signup error');
     return NextResponse.json(
       { error: error.message || 'Failed to create account' },
       { status: 500 }

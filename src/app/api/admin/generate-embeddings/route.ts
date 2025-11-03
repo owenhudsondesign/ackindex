@@ -3,8 +3,11 @@ import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAut
 import { getChunksWithoutEmbeddings, getEmbeddingStats } from '@/lib/database';
 import { estimateEmbeddingCost } from '@/lib/embeddings';
 import { embeddingQueue } from '@/lib/queues';
+import logger from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/generate-embeddings', method: 'POST' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -18,7 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { batchSize = 50 } = body;
 
-    console.log('[Generate Embeddings] Starting embedding generation...');
+    log.info('Starting embedding generation');
 
     // Get chunks without embeddings
     const chunks = await getChunksWithoutEmbeddings(batchSize);
@@ -31,12 +34,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`[Generate Embeddings] Found ${chunks.length} chunks without embeddings`);
+    log.info({ chunksCount: chunks.length }, 'Found chunks without embeddings');
 
     // Estimate cost
     const costEstimate = estimateEmbeddingCost(chunks.map(c => c.content));
-    console.log(
-      `[Generate Embeddings] Estimated cost: $${costEstimate.estimatedCost} for ${costEstimate.estimatedTokens} tokens`
+    log.info(
+      { estimatedCost: costEstimate.estimatedCost, estimatedTokens: costEstimate.estimatedTokens },
+      'Estimated cost'
     );
 
     // Add job to queue
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log(`[Generate Embeddings] Queued embedding job ${job.id} for ${chunks.length} chunks`);
+    log.info({ jobId: job.id, chunksCount: chunks.length }, 'Queued embedding job');
 
     // Get current stats
     const stats = await getEmbeddingStats();
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
       cost: costEstimate,
     });
   } catch (error) {
-    console.error('[Generate Embeddings] Error:', error);
+    log.error({ err: error }, 'Generate embeddings error');
     return NextResponse.json(
       { message: 'Failed to generate embeddings', error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -80,6 +84,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/generate-embeddings', method: 'GET' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -95,7 +101,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ stats });
   } catch (error) {
-    console.error('[Generate Embeddings] Error getting stats:', error);
+    log.error({ err: error }, 'Error getting embedding stats');
     return NextResponse.json(
       { message: 'Failed to get embedding stats' },
       { status: 500 }

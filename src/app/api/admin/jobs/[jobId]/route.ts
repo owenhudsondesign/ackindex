@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { scrapingQueue, embeddingQueue } from '@/lib/queues';
+import logger from '@/lib/logger';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ jobId: string }> }
 ) {
+  const log = logger.child({ endpoint: '/api/admin/jobs/[jobId]' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -55,7 +58,7 @@ export async function GET(
       attemptsMade: job.attemptsMade,
     });
   } catch (error) {
-    console.error('[Job Status] Error:', error);
+    log.error({ err: error }, 'Job status error');
     return NextResponse.json(
       { message: 'Failed to get job status', error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

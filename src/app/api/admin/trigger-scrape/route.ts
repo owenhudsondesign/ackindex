@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { executeScheduledScraping } from '@/lib/scheduledScraping';
+import logger from '@/lib/logger';
 
 // Server-side Supabase client with service role key (for database operations)
 const serviceSupabase = createClient(
@@ -21,6 +22,8 @@ const serviceSupabase = createClient(
  * Updated: 2025-10-30 - Refactored to use shared scraping logic
  */
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/trigger-scrape', method: 'POST' });
+
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Manual Trigger] Starting manual scrape trigger...');
+    log.info('Starting manual scrape trigger');
 
     // If specific IDs provided, update their next_scrape_at to now
     if (scrapeIds && scrapeIds.length > 0) {
@@ -49,14 +52,14 @@ export async function POST(request: NextRequest) {
         .in('id', scrapeIds);
 
       if (updateError) {
-        console.error('[Manual Trigger] Error updating scrape times:', updateError);
+        log.error({ err: updateError }, 'Error updating scrape times');
         return NextResponse.json(
           { error: 'Failed to update scrape times' },
           { status: 500 }
         );
       }
 
-      console.log(`[Manual Trigger] Updated ${scrapeIds.length} scrapes to run immediately`);
+      log.info({ scrapesCount: scrapeIds.length }, 'Updated scrapes to run immediately');
     }
 
     // If triggerAll, update all active scrapes that haven't been scraped yet
@@ -68,22 +71,22 @@ export async function POST(request: NextRequest) {
         .is('last_scraped_at', null);
 
       if (updateError) {
-        console.error('[Manual Trigger] Error updating all scrapes:', updateError);
+        log.error({ err: updateError }, 'Error updating all scrapes');
         return NextResponse.json(
           { error: 'Failed to update scrape times' },
           { status: 500 }
         );
       }
 
-      console.log('[Manual Trigger] Updated all pending scrapes to run immediately');
+      log.info('Updated all pending scrapes to run immediately');
     }
 
-    console.log('[Manual Trigger] URLs updated, now executing scraping...');
+    log.info('URLs updated, now executing scraping');
 
     // Execute the scraping directly using shared logic
     const results = await executeScheduledScraping(5); // Process 5 URLs at a time
 
-    console.log('[Manual Trigger] Scraping completed successfully:', results);
+    log.info({ results }, 'Scraping completed successfully');
 
     return NextResponse.json({
       success: true,
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
       result: results,
     });
   } catch (error) {
-    console.error('[Manual Trigger] Error:', error);
+    log.error({ err: error }, 'Manual trigger error');
     return NextResponse.json(
       {
         error: 'Internal server error',
@@ -106,6 +109,8 @@ export async function POST(request: NextRequest) {
  * Get list of scheduled scrapes (for displaying in UI)
  */
 export async function GET(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/trigger-scrape', method: 'GET' });
+
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
@@ -114,13 +119,13 @@ export async function GET(request: NextRequest) {
     const adminOrError = await requireAdminApi(session);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
-    console.log('[Manual Trigger GET] Fetching scheduled scrapes...');
+    log.info('Fetching scheduled scrapes');
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const status = searchParams.get('status') || 'active';
 
-    console.log(`[Manual Trigger GET] Query params - limit: ${limit}, status: ${status}`);
+    log.info({ limit, status }, 'Query params');
 
     // Build query
     let query = serviceSupabase
@@ -137,9 +142,9 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[Manual Trigger GET] Error fetching scheduled scrapes:', error);
+      log.error({ err: error }, 'Error fetching scheduled scrapes');
       return NextResponse.json(
-        { 
+        {
           error: 'Failed to fetch scheduled scrapes',
           details: error.message,
           hint: error.hint || 'Check RLS policies and service role key',
@@ -148,11 +153,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`[Manual Trigger GET] Successfully fetched ${data?.length || 0} scrapes`);
+    log.info({ scrapesCount: data?.length || 0 }, 'Successfully fetched scrapes');
 
     return NextResponse.json({ scrapes: data || [] });
   } catch (error) {
-    console.error('[Manual Trigger GET] Unexpected error:', error);
+    log.error({ err: error }, 'Unexpected error');
     return NextResponse.json(
       {
         error: 'Internal server error',

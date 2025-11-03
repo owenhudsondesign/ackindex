@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { validateUrl } from '@/lib/apifyScraper';
+import logger from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/batch-schedule' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -23,7 +26,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Batch Schedule] Processing ${urls.length} URLs for user ${adminOrError.id}`);
+    log.info({ urlsCount: urls.length, userId: adminOrError.id }, 'Processing batch schedule');
 
     const results = {
       success: 0,
@@ -63,15 +66,15 @@ export async function POST(request: NextRequest) {
         );
 
         if (upsertError) {
-          console.error(`[Batch Schedule] Error scheduling ${url}:`, upsertError);
+          log.error({ err: upsertError, url }, 'Error scheduling URL');
           results.failed++;
           results.errors.push(`${url}: ${upsertError.message}`);
         } else {
           results.success++;
-          console.log(`[Batch Schedule] Successfully scheduled: ${url}`);
+          log.info({ url }, 'Successfully scheduled URL');
         }
       } catch (error) {
-        console.error(`[Batch Schedule] Error processing ${url}:`, error);
+        log.error({ err: error, url }, 'Error processing URL');
         results.failed++;
         results.errors.push(
           `${url}: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -79,13 +82,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(
-      `[Batch Schedule] Completed: ${results.success} success, ${results.failed} failed`
+    log.info(
+      { successCount: results.success, failedCount: results.failed },
+      'Batch schedule completed'
     );
 
     return NextResponse.json(results);
   } catch (error) {
-    console.error('[Batch Schedule] Error:', error);
+    log.error({ err: error }, 'Batch schedule error');
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }

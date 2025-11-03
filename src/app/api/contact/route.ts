@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { validateContactForm, sanitizeContactForm, ContactFormData } from '@/lib/validation';
+import logger from '@/lib/logger';
 
 // Lazy initialization of Resend client
 let resendClient: Resend | null = null;
@@ -13,6 +14,8 @@ function getResendClient(): Resend | null {
 }
 
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/contact' });
+
   try {
     // Parse request body
     const body: ContactFormData = await request.json();
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Check if Resend is configured
     if (!process.env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY is not configured');
+      log.error('RESEND_API_KEY is not configured');
       return NextResponse.json(
         { error: 'Email service is not configured. Please contact the administrator.' },
         { status: 500 }
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.CONTACT_EMAIL) {
-      console.error('CONTACT_EMAIL is not configured');
+      log.error('CONTACT_EMAIL is not configured');
       return NextResponse.json(
         { error: 'Contact email is not configured. Please contact the administrator.' },
         { status: 500 }
@@ -158,7 +161,7 @@ This message was sent via the AckIndex contact form.
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      log.error({ err: error }, 'Resend error');
       return NextResponse.json(
         { error: 'Failed to send email. Please try again later.' },
         { status: 500 }
@@ -166,16 +169,16 @@ This message was sent via the AckIndex contact form.
     }
 
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         message: 'Your message has been sent successfully!',
-        id: data?.id 
+        id: data?.id
       },
       { status: 200 }
     );
 
   } catch (error) {
-    console.error('Contact form error:', error);
+    log.error({ err: error }, 'Contact form error');
     return NextResponse.json(
       { error: 'An unexpected error occurred. Please try again later.' },
       { status: 500 }

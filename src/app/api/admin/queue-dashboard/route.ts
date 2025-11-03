@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { scrapingQueue, embeddingQueue } from '@/lib/queues';
+import logger from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/queue-dashboard' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -113,7 +116,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Queue Dashboard] Error:', error);
+    log.error({ err: error }, 'Queue dashboard error');
     return NextResponse.json(
       { message: 'Failed to get queue stats', error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

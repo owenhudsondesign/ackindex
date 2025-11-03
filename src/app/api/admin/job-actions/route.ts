@@ -11,12 +11,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { scrapingQueue, embeddingQueue } from '@/lib/queues';
+import logger from '@/lib/logger';
 
 /**
  * POST /api/admin/job-actions
  * Perform actions on jobs (retry, remove)
  */
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/job-actions' });
+
   try {
     // SECURITY: Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'retry':
         await job.retry();
-        console.log(`[Job Actions] Job ${jobId} retried by admin ${adminOrError.email}`);
+        log.info({ jobId, adminEmail: adminOrError.email }, 'Job retried by admin');
         return NextResponse.json({
           success: true,
           message: `Job ${jobId} has been queued for retry`,
@@ -75,7 +78,7 @@ export async function POST(request: NextRequest) {
 
       case 'remove':
         await job.remove();
-        console.log(`[Job Actions] Job ${jobId} removed by admin ${adminOrError.email}`);
+        log.info({ jobId, adminEmail: adminOrError.email }, 'Job removed by admin');
         return NextResponse.json({
           success: true,
           message: `Job ${jobId} has been removed`,
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('[Job Actions] Error:', error);
+    log.error({ err: error }, 'Job actions error');
     return NextResponse.json(
       {
         message: 'Failed to perform action',

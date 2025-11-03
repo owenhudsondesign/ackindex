@@ -3,8 +3,11 @@ import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAut
 import { parsePDF, validatePDFFile } from '@/lib/pdfParser';
 import { createDocument, storeChunks, markDocumentCompleted, markDocumentFailed, updateDocument } from '@/lib/database';
 import { chunkText } from '@/lib/chunking';
+import logger from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/upload-pdf' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -34,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[PDF API] Starting upload for: ${file.name}`);
+    log.info({ filename: file.name }, 'Starting PDF upload');
 
     // Create document record
     const document = await createDocument({
@@ -45,8 +48,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Process PDF in the background
-    processPDFUpload(document.id, file, adminOrError.id).catch(error => {
-      console.error('[PDF API] Background processing failed:', error);
+    processPDFUpload(document.id, file, adminOrError.id, log).catch(error => {
+      log.error({ err: error }, 'Background processing failed');
     });
 
     return NextResponse.json({
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
       filename: file.name,
     });
   } catch (error) {
-    console.error('Error in upload-pdf endpoint:', error);
+    log.error({ err: error }, 'Upload-pdf endpoint error');
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }
@@ -69,13 +72,14 @@ export async function POST(request: NextRequest) {
 async function processPDFUpload(
   documentId: string,
   file: File,
-  userId: string
+  userId: string,
+  log: any
 ): Promise<void> {
   try {
     // Update status to processing
     await updateDocument(documentId, { status: 'processing' } as any);
 
-    console.log(`[PDF API] Parsing PDF: ${file.name}`);
+    log.info({ filename: file.name }, 'Parsing PDF');
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();
@@ -84,7 +88,7 @@ async function processPDFUpload(
     // Parse PDF with AI enhancement
     const parsed = await parsePDF(buffer, file.name, true);
 
-    console.log(`[PDF API] Extracted ${parsed.text.length} characters from ${parsed.pages} pages`);
+    log.info({ textLength: parsed.text.length, pages: parsed.pages }, 'Extracted text from PDF');
 
     // Chunk the text
     const chunks = chunkText(parsed.text, {
@@ -94,7 +98,7 @@ async function processPDFUpload(
       preserveHeadings: true,
     });
 
-    console.log(`[PDF API] Created ${chunks.length} chunks`);
+    log.info({ chunksCount: chunks.length }, 'Created chunks');
 
     // Add PDF metadata to chunks
     const enrichedChunks = chunks.map(chunk => ({
@@ -124,11 +128,12 @@ async function processPDFUpload(
     // Mark as completed
     await markDocumentCompleted(documentId, chunks.length, totalTokens);
 
-    console.log(
-      `[PDF API] Completed processing ${file.name}: ${chunks.length} chunks, ${totalTokens} tokens`
+    log.info(
+      { filename: file.name, chunksCount: chunks.length, totalTokens },
+      'Completed PDF processing'
     );
   } catch (error) {
-    console.error('[PDF API] Processing failed:', error);
+    log.error({ err: error }, 'PDF processing failed');
     await markDocumentFailed(
       documentId,
       error instanceof Error ? error.message : 'Unknown error occurred'

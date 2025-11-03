@@ -54,7 +54,7 @@ async function getUserFromRequest(request: NextRequest) {
       };
     }
   } catch (error) {
-    console.log('[Chat API] Cookie auth check failed:', error);
+    // Silent fail for cookie auth, will try Bearer token next
   }
 
   // Fall back to Bearer token (for API requests)
@@ -70,7 +70,8 @@ async function getUserFromRequest(request: NextRequest) {
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-      console.log('[Chat API] Auth error:', error?.message);
+      // Auth failures are expected for invalid tokens, log at debug level
+      logger.debug({ error: error?.message }, 'Token authentication failed');
       return null;
     }
 
@@ -79,12 +80,15 @@ async function getUserFromRequest(request: NextRequest) {
       email: user.email || '',
     };
   } catch (error) {
-    console.log('[Chat API] Token validation error:', error);
+    logger.debug({ err: error }, 'Token validation error');
     return null;
   }
 }
 
 export async function POST(request: NextRequest) {
+  // Create request logger with context
+  const log = logger.child({ endpoint: '/api/chat' });
+
   // Declare variables outside try block so they're accessible in catch
   let body: any;
   let message: string | undefined;
@@ -96,25 +100,28 @@ export async function POST(request: NextRequest) {
     conversationHistory = body.conversationHistory || [];
 
     if (!message || typeof message !== 'string') {
+      log.warn('Chat request missing message field');
       return NextResponse.json(
         { error: 'Message is required' },
         { status: 400 }
       );
     }
 
-    console.log(`[Chat API] Received query: "${message}"`);
+    log.info({ messageLength: message.length }, 'Received chat query');
 
     // Check if user is authenticated
     const user = await getUserFromRequest(request);
     if (!user) {
-      console.log('[Chat API] No valid user found in request');
+      log.warn('Unauthenticated chat request');
       return NextResponse.json(
         { error: 'Authentication required. Please sign up or log in to use the chatbot.' },
         { status: 401 }
       );
     }
 
-    console.log(`[Chat API] Authenticated user: ${user.email} (${user.id})`);
+    // Add user context to logger
+    log.setBindings({ userId: user.id, userEmail: user.email });
+    log.info('User authenticated successfully');
 
     // Check if user has tokens remaining
     const canQuery = await canUserQuery(user.id);
@@ -130,7 +137,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Chat API] User ${user.id} authorized to query`);
+    log.info('User authorized to query');
 
     // Step 1: Validate and sanitize user input (prevent prompt injection)
     const validation = validateUserInput(message, user.id);
@@ -166,34 +173,36 @@ export async function POST(request: NextRequest) {
       searchMode: 'semantic',
     });
 
-    console.log(`[Chat API] Retrieved ${rawResults.length} relevant chunks`);
-    
+    log.info({ rawResultsCount: rawResults.length }, 'Retrieved relevant chunks');
+
     // Debug: Log raw results details
     if (rawResults.length > 0) {
-      console.log(`[Chat API] Raw results details:`);
-      rawResults.forEach((result, i) => {
-        console.log(`  Result ${i + 1}: similarity=${result.similarity}, content_length=${result.content?.length || 0}`);
-      });
+      log.debug({
+        topSimilarity: rawResults[0]?.similarity,
+        avgSimilarity: rawResults.reduce((sum, r) => sum + r.similarity, 0) / rawResults.length
+      }, 'Raw results details');
     } else {
-      console.log(`[Chat API] No raw results found - this is the problem!`);
+      log.warn('No raw results found from vector search');
     }
 
     // Step 2: Deduplicate results to avoid duplicate sources
     const results = deduplicateResults(rawResults, 0.9); // Remove very similar content
-    console.log(`[Chat API] After deduplication: ${results.length} unique chunks`);
-    
+    log.info({ uniqueChunks: results.length }, 'Deduplicated results');
+
     // Debug: Log the results
     if (results.length > 0) {
-      console.log(`[Chat API] Top result similarity: ${results[0].similarity}`);
-      console.log(`[Chat API] Top result content preview: ${results[0].content.substring(0, 200)}...`);
+      log.debug({
+        topSimilarity: results[0].similarity,
+        contentPreviewLength: results[0].content.length
+      }, 'Top result details');
     }
 
     // Step 3: Check if we have relevant information
     const hasRelevant = hasRelevantResults(results, 0.7);
-    console.log(`[Chat API] Has relevant results: ${hasRelevant}`);
-    
+    log.info({ hasRelevant }, 'Checked relevance of results');
+
     if (!hasRelevant) {
-      console.log('[Chat API] No relevant information found');
+      log.info('No relevant information found for query');
       return NextResponse.json({
         response: "I don't have enough information in my database to answer that question. I can only provide information about content that has been uploaded to AckIndex. Please try asking about topics covered in the uploaded documents, or consider uploading more relevant content.",
         citations: [],
@@ -205,18 +214,20 @@ export async function POST(request: NextRequest) {
     const context = buildContext(results);
     const citations = extractCitations(results);
 
-    console.log(`[Chat API] Built context with ${citations.length} sources`);
-    console.log(`[Chat API] Context preview: ${context.substring(0, 300)}...`);
-    
+    log.info({
+      citationsCount: citations.length,
+      contextLength: context.length
+    }, 'Built context from retrieved chunks');
+
     // Debug: Log detailed results info
-    console.log(`[Chat API] Results details:`);
-    results.forEach((result, i) => {
-      console.log(`  Result ${i + 1}:`);
-      console.log(`    - Similarity: ${result.similarity}`);
-      console.log(`    - Content length: ${result.content?.length || 0}`);
-      console.log(`    - Document title: ${result.document?.title || 'No title'}`);
-      console.log(`    - Content preview: ${result.content?.substring(0, 100) || 'No content'}...`);
-    });
+    log.debug({
+      results: results.map((r, i) => ({
+        index: i + 1,
+        similarity: r.similarity,
+        contentLength: r.content?.length || 0,
+        documentTitle: r.document?.title || 'No title'
+      }))
+    }, 'Detailed results information');
 
     // Step 4: Generate response with LLM using secure system prompt
     const systemPrompt = createSecureSystemPrompt(context);
@@ -227,10 +238,11 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: sanitizedMessage },
     ];
 
-    // Debug: Log the full system prompt being sent to LLM
-    console.log(`[Chat API] System prompt length: ${systemPrompt.length} characters`);
-    console.log(`[Chat API] System prompt preview: ${systemPrompt.substring(0, 500)}...`);
-    console.log(`[Chat API] Context length: ${context.length} characters`);
+    // Debug: Log system prompt details
+    log.debug({
+      systemPromptLength: systemPrompt.length,
+      contextLength: context.length
+    }, 'Sending query to LLM');
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -254,10 +266,11 @@ export async function POST(request: NextRequest) {
 
     const response = responseValidation.sanitizedResponse;
 
-    // Debug: Log the full LLM response
-    console.log(`[Chat API] LLM response: "${response}"`);
-    console.log(`[Chat API] Response length: ${response.length} characters`);
-    console.log(`[Chat API] Generated response successfully`);
+    // Log LLM response details
+    log.info({
+      responseLength: response.length,
+      responseValid: responseValidation.isValid
+    }, 'Generated LLM response successfully');
 
     // Track usage
     const inputTokens = completion.usage?.prompt_tokens || 0;
@@ -273,7 +286,12 @@ export async function POST(request: NextRequest) {
     // Record usage in database
     await recordUsage(user.id, inputTokens, outputTokens, costCents);
 
-    console.log(`[Chat API] Recorded usage: ${totalTokens} tokens for user ${user.id}`);
+    log.info({
+      totalTokens,
+      inputTokens,
+      outputTokens,
+      costCents
+    }, 'Recorded usage');
 
     // Get updated usage stats
     const dashboard = await getUserDashboard(user.id);
@@ -295,7 +313,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Chat API] Error:', error);
+    log.error({ err: error }, 'Chat API error occurred');
 
     // Capture error in Sentry
     captureException(error, {

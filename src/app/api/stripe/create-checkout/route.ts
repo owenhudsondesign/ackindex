@@ -2,16 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createCheckoutSession, getOrCreateCustomer } from '@/lib/stripe';
 import { updateStripeCustomerId } from '@/lib/userProfile';
 import { createClient } from '@supabase/supabase-js';
+import logger from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/stripe/create-checkout' });
+
   try {
-    console.log('=== Stripe Checkout Request Started ===');
-    
+    log.info('Stripe checkout request started');
+
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    
+
     if (!authHeader) {
-      console.error('No authorization header provided');
+      log.error('No authorization header provided');
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
@@ -28,29 +31,29 @@ export async function POST(request: NextRequest) {
     );
 
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
+
     if (userError || !user || !user.email) {
-      console.error('User authentication failed:', userError);
+      log.error({ err: userError }, 'User authentication failed');
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
-    console.log('User authenticated:', user.email);
+    log.info({ email: user.email }, 'User authenticated');
 
     // Get or create Stripe customer
-    console.log('Creating/fetching Stripe customer...');
+    log.info('Creating/fetching Stripe customer');
     const customer = await getOrCreateCustomer(user.id, user.email);
-    console.log('Stripe customer ID:', customer.id);
+    log.info({ customerId: customer.id }, 'Stripe customer retrieved');
 
     // Update user profile with Stripe customer ID
     await updateStripeCustomerId(user.id, customer.id);
 
     // Create checkout session
     const origin = request.headers.get('origin') || 'http://localhost:3000';
-    console.log('Creating checkout session with origin:', origin);
-    
+    log.info({ origin }, 'Creating checkout session');
+
     const session = await createCheckoutSession(
       user.id,
       user.email,
@@ -58,24 +61,24 @@ export async function POST(request: NextRequest) {
       `${origin}/pricing?cancelled=true`
     );
 
-    console.log('Checkout session created:', session.id);
-    console.log('Checkout URL:', session.url);
+    log.info({ sessionId: session.id, url: session.url }, 'Checkout session created');
 
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
-    console.error('=== Stripe Checkout Error ===');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('Full error:', error);
-    
+    log.error({
+      err: error,
+      errorName: error.name,
+      errorType: error.type,
+      errorMessage: error.message
+    }, 'Stripe checkout error');
+
     // Check for specific Stripe errors
     if (error.type === 'StripeInvalidRequestError') {
-      console.error('Stripe Invalid Request - check your price ID and API keys');
+      log.error('Stripe Invalid Request - check your price ID and API keys');
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: error.message || 'Failed to create checkout session',
         details: error.type || 'Unknown error'
       },

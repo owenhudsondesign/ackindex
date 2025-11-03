@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { getRecentDocuments } from '@/lib/database';
+import logger from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/documents' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -26,7 +29,7 @@ export async function GET(request: NextRequest) {
       count: documents.length,
     });
   } catch (error) {
-    console.error('Error in documents endpoint:', error);
+    log.error({ err: error }, 'Documents endpoint error');
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }

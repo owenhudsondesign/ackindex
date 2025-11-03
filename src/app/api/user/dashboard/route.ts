@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserDashboard } from '@/lib/userProfile';
 import { createClient } from '@supabase/supabase-js';
+import logger from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/user/dashboard' });
+
   try {
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
@@ -44,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(dashboard);
   } catch (error: any) {
-    console.error('Error fetching dashboard:', error);
+    log.error({ err: error }, 'Error fetching dashboard');
     return NextResponse.json(
       { error: error.message || 'Failed to fetch dashboard' },
       { status: 500 }

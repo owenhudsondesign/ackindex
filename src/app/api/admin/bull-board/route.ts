@@ -15,11 +15,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
+import logger from '@/lib/logger';
 
 // We need a custom UI handler for Next.js
 // Bull Board provides UI assets that we'll serve
 
 export async function GET(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/bull-board', method: 'GET' });
+
   try {
     // SECURITY: Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -334,7 +337,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Bull Board] Error:', error);
+    log.error({ err: error }, 'Bull Board error');
     return NextResponse.json(
       {
         message: 'Failed to load Bull Board',
@@ -347,6 +350,7 @@ export async function GET(request: NextRequest) {
 
 // Also handle POST requests for Bull Board actions (retry, remove jobs, etc.)
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/bull-board', method: 'POST' });
   try {
     // SECURITY: Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -394,7 +398,7 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('[Bull Board] Action error:', error);
+    log.error({ err: error }, 'Bull Board action error');
     return NextResponse.json(
       {
         message: 'Failed to perform action',

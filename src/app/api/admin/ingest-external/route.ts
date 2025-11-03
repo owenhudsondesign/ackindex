@@ -3,8 +3,11 @@ import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAut
 import { parsePDF } from '@/lib/pdfParser';
 import { chunkText } from '@/lib/chunking';
 import { storeChunks, createDocument, markDocumentCompleted, markDocumentFailed, updateDocument } from '@/lib/database';
+import logger from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/ingest-external' });
+
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
@@ -55,7 +58,7 @@ export async function POST(req: NextRequest) {
       throw e;
     }
   } catch (e) {
-    console.error('ingest-external error:', e);
+    log.error({ err: e }, 'Ingest-external error');
     return NextResponse.json({ message: 'Server error' }, { status: 500 });
   }
 }

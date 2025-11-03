@@ -7,11 +7,13 @@ import {
   updateStripeCustomerId,
 } from '@/lib/userProfile';
 import Stripe from 'stripe';
+import logger from '@/lib/logger';
 
 // Disable body parsing, need raw body for signature verification
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/stripe/webhook' });
   const body = await request.text();
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');
@@ -31,38 +33,38 @@ export async function POST(request: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET || ''
     );
 
-    console.log('Received Stripe webhook:', event.type);
+    log.info({ eventType: event.type }, 'Received Stripe webhook');
 
     // Handle different event types
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session, log);
         break;
 
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdate(event.data.object as Stripe.Subscription);
+        await handleSubscriptionUpdate(event.data.object as Stripe.Subscription, log);
         break;
 
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, log);
         break;
 
       case 'invoice.payment_succeeded':
-        await handlePaymentSucceeded(event.data.object as Stripe.Invoice);
+        await handlePaymentSucceeded(event.data.object as Stripe.Invoice, log);
         break;
 
       case 'invoice.payment_failed':
-        await handlePaymentFailed(event.data.object as Stripe.Invoice);
+        await handlePaymentFailed(event.data.object as Stripe.Invoice, log);
         break;
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        log.info({ eventType: event.type }, 'Unhandled Stripe event type');
     }
 
     return NextResponse.json({ received: true });
   } catch (error: any) {
-    console.error('Webhook error:', error);
+    log.error({ err: error }, 'Webhook error');
     return NextResponse.json(
       { error: error.message || 'Webhook handler failed' },
       { status: 400 }
@@ -73,13 +75,13 @@ export async function POST(request: NextRequest) {
 /**
  * Handle checkout session completed
  */
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session, log: any) {
   const userId = session.client_reference_id;
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
 
   if (!userId) {
-    console.error('No user ID in checkout session');
+    log.error('No user ID in checkout session');
     return;
   }
 
@@ -105,17 +107,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     },
   });
 
-  console.log(`Subscription created for user ${userId}`);
+  log.info({ userId }, 'Subscription created');
 }
 
 /**
  * Handle subscription update
  */
-async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
+async function handleSubscriptionUpdate(subscription: Stripe.Subscription, log: any) {
   const userId = subscription.metadata.userId;
 
   if (!userId) {
-    console.error('No user ID in subscription metadata');
+    log.error('No user ID in subscription metadata');
     return;
   }
 
@@ -138,17 +140,17 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     },
   });
 
-  console.log(`Subscription updated for user ${userId}`);
+  log.info({ userId }, 'Subscription updated');
 }
 
 /**
  * Handle subscription deleted/cancelled
  */
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription, log: any) {
   const userId = subscription.metadata.userId;
 
   if (!userId) {
-    console.error('No user ID in subscription metadata');
+    log.error('No user ID in subscription metadata');
     return;
   }
 
@@ -165,18 +167,18 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     stripeSubscriptionId: subscription.id,
   });
 
-  console.log(`Subscription cancelled for user ${userId}`);
+  log.info({ userId }, 'Subscription cancelled');
 }
 
 /**
  * Handle successful payment
  */
-async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
+async function handlePaymentSucceeded(invoice: Stripe.Invoice, log: any) {
   const subscriptionId = (invoice as any).subscription as string;
   const userId = (invoice as any).subscription_details?.metadata?.userId;
 
   if (!userId) {
-    console.log('No user ID in invoice, skipping');
+    log.info('No user ID in invoice, skipping payment success handler');
     return;
   }
 
@@ -189,18 +191,18 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     currency: invoice.currency,
   });
 
-  console.log(`Payment succeeded for user ${userId}`);
+  log.info({ userId }, 'Payment succeeded');
 }
 
 /**
  * Handle failed payment
  */
-async function handlePaymentFailed(invoice: Stripe.Invoice) {
+async function handlePaymentFailed(invoice: Stripe.Invoice, log: any) {
   const subscriptionId = (invoice as any).subscription as string;
   const userId = (invoice as any).subscription_details?.metadata?.userId;
 
   if (!userId) {
-    console.log('No user ID in invoice, skipping');
+    log.info('No user ID in invoice, skipping payment failed handler');
     return;
   }
 
@@ -220,7 +222,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     currency: invoice.currency,
   });
 
-  console.log(`Payment failed for user ${userId}`);
+  log.warn({ userId }, 'Payment failed');
 }
 
 /**

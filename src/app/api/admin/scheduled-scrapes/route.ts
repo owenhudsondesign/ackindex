@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
+import logger from '@/lib/logger';
 
 // Server-side Supabase client with service role key (for database operations)
 const serviceSupabase = createClient(
@@ -18,6 +19,8 @@ const serviceSupabase = createClient(
  * Create a new scheduled scrape
  */
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/scheduled-scrapes', method: 'POST' });
+
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
@@ -67,13 +70,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[Scheduled Scrapes POST] Error creating scrape:', error);
+      log.error({ err: error }, 'Error creating scheduled scrape');
       return NextResponse.json({ error: 'Failed to create scheduled scrape' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, scrape: data });
   } catch (error) {
-    console.error('[Scheduled Scrapes POST] Unexpected error:', error);
+    log.error({ err: error }, 'Unexpected error creating scrape');
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -85,6 +88,8 @@ export async function POST(request: NextRequest) {
  * Update an existing scheduled scrape
  */
 export async function PATCH(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/scheduled-scrapes', method: 'PATCH' });
+
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
@@ -122,13 +127,13 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[Scheduled Scrapes PATCH] Error updating scrape:', error);
+      log.error({ err: error }, 'Error updating scheduled scrape');
       return NextResponse.json({ error: 'Failed to update scheduled scrape' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, scrape: data });
   } catch (error) {
-    console.error('[Scheduled Scrapes PATCH] Unexpected error:', error);
+    log.error({ err: error }, 'Unexpected error updating scrape');
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -140,6 +145,8 @@ export async function PATCH(request: NextRequest) {
  * Delete a scheduled scrape
  */
 export async function DELETE(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/scheduled-scrapes', method: 'DELETE' });
+
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
@@ -161,13 +168,13 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('[Scheduled Scrapes DELETE] Error deleting scrape:', error);
+      log.error({ err: error }, 'Error deleting scheduled scrape');
       return NextResponse.json({ error: 'Failed to delete scheduled scrape' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Scheduled Scrapes DELETE] Unexpected error:', error);
+    log.error({ err: error }, 'Unexpected error deleting scrape');
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
