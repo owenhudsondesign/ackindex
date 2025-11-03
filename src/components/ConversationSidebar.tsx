@@ -75,25 +75,27 @@ export default function ConversationSidebar({
 
   // For non-premium users, show sidebar with upgrade overlay
   const sidebarContent = (
-    <div className="flex flex-col h-full p-4">
-      {/* New Chat Button */}
-      <button
-        onClick={() => {
-          onNewConversation();
-          setIsOpen(false);
-          if (isPremium) fetchConversations();
-        }}
-        className="w-full mb-6 px-4 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
-        disabled={!isPremium}
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-        New Chat
-      </button>
+    <div className="flex flex-col h-full">
+      {/* New Chat Button - Sticky Top */}
+      <div className="flex-shrink-0 p-4 pb-0">
+        <button
+          onClick={() => {
+            onNewConversation();
+            setIsOpen(false);
+            if (isPremium) fetchConversations();
+          }}
+          className="w-full px-4 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-sm"
+          disabled={!isPremium}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          New Chat
+        </button>
+      </div>
 
-      {/* Conversations List */}
-      <div className="flex-grow overflow-y-auto -mx-2 px-2">
+      {/* Conversations List - Scrollable Middle */}
+      <div className="flex-grow overflow-y-auto px-2 py-4">
         <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-2">
           Recent
         </h3>
@@ -160,8 +162,9 @@ export default function ConversationSidebar({
         )}
       </div>
 
-      {/* Premium Badge or Upgrade CTA */}
-      <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-800/50">
+      {/* Premium Badge or Upgrade CTA - Sticky Bottom */}
+      <div className="flex-shrink-0 p-4 pt-0 mt-auto">
+        <div className="pt-4 border-t border-gray-200/50 dark:border-gray-800/50">
         {isPremium ? (
           <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
             <span className="text-base">✨</span>
@@ -187,6 +190,7 @@ export default function ConversationSidebar({
             </Link>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
