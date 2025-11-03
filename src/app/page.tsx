@@ -293,7 +293,7 @@ export default function Home() {
         )}
 
         {/* Main Chat Area */}
-        <div className={`flex-1 flex flex-col py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center items-center min-h-screen' : ''}`}>
+        <div className={`flex-1 flex flex-col items-center py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center min-h-screen' : ''}`}>
         {/* Sidebar Toggle Button - Only show when authenticated */}
         {user && (
           <button
