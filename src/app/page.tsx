@@ -19,6 +19,7 @@ export default function Home() {
   const [authLoading, setAuthLoading] = useState(true);
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(undefined);
   const [isPremium, setIsPremium] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Trigger sidebar refresh
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -191,6 +192,8 @@ export default function Home() {
       // Update conversation ID if premium user
       if (data.conversationId) {
         setCurrentConversationId(data.conversationId);
+        // Trigger sidebar refresh to show new conversation
+        setRefreshTrigger(prev => prev + 1);
       }
 
       // Create assistant message with response
@@ -282,6 +285,7 @@ export default function Home() {
             onSelectConversation={handleSelectConversation}
             onNewConversation={handleNewConversation}
             isPremium={isPremium}
+            refreshTrigger={refreshTrigger}
           />
         )}
 
