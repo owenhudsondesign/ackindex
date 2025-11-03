@@ -55,19 +55,19 @@ export default function Header() {
           <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
             <Link
               href="/about"
-              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-200 hover:text-ack-blue dark:hover:text-blue-300 transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
             >
               About
             </Link>
             <Link
               href="/pricing"
-              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-200 hover:text-ack-blue dark:hover:text-blue-300 transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
             >
               Pricing
             </Link>
             <Link
               href="/contact"
-              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-200 hover:text-ack-blue dark:hover:text-blue-300 transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
             >
               Contact
             </Link>
@@ -85,7 +85,7 @@ export default function Header() {
                   <>
                     <Link
                       href="/login"
-                      className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
+                      className="px-3 sm:px-4 py-2 text-sm font-medium text-ack-dark-gray dark:text-gray-200 hover:text-ack-blue dark:hover:text-blue-300 transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
                     >
                       Log In
                     </Link>

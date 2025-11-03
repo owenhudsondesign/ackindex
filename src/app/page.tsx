@@ -217,19 +217,31 @@ export default function Home() {
       <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8 relative bg-white dark:bg-gray-900">
         {/* Subtle Grid Background */}
         <div
-          className="absolute inset-0 -z-10 opacity-20 dark:opacity-10"
+          className="absolute inset-0 -z-10"
           style={{
             backgroundImage: `
-              linear-gradient(to right, rgb(200, 200, 200) 1px, transparent 1px),
-              linear-gradient(to bottom, rgb(200, 200, 200) 1px, transparent 1px)
+              linear-gradient(to right, rgb(200 200 200 / 0.2) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(200 200 200 / 0.2) 1px, transparent 1px)
             `,
-            backgroundSize: '40px 40px'
+            backgroundSize: '40px 40px',
+            opacity: 1
+          }}
+        />
+        <div
+          className="absolute inset-0 -z-10 dark:block hidden"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px',
+            opacity: 1
           }}
         />
         <div className="w-full max-w-3xl px-4">
           {/* Badge */}
           <div className="flex justify-center mb-8">
-            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-300">
+            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200">
               For transparent government data
             </span>
           </div>
@@ -260,21 +272,21 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
             {/* Mobile version - Civic on second line */}
             <span className="inline md:hidden">
-              <span className="text-ack-black dark:text-gray-100">Nantucket</span>
+              <span className="text-ack-black dark:text-white">Nantucket</span>
               <br />
-              <span className="text-ack-black dark:text-gray-100">Civic Data </span>
-              <span className="text-ack-blue dark:text-blue-400">Made Accessible</span>
+              <span className="text-ack-black dark:text-white">Civic Data </span>
+              <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
             </span>
             {/* Desktop version - Civic Data on first line */}
             <span className="hidden md:inline">
-              <span className="text-ack-black dark:text-gray-100">Nantucket Civic Data</span>
+              <span className="text-ack-black dark:text-white">Nantucket Civic Data</span>
               <br />
-              <span className="text-ack-blue dark:text-blue-400">Made Accessible</span>
+              <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
             </span>
           </h1>
 
           {/* Subheading */}
-          <p className="text-center text-ack-dark-gray dark:text-gray-400 mb-8 max-w-lg mx-auto">
+          <p className="text-center text-ack-dark-gray dark:text-gray-300 mb-8 max-w-lg mx-auto">
             Want to know what&apos;s going on in Town? Have a question about zoning permits? AckIndex is here to help.
           </p>
 
@@ -288,24 +300,24 @@ export default function Home() {
             </div>
           ) : user ? (
             <div className="flex justify-center mb-6 px-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-green-800 font-medium">
+                  <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
+                  <span className="text-sm text-green-800 dark:text-green-100 font-medium">
                     Logged in as {user.email}
                   </span>
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <Link
                     href="/account"
-                    className="text-sm text-green-600 hover:text-green-800 underline"
+                    className="text-sm text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline"
                   >
                     View Account
                   </Link>
-                  <span className="text-green-300">•</span>
+                  <span className="text-green-300 dark:text-green-600">•</span>
                   <button
                     onClick={checkAuth}
-                    className="text-sm text-green-600 hover:text-green-800 underline"
+                    className="text-sm text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline"
                     title="Refresh authentication status"
                   >
                     Refresh
@@ -315,24 +327,24 @@ export default function Home() {
             </div>
           ) : (
             <div className="flex justify-center mb-6 px-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <span className="text-sm text-yellow-800 font-medium">
+                  <div className="w-2 h-2 bg-yellow-500 dark:bg-yellow-400 rounded-full"></div>
+                  <span className="text-sm text-yellow-800 dark:text-yellow-100 font-medium">
                     Not logged in
                   </span>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-sm text-yellow-800">
+                <div className="flex items-center justify-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
                   <Link
                     href="/signup"
-                    className="text-sm text-yellow-600 hover:text-yellow-800 underline font-medium"
+                    className="text-sm text-yellow-600 dark:text-yellow-300 hover:text-yellow-800 dark:hover:text-yellow-200 underline font-medium"
                   >
                     Sign up
                   </Link>
                   <span>or</span>
                   <Link
                     href="/login"
-                    className="text-sm text-yellow-600 hover:text-yellow-800 underline font-medium"
+                    className="text-sm text-yellow-600 dark:text-yellow-300 hover:text-yellow-800 dark:hover:text-yellow-200 underline font-medium"
                   >
                     log in
                   </Link>

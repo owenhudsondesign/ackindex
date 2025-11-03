@@ -151,8 +151,8 @@ function AccountContent() {
         )}
 
         <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">My Account</h1>
-          <p className="text-gray-600 dark:text-gray-400 text-lg">Manage your subscription and usage</p>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">My Account</h1>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">Manage your subscription and usage</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -162,10 +162,10 @@ function AccountContent() {
             <Card className="p-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
                     {isPremium ? 'Premium Plan' : 'Free Plan'}
                   </h2>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-gray-600 dark:text-gray-300">
                     {isPremium
                       ? 'Unlimited tokens and queries'
                       : '3,500 tokens per month'}
@@ -183,11 +183,11 @@ function AccountContent() {
               </div>
 
               {!isPremium && (
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                     Upgrade to Premium
                   </h3>
-                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                  <p className="text-gray-700 dark:text-gray-200 mb-4">
                     Get unlimited tokens, priority support, and early access to new
                     features for just $9.99/month.
                   </p>
@@ -217,17 +217,17 @@ function AccountContent() {
 
             {/* Usage Card */}
             <Card className="p-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                 Usage This Month
               </h2>
 
               <div className="space-y-6">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                       Token Usage
                     </span>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
                       {isPremium ? (
                         <span className="text-green-600 dark:text-green-400">Unlimited</span>
                       ) : (
@@ -259,13 +259,13 @@ function AccountContent() {
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Questions Asked</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
                       {dashboard.queries_this_month}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Avg. per Question</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
                       {dashboard.queries_this_month > 0
                         ? Math.round(
                             dashboard.tokens_used_this_month /
@@ -300,23 +300,23 @@ function AccountContent() {
           <div className="space-y-6">
             {/* Account Info */}
             <Card className="p-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                 Account Info
               </h2>
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Name</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                  <p className="font-medium text-gray-900 dark:text-white">
                     {dashboard.full_name || 'Not set'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Email</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">{dashboard.email}</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{dashboard.email}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Email Updates</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                  <p className="font-medium text-gray-900 dark:text-white">
                     {dashboard.email_updates_enabled ? (
                       <span className="text-green-600 dark:text-green-400">✓ Subscribed</span>
                     ) : (
@@ -329,7 +329,7 @@ function AccountContent() {
 
             {/* Preferences */}
             <Card className="p-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                 Preferences
               </h2>
               <DarkModeToggle />
@@ -337,7 +337,7 @@ function AccountContent() {
 
             {/* Quick Actions */}
             <Card className="p-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                 Quick Actions
               </h2>
               <div className="space-y-3">
@@ -369,8 +369,8 @@ function AccountContent() {
 
             {/* Support */}
             <Card className="bg-gray-50 dark:bg-gray-800/50 p-8">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">Need Help?</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Need Help?</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                 Contact us if you have any questions or issues.
               </p>
               <Link href="/contact">

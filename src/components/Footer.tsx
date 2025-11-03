@@ -24,19 +24,19 @@ export default function Footer() {
               height={35}
               className="hidden dark:block"
             />
-            <p className="text-sm text-ack-dark-gray dark:text-gray-400 max-w-xs">
+            <p className="text-sm text-ack-dark-gray dark:text-gray-300 max-w-xs">
               Making Nantucket's civic data accessible and understandable through AI-powered analysis.
             </p>
           </div>
 
           {/* Links */}
           <div>
-            <h3 className="text-sm font-semibold text-ack-black dark:text-gray-100 mb-3">Links</h3>
+            <h3 className="text-sm font-semibold text-ack-black dark:text-white mb-3">Links</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/"
-                  className="text-sm text-ack-dark-gray dark:text-gray-400 hover:text-ack-blue dark:hover:text-blue-400 transition-colors"
+                  className="text-sm text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue dark:hover:text-blue-300 transition-colors"
                 >
                   Home
                 </Link>
@@ -44,7 +44,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/about"
-                  className="text-sm text-ack-dark-gray dark:text-gray-400 hover:text-ack-blue dark:hover:text-blue-400 transition-colors"
+                  className="text-sm text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue dark:hover:text-blue-300 transition-colors"
                 >
                   About
                 </Link>
@@ -52,7 +52,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/contact"
-                  className="text-sm text-ack-dark-gray dark:text-gray-400 hover:text-ack-blue dark:hover:text-blue-400 transition-colors"
+                  className="text-sm text-ack-dark-gray dark:text-gray-300 hover:text-ack-blue dark:hover:text-blue-300 transition-colors"
                 >
                   Contact
                 </Link>
@@ -62,8 +62,8 @@ export default function Footer() {
 
           {/* About This Project */}
           <div>
-            <h3 className="text-sm font-semibold text-ack-black dark:text-gray-100 mb-3">About This Project</h3>
-            <p className="text-sm text-ack-dark-gray dark:text-gray-400">
+            <h3 className="text-sm font-semibold text-ack-black dark:text-white mb-3">About This Project</h3>
+            <p className="text-sm text-ack-dark-gray dark:text-gray-300">
               An independent civic technology project for transparent, accessible government data.
             </p>
           </div>
