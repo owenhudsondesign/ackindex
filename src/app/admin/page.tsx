@@ -237,7 +237,21 @@ export default function AdminPage() {
                 </div>
                 <button
                   onClick={() => {
-                    throw new Error("Test GlitchTip Error - Admin Panel");
+                    // Manually capture error to ensure it's sent to GlitchTip
+                    const testError = new Error("Test GlitchTip Error - Admin Panel");
+
+                    // Import Sentry dynamically
+                    import('@sentry/nextjs').then((Sentry) => {
+                      Sentry.captureException(testError, {
+                        tags: { test: true, source: 'admin-panel' },
+                        level: 'error',
+                      });
+                      console.log('✅ Test error sent to GlitchTip');
+                      alert('Test error sent! Check GlitchTip dashboard in 10-30 seconds.');
+                    }).catch((err) => {
+                      console.error('Failed to send error to GlitchTip:', err);
+                      alert('Failed to send error. Check console for details.');
+                    });
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
                 >
