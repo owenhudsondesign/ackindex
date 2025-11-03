@@ -60,13 +60,23 @@ export async function GET(
     const user = await getUserFromRequest(request);
 
     if (!user) {
+      log.warn('Unauthenticated request to get conversation messages');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
+    log.info({ conversationId: id, userId: user.id }, 'Fetching conversation messages');
+    
     const messages = await getConversationMessages(id, user.id);
+    
+    log.info({ 
+      conversationId: id, 
+      userId: user.id, 
+      messageCount: messages.length,
+      messages: messages.length > 0 ? messages.map(m => ({ id: m.id, role: m.role, contentLength: m.content?.length || 0 })) : []
+    }, 'Retrieved conversation messages');
 
     return NextResponse.json({
       success: true,

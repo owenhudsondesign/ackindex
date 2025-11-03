@@ -89,19 +89,72 @@ export async function getConversationMessages(
   userId: string
 ): Promise<ConversationMessage[]> {
   try {
+    logger.debug({ conversationId, userId }, 'Calling get_conversation_messages RPC');
+    
+    // First verify the conversation exists and belongs to the user
+    const { data: conversation, error: convError } = await supabaseAdmin
+      .from('conversations')
+      .select('id, user_id')
+      .eq('id', conversationId)
+      .eq('user_id', userId)
+      .single();
+
+    if (convError || !conversation) {
+      logger.error({ 
+        err: convError, 
+        conversationId, 
+        userId 
+      }, 'Conversation not found or access denied');
+      return [];
+    }
+
+    // Try RPC function first
     const { data, error } = await supabaseAdmin.rpc('get_conversation_messages', {
       p_conversation_id: conversationId,
       p_user_id: userId,
     });
 
     if (error) {
-      logger.error({ err: error, conversationId, userId }, 'Failed to get conversation messages');
-      return [];
+      logger.warn({ 
+        err: error, 
+        conversationId, 
+        userId,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        errorHint: error.hint
+      }, 'RPC call failed, trying direct query fallback');
+      
+      // Fallback: Direct query
+      const { data: directData, error: directError } = await supabaseAdmin
+        .from('conversation_messages')
+        .select('id, role, content, tokens_used, citations, created_at')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (directError) {
+        logger.error({ err: directError, conversationId }, 'Direct query also failed');
+        return [];
+      }
+
+      logger.info({ 
+        conversationId, 
+        messageCount: directData?.length || 0 
+      }, 'Retrieved messages via direct query fallback');
+      
+      return directData || [];
     }
+
+    logger.debug({ 
+      conversationId, 
+      userId, 
+      messageCount: data?.length || 0,
+      messages: data?.map((m: any) => ({ id: m.id, role: m.role, hasContent: !!m.content }))
+    }, 'Successfully retrieved conversation messages via RPC');
 
     return data || [];
   } catch (error) {
-    logger.error({ err: error, conversationId }, 'Exception getting messages');
+    logger.error({ err: error, conversationId, userId }, 'Exception getting messages');
     return [];
   }
 }
