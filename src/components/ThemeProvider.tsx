@@ -14,6 +14,7 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
       defaultTheme="light"
       enableSystem={false}
       storageKey="ackindex-theme"
+      disableTransitionOnChange
     >
       {children}
     </NextThemesProvider>

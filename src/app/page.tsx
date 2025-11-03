@@ -236,13 +236,23 @@ export default function Home() {
 
           {/* Logo */}
           <div className="flex justify-center mb-6">
+            {/* Light mode logo */}
             <Image
               src="/logo.svg"
               alt="AckIndex"
               width={200}
               height={53}
               priority
-              className="h-12 w-auto"
+              className="h-12 w-auto block dark:hidden"
+            />
+            {/* Dark mode logo */}
+            <Image
+              src="/logo-white.svg"
+              alt="AckIndex"
+              width={200}
+              height={53}
+              priority
+              className="h-12 w-auto hidden dark:block"
             />
           </div>
 

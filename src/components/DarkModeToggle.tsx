@@ -4,13 +4,19 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 export default function DarkModeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // Only render after mount to avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      console.log('Current theme:', theme, 'Resolved theme:', resolvedTheme);
+    }
+  }, [theme, resolvedTheme, mounted]);
 
   if (!mounted) {
     return (
@@ -29,7 +35,8 @@ export default function DarkModeToggle() {
     );
   }
 
-  const isDark = theme === 'dark';
+  // Use resolvedTheme to get the actual applied theme
+  const isDark = resolvedTheme === 'dark';
 
   return (
     <div className="flex items-center justify-between">
@@ -64,7 +71,11 @@ export default function DarkModeToggle() {
 
       {/* Toggle Switch */}
       <button
-        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+        onClick={() => {
+          const newTheme = isDark ? 'light' : 'dark';
+          console.log('Switching theme from', theme, 'to', newTheme);
+          setTheme(newTheme);
+        }}
         className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ack-blue focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
           isDark ? 'bg-ack-blue' : 'bg-gray-300'
         }`}

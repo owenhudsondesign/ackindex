@@ -8,11 +8,21 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Logo and Description */}
           <div className="space-y-4">
+            {/* Light mode logo */}
             <Image
               src="/logo.svg"
               alt="AckIndex Logo"
               width={140}
               height={35}
+              className="block dark:hidden"
+            />
+            {/* Dark mode logo */}
+            <Image
+              src="/logo-white.svg"
+              alt="AckIndex Logo"
+              width={140}
+              height={35}
+              className="hidden dark:block"
             />
             <p className="text-sm text-ack-dark-gray dark:text-gray-400 max-w-xs">
               Making Nantucket's civic data accessible and understandable through AI-powered analysis.

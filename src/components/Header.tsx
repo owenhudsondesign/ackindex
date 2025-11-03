@@ -31,12 +31,23 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+            {/* Light mode logo */}
             <Image
               src="/logo.svg"
               alt="AckIndex Logo"
               width={150}
               height={40}
               priority
+              className="block dark:hidden"
+            />
+            {/* Dark mode logo */}
+            <Image
+              src="/logo-white.svg"
+              alt="AckIndex Logo"
+              width={150}
+              height={40}
+              priority
+              className="hidden dark:block"
             />
           </Link>
 
