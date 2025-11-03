@@ -214,30 +214,34 @@ export default function Home() {
 
   return (
     <PageLayout>
-      <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8 relative bg-white dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8 relative bg-white dark:bg-gray-900 overflow-hidden">
         {/* Subtle Grid Background - Light Mode */}
         <div
-          className="absolute inset-0 -z-10 block dark:hidden"
+          className="absolute inset-0 block dark:hidden pointer-events-none"
           style={{
             backgroundImage: `
-              linear-gradient(to right, rgb(200 200 200 / 0.2) 1px, transparent 1px),
-              linear-gradient(to bottom, rgb(200 200 200 / 0.2) 1px, transparent 1px)
+              linear-gradient(to right, rgb(200 200 200 / 0.4) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(200 200 200 / 0.4) 1px, transparent 1px)
             `,
-            backgroundSize: '40px 40px'
+            backgroundSize: '40px 40px',
+            backgroundPosition: '0 0',
+            zIndex: 0
           }}
         />
         {/* Subtle Grid Background - Dark Mode */}
         <div
-          className="absolute inset-0 -z-10 hidden dark:block"
+          className="absolute inset-0 hidden dark:block pointer-events-none"
           style={{
             backgroundImage: `
-              linear-gradient(to right, rgb(255 255 255 / 0.08) 1px, transparent 1px),
-              linear-gradient(to bottom, rgb(255 255 255 / 0.08) 1px, transparent 1px)
+              linear-gradient(to right, rgb(255 255 255 / 0.2) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(255 255 255 / 0.2) 1px, transparent 1px)
             `,
-            backgroundSize: '40px 40px'
+            backgroundSize: '40px 40px',
+            backgroundPosition: '0 0',
+            zIndex: 0
           }}
         />
-        <div className="w-full max-w-3xl px-4">
+        <div className="w-full max-w-3xl px-4 relative z-10">
           {/* Badge */}
           <div className="flex justify-center mb-8">
             <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200">
@@ -271,14 +275,14 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
             {/* Mobile version - Civic on second line */}
             <span className="inline md:hidden">
-              <span className="text-ack-black dark:text-white">Nantucket</span>
+              <span className="text-gray-900 dark:text-white">Nantucket</span>
               <br />
-              <span className="text-ack-black dark:text-white">Civic Data </span>
+              <span className="text-gray-900 dark:text-white">Civic Data </span>
               <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
             </span>
             {/* Desktop version - Civic Data on first line */}
             <span className="hidden md:inline">
-              <span className="text-ack-black dark:text-white">Nantucket Civic Data</span>
+              <span className="text-gray-900 dark:text-white">Nantucket Civic Data</span>
               <br />
               <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
             </span>
