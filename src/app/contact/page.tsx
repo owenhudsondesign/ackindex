@@ -110,19 +110,19 @@ export default function ContactPage() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-10">
-            <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 text-ack-blue mb-6">
+            <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-300 mb-6">
               We'd love to hear from you
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-ack-black mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               Get In Touch
             </h1>
-            <p className="text-lg text-ack-dark-gray">
+            <p className="text-lg text-gray-700 dark:text-gray-300">
               Have questions, suggestions, or feedback? Send us a message and we'll respond as soon as possible.
             </p>
           </div>
 
           {/* Contact Form */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Name Field */}
               <Input
@@ -190,8 +190,8 @@ export default function ContactPage() {
             </form>
 
             {/* Info Text */}
-            <div className="mt-8 flex items-start space-x-2 text-sm text-ack-dark-gray">
-              <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <div className="mt-8 flex items-start space-x-2 text-sm text-gray-600 dark:text-gray-400">
+              <svg className="w-5 h-5 text-ack-blue dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
               <p>
@@ -203,30 +203,30 @@ export default function ContactPage() {
 
           {/* Alternative Contact Info */}
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gradient-to-br from-ack-blue/5 to-ack-blue/10 rounded-lg p-6 border border-ack-blue/20">
+            <div className="bg-gradient-to-br from-ack-blue/5 to-ack-blue/10 dark:from-ack-blue/10 dark:to-ack-blue/20 rounded-lg p-6 border border-ack-blue/20 dark:border-ack-blue/30">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-10 h-10 bg-ack-blue rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-ack-blue dark:bg-blue-500 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-ack-black">About the Project</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">About the Project</h3>
               </div>
-              <p className="text-sm text-ack-dark-gray">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 AckIndex is an independent civic technology project. We're not affiliated with the Town of Nantucket government.
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/40 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-ack-black">Data Sources</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Data Sources</h3>
               </div>
-              <p className="text-sm text-ack-dark-gray">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 Have a suggestion for additional civic data sources we should index? Let us know in your message!
               </p>
             </div>

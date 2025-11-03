@@ -124,11 +124,11 @@ export default function AdminPage() {
           </div>
 
           {/* Info Banner */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-8">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-blue-400"
+                  className="h-5 w-5 text-blue-400 dark:text-blue-300"
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -140,10 +140,10 @@ export default function AdminPage() {
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
+                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
                   Automated Content Management
                 </h3>
-                <div className="mt-2 text-sm text-blue-700">
+                <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
                   <p>
                     Schedule URLs for automatic scraping • Upload PDFs directly • Monitor scraping activity
                   </p>

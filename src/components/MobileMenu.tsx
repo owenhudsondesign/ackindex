@@ -26,7 +26,7 @@ export default function MobileMenu() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden p-2 rounded-md text-ack-dark-gray hover:text-ack-blue hover:bg-ack-light-gray transition-colors"
+        className="md:hidden p-2 rounded-md text-gray-900 dark:text-gray-100 hover:text-ack-blue dark:hover:text-blue-300 hover:bg-ack-light-gray dark:hover:bg-gray-800 transition-colors"
         aria-label="Toggle menu"
         aria-expanded={isOpen}
       >
@@ -61,35 +61,35 @@ export default function MobileMenu() {
 
       {/* Mobile menu panel */}
       {isOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+        <div className="md:hidden absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg">
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link
               href="/about"
               onClick={() => setIsOpen(false)}
-              className="block px-3 py-2 rounded-md text-base font-medium text-ack-dark-gray hover:text-ack-blue hover:bg-ack-light-gray transition-colors"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 dark:text-gray-100 hover:text-ack-blue dark:hover:text-blue-300 hover:bg-ack-light-gray dark:hover:bg-gray-800 transition-colors"
             >
               About
             </Link>
             <Link
               href="/pricing"
               onClick={() => setIsOpen(false)}
-              className="block px-3 py-2 rounded-md text-base font-medium text-ack-dark-gray hover:text-ack-blue hover:bg-ack-light-gray transition-colors"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 dark:text-gray-100 hover:text-ack-blue dark:hover:text-blue-300 hover:bg-ack-light-gray dark:hover:bg-gray-800 transition-colors"
             >
               Pricing
             </Link>
             <Link
               href="/contact"
               onClick={() => setIsOpen(false)}
-              className="block px-3 py-2 rounded-md text-base font-medium text-ack-dark-gray hover:text-ack-blue hover:bg-ack-light-gray transition-colors"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 dark:text-gray-100 hover:text-ack-blue dark:hover:text-blue-300 hover:bg-ack-light-gray dark:hover:bg-gray-800 transition-colors"
             >
               Contact
             </Link>
-            <div className="border-t border-gray-200 my-2"></div>
+            <div className="border-t border-gray-200 dark:border-gray-800 my-2"></div>
             {user ? (
               <Link
                 href="/account"
                 onClick={() => setIsOpen(false)}
-                className="block px-3 py-2 rounded-md text-base font-medium text-white bg-ack-blue hover:bg-opacity-90 transition-colors"
+                className="block px-3 py-2 rounded-md text-base font-medium text-white bg-ack-blue hover:bg-opacity-90 dark:hover:bg-blue-600 transition-colors"
               >
                 My Account
               </Link>
@@ -98,14 +98,14 @@ export default function MobileMenu() {
                 <Link
                   href="/login"
                   onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-ack-dark-gray hover:text-ack-blue hover:bg-ack-light-gray transition-colors"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 dark:text-gray-100 hover:text-ack-blue dark:hover:text-blue-300 hover:bg-ack-light-gray dark:hover:bg-gray-800 transition-colors"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/signup"
                   onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-white bg-ack-blue hover:bg-opacity-90 transition-colors"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-white bg-ack-blue hover:bg-opacity-90 dark:hover:bg-blue-600 transition-colors"
                 >
                   Sign Up
                 </Link>
