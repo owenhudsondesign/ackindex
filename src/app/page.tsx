@@ -253,14 +253,19 @@ export default function Home() {
   };
 
   const handleSelectConversation = async (conversationId: string) => {
+    console.log('Loading conversation:', conversationId);
     setCurrentConversationId(conversationId);
     setMessages([]);
     setIsLoading(true);
 
     try {
       const response = await fetch(`/api/conversations/${conversationId}`);
+      console.log('Conversation API response:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('Loaded messages:', data.messages?.length, 'messages');
+
         const loadedMessages: Message[] = data.messages.map((msg: any) => ({
           id: msg.id,
           role: msg.role,
@@ -268,9 +273,12 @@ export default function Home() {
           citations: msg.citations || [],
         }));
         setMessages(loadedMessages);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to load conversation:', response.status, errorData);
       }
     } catch (error) {
-      console.error('Failed to load conversation:', error);
+      console.error('Exception loading conversation:', error);
     } finally {
       setIsLoading(false);
     }

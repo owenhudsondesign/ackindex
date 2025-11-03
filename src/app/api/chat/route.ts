@@ -350,29 +350,33 @@ export async function POST(request: NextRequest) {
     // Calculate response time
     const responseTime = Date.now() - startTime;
 
-    // Save messages to conversation (PREMIUM ONLY)
+    // Save messages to conversation (PREMIUM ONLY) - AWAIT to ensure completion
     if (isPremium && activeConversationId) {
-      // Save messages and generate title sequentially to ensure proper order
-      (async () => {
-        try {
-          // Save user message first
-          await addMessage(activeConversationId!, 'user', sanitizedMessage, 0, []);
+      try {
+        // Save user message first
+        await addMessage(activeConversationId, 'user', sanitizedMessage, 0, []);
+        log.debug({ conversationId: activeConversationId }, 'Saved user message');
 
-          // Save assistant response
-          await addMessage(activeConversationId!, 'assistant', response, totalTokens, citations);
+        // Save assistant response
+        await addMessage(activeConversationId, 'assistant', response, totalTokens, citations);
+        log.debug({ conversationId: activeConversationId }, 'Saved assistant message');
 
-          // Auto-generate descriptive title from first message
-          if (conversationHistory.length === 0) {
-            const title = await autoGenerateTitle(activeConversationId!);
-            if (title && title !== 'New Conversation') {
-              await updateConversationTitle(activeConversationId!, user.id, title);
-              log.info({ title, conversationId: activeConversationId }, 'Generated conversation title');
-            }
+        // Auto-generate descriptive title from first message (only if this is a new conversation)
+        if (conversationHistory.length === 0) {
+          log.debug({ conversationId: activeConversationId }, 'Generating title for new conversation');
+          const title = await autoGenerateTitle(activeConversationId);
+          log.debug({ title, conversationId: activeConversationId }, 'Generated title');
+
+          if (title && title !== 'New Conversation') {
+            const updated = await updateConversationTitle(activeConversationId, user.id, title);
+            log.info({ title, updated, conversationId: activeConversationId }, 'Updated conversation title');
+          } else {
+            log.warn({ title, conversationId: activeConversationId }, 'Title generation returned default or null');
           }
-        } catch (err) {
-          log.error({ err, conversationId: activeConversationId }, 'Failed to save conversation messages');
         }
-      })();
+      } catch (err) {
+        log.error({ err, conversationId: activeConversationId }, 'Failed to save conversation messages');
+      }
     }
 
     // Log query for analytics (non-blocking)
