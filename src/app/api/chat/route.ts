@@ -6,6 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { captureException, setUserContext } from '@/lib/sentry';
+import { validateUserInput, createSecureSystemPrompt, validateAIResponse } from '@/lib/promptSecurity';
+import logger from '@/lib/logger';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -130,8 +132,34 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Chat API] User ${user.id} authorized to query`);
 
-    // Step 1: Retrieve relevant chunks
-    const rawResults = await retrieveRelevantChunks(message, {
+    // Step 1: Validate and sanitize user input (prevent prompt injection)
+    const validation = validateUserInput(message, user.id);
+
+    if (!validation.isValid || validation.blocked) {
+      logger.warn(
+        { userId: user.id, reason: validation.reason, warnings: validation.warnings },
+        'User input blocked due to security violation'
+      );
+
+      return NextResponse.json(
+        {
+          error: 'Invalid input',
+          message: validation.reason || 'Your message contains patterns that are not allowed. Please rephrase your question.',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Log warnings if any suspicious patterns detected
+    if (validation.warnings.length > 0) {
+      logger.info({ userId: user.id, warnings: validation.warnings }, 'Suspicious input patterns detected');
+    }
+
+    // Use sanitized input for the rest of the processing
+    const sanitizedMessage = validation.sanitizedInput;
+
+    // Step 2: Retrieve relevant chunks
+    const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
       maxResults: 10, // Get more results to deduplicate
       minSimilarity: 0.7, // Back to original threshold
       includeDocumentInfo: true,
@@ -190,27 +218,13 @@ export async function POST(request: NextRequest) {
       console.log(`    - Content preview: ${result.content?.substring(0, 100) || 'No content'}...`);
     });
 
-    // Step 4: Generate response with LLM
-    const systemPrompt = `You are AckIndex, a helpful AI assistant for the Town of Nantucket. Your role is to answer questions based ONLY on the provided context from official town documents, permits, and records.
-
-CRITICAL RULES:
-1. ONLY use information from the provided context
-2. If the context doesn't contain the answer, say "I don't have that information in my database"
-3. ALWAYS cite your sources using [Source N] notation
-4. Be concise and direct
-5. If asked about current events or things not in the context, politely explain you only have access to uploaded documents
-6. Focus on civic information: permits, regulations, town meetings, etc.
-7. When you have relevant information, USE IT to answer the question directly
-
-Context from documents:
-${context}
-
-Remember: Your knowledge is limited to the context above. Do not make up information or use outside knowledge.`;
+    // Step 4: Generate response with LLM using secure system prompt
+    const systemPrompt = createSecureSystemPrompt(context);
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: 'system', content: systemPrompt },
       ...conversationHistory.slice(-4), // Include last 4 messages for context
-      { role: 'user', content: message },
+      { role: 'user', content: sanitizedMessage },
     ];
 
     // Debug: Log the full system prompt being sent to LLM
@@ -225,7 +239,20 @@ Remember: Your knowledge is limited to the context above. Do not make up informa
       max_tokens: 500,
     });
 
-    const response = completion.choices[0].message.content || 'I apologize, but I was unable to generate a response.';
+    const rawResponse = completion.choices[0].message.content || 'I apologize, but I was unable to generate a response.';
+
+    // Validate AI response for potential system prompt leaks
+    const responseValidation = validateAIResponse(rawResponse);
+
+    if (!responseValidation.isValid) {
+      logger.error({ userId: user.id }, 'AI response contained system prompt leak');
+      captureException(new Error('AI response validation failed'), {
+        tags: { endpoint: '/api/chat', issue: 'prompt-leak' },
+        extra: { userId: user.id },
+      });
+    }
+
+    const response = responseValidation.sanitizedResponse;
 
     // Debug: Log the full LLM response
     console.log(`[Chat API] LLM response: "${response}"`);
