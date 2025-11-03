@@ -10,14 +10,15 @@
 - **Payments**: Stripe integration with free/premium tiers
 - **Web Scraping**: Apify actor with PDF extraction
 - **Semantic Search**: pgvector with cosine similarity
+- **Job Queue**: BullMQ with Redis for reliable async processing
+- **Error Monitoring**: GlitchTip integration for production error tracking
+- **Structured Logging**: Pino logging across all backend endpoints
 
 ### What's Partially Complete ⚠️
 - **Frontend UI**: Chat interface exists but needs polish
 - **Admin Dashboard**: Basic functionality, needs enhancement
-- **Error Handling**: Console logs only, needs better monitoring
 
 ### What's Missing ❌
-- **Job Queue**: Reliable async processing
 - **Caching Layer**: Performance optimization
 - **Analytics Dashboard**: Usage metrics & insights
 - **User Documentation**: Comprehensive guides
@@ -36,10 +37,10 @@ npm install bull @bull-board/api @bull-board/express
 
 **Tasks**:
 - [✅] Set up Redis (Upstash free tier)
-- [ ] Create scraping queue
-- [ ] Create embedding queue
-- [ ] Add job monitoring dashboard
-- [ ] Implement retry logic (3 attempts)
+- [✅] Create scraping queue
+- [✅] Create embedding queue
+- [✅] Add job monitoring dashboard
+- [✅] Implement retry logic (3 attempts)
 
 **Files to modify**:
 - `src/lib/queue.ts` (new)
@@ -58,10 +59,10 @@ npm install @sentry/nextjs
 ```
 
 **Tasks**:
-- [ ] Create Sentry project
-- [ ] Add Sentry config
-- [ ] Instrument API routes
-- [ ] Set up error alerts
+- [✅] Create GlitchTip project
+- [✅] Add Sentry SDK config
+- [✅] Instrument API routes
+- [✅] Set up error alerts
 
 **Estimated time**: 4 hours
 
@@ -74,10 +75,10 @@ npm install pino pino-pretty
 ```
 
 **Tasks**:
-- [ ] Create logger utility
-- [ ] Replace console.log throughout codebase
-- [ ] Add request IDs for tracing
-- [ ] Log to file in production
+- [✅] Create logger utility
+- [✅] Replace console.log throughout codebase
+- [✅] Add request context for tracing
+- [✅] Structured JSON logs in production
 
 **Estimated time**: 1 day
 
