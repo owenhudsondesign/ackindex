@@ -8,6 +8,7 @@ import { cookies } from 'next/headers';
 import { captureException, setUserContext } from '@/lib/sentry';
 import { validateUserInput, createSecureSystemPrompt, validateAIResponse } from '@/lib/promptSecurity';
 import logger from '@/lib/logger';
+import { logQuery } from '@/lib/analytics';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -88,6 +89,9 @@ async function getUserFromRequest(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // Create request logger with context
   const log = logger.child({ endpoint: '/api/chat' });
+
+  // Track request timing for analytics
+  const startTime = Date.now();
 
   // Declare variables outside try block so they're accessible in catch
   let body: any;
@@ -203,6 +207,21 @@ export async function POST(request: NextRequest) {
 
     if (!hasRelevant) {
       log.info('No relevant information found for query');
+
+      // Log query with no results for analytics
+      const responseTime = Date.now() - startTime;
+      logQuery({
+        user_id: user.id,
+        query_text: sanitizedMessage,
+        response_text: "No relevant information found",
+        tokens_used: 0,
+        response_time_ms: responseTime,
+        has_results: false,
+        num_citations: 0,
+      }).catch(err => {
+        log.error({ err }, 'Failed to log no-results query');
+      });
+
       return NextResponse.json({
         response: "I don't have enough information in my database to answer that question. I can only provide information about content that has been uploaded to AckIndex. Please try asking about topics covered in the uploaded documents, or consider uploading more relevant content.",
         citations: [],
@@ -295,6 +314,24 @@ export async function POST(request: NextRequest) {
 
     // Get updated usage stats
     const dashboard = await getUserDashboard(user.id);
+
+    // Calculate response time
+    const responseTime = Date.now() - startTime;
+
+    // Log query for analytics (non-blocking)
+    logQuery({
+      user_id: user.id,
+      query_text: sanitizedMessage,
+      response_text: response,
+      tokens_used: totalTokens,
+      response_time_ms: responseTime,
+      has_results: true,
+      num_citations: citations.length,
+    }).catch(err => {
+      log.error({ err }, 'Failed to log query analytics');
+    });
+
+    log.info({ responseTime }, 'Request completed');
 
     return NextResponse.json({
       response,
