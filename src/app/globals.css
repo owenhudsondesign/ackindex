@@ -14,11 +14,10 @@
   * {
     --color-ring: var(--color-ack-blue);
   }
-  
+
   body {
     font-family: var(--font-sans);
-    color: var(--color-ack-black);
-    background-color: var(--color-ack-white);
+    /* Color and background are handled by Tailwind classes in layout.tsx for dark mode support */
   }
 }
 
@@ -126,12 +125,24 @@
   border-radius: 4px;
 }
 
+.dark .overflow-y-auto::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
 .overflow-y-auto::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 4px;
 }
 
+.dark .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #4a5568;
+}
+
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #5a6678;
 }
 
