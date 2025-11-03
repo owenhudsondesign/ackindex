@@ -10,6 +10,7 @@ import PDFUpload from '@/components/PDFUpload';
 import SignOutButton from '@/components/SignOutButton';
 import ActivityFeed from '@/components/ActivityFeed';
 import ScheduledScrapesManager from '@/components/ScheduledScrapesManager';
+import AnalyticsDashboard from '@/components/AnalyticsDashboard';
 import Loading from '@/components/Loading';
 import Card from '@/components/Card';
 
@@ -150,6 +151,22 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Analytics Dashboard */}
+          <div className="mb-8">
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Analytics Dashboard
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Track user engagement, popular searches, and trending topics
+              </p>
+            </div>
+            <AnalyticsDashboard />
           </div>
 
           {/* Queue Monitoring */}
