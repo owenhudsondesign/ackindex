@@ -199,8 +199,8 @@ RETURNS TABLE (
 BEGIN
   -- Verify user owns this conversation
   IF NOT EXISTS (
-    SELECT 1 FROM conversations
-    WHERE id = p_conversation_id AND user_id = p_user_id
+    SELECT 1 FROM conversations c
+    WHERE c.id = p_conversation_id AND c.user_id = p_user_id
   ) THEN
     RAISE EXCEPTION 'Conversation not found or access denied';
   END IF;
