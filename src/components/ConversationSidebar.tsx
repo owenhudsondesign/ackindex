@@ -95,7 +95,7 @@ export default function ConversationSidebar({
       </div>
 
       {/* Conversations List - Scrollable Middle */}
-      <div className="flex-grow overflow-y-auto px-2 py-4">
+      <div className="flex-grow overflow-y-auto px-2 py-4 min-h-0">
         <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-2">
           Recent
         </h3>
