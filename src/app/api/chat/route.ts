@@ -144,21 +144,31 @@ export async function POST(request: NextRequest) {
 
     log.info('User authorized to query');
 
-    // Step 0: Handle conversation (create new or continue existing)
+    // Step 0: Handle conversation (PREMIUM ONLY FEATURE)
     let activeConversationId = conversationId;
     let conversationHistory: { role: string; content: string }[] = [];
 
-    if (!activeConversationId) {
-      // Create new conversation
-      const newConversation = await createConversation(user.id, 'New Conversation');
-      if (newConversation) {
-        activeConversationId = newConversation.id;
-        log.info({ conversationId: activeConversationId }, 'Created new conversation');
+    // Get user's subscription tier
+    const dashboard = await getUserDashboard(user.id);
+    const isPremium = dashboard?.subscription_tier === 'premium';
+
+    if (isPremium) {
+      // Premium users get conversation history
+      if (!activeConversationId) {
+        // Create new conversation
+        const newConversation = await createConversation(user.id, 'New Conversation');
+        if (newConversation) {
+          activeConversationId = newConversation.id;
+          log.info({ conversationId: activeConversationId }, 'Created new conversation (premium)');
+        }
+      } else {
+        // Load conversation history
+        conversationHistory = await getRecentMessages(activeConversationId, user.id, 8);
+        log.info({ conversationId: activeConversationId, historyLength: conversationHistory.length }, 'Loaded conversation history (premium)');
       }
     } else {
-      // Load conversation history
-      conversationHistory = await getRecentMessages(activeConversationId, user.id, 8);
-      log.info({ conversationId: activeConversationId, historyLength: conversationHistory.length }, 'Loaded conversation history');
+      // Free users: stateless queries (no conversation history)
+      log.info('Free user - stateless query mode');
     }
 
     // Step 1: Validate and sanitize user input (prevent prompt injection)
@@ -330,14 +340,11 @@ export async function POST(request: NextRequest) {
       costCents
     }, 'Recorded usage');
 
-    // Get updated usage stats
-    const dashboard = await getUserDashboard(user.id);
-
     // Calculate response time
     const responseTime = Date.now() - startTime;
 
-    // Save messages to conversation (non-blocking)
-    if (activeConversationId) {
+    // Save messages to conversation (PREMIUM ONLY - non-blocking)
+    if (isPremium && activeConversationId) {
       // Save user message
       addMessage(activeConversationId, 'user', sanitizedMessage, 0, []).catch(err => {
         log.error({ err, conversationId: activeConversationId }, 'Failed to save user message');
@@ -379,7 +386,8 @@ export async function POST(request: NextRequest) {
       response,
       citations,
       hasContext: true,
-      conversationId: activeConversationId,
+      conversationId: isPremium ? activeConversationId : undefined, // Only return conversationId for premium
+      isPremium,
       stats: {
         chunksRetrieved: results.length,
         avgSimilarity: Math.round(

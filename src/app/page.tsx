@@ -6,6 +6,7 @@ import Image from 'next/image';
 import ChatInput from '@/components/ChatInput';
 import ChatDialogue from '@/components/ChatDialogue';
 import EmptyState from '@/components/EmptyState';
+import ConversationSidebar from '@/components/ConversationSidebar';
 import { Message } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -16,6 +17,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(undefined);
+  const [isPremium, setIsPremium] = useState(false);
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -48,6 +51,18 @@ export default function Home() {
       // Determine role based on email
       let role = 'user';
       let subscriptionTier = 'free';
+
+      // Check user's subscription tier
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('subscription_tier')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (profile) {
+        subscriptionTier = profile.subscription_tier;
+        setIsPremium(profile.subscription_tier === 'premium');
+      }
       let tokenLimit = 3500;
       
       if (currentUser.email === 'owenhudsondesign@gmail.com') {
@@ -143,10 +158,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           message,
-          conversationHistory: messages.map(msg => ({
-            role: msg.role,
-            content: msg.content,
-          })),
+          conversationId: currentConversationId, // Include current conversation ID
         }),
       });
 
@@ -161,6 +173,11 @@ export default function Home() {
         } else {
           throw new Error(data.error || 'Failed to get response from chat API');
         }
+      }
+
+      // Update conversation ID if premium user
+      if (data.conversationId) {
+        setCurrentConversationId(data.conversationId);
       }
 
       // Create assistant message with response
@@ -212,9 +229,51 @@ export default function Home() {
 
   const hasMessages = messages.length > 0;
 
+  // Conversation management handlers
+  const handleNewConversation = () => {
+    setCurrentConversationId(undefined);
+    setMessages([]);
+  };
+
+  const handleSelectConversation = async (conversationId: string) => {
+    setCurrentConversationId(conversationId);
+    setMessages([]);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          citations: msg.citations || [],
+        }));
+        setMessages(loadedMessages);
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <PageLayout>
-      <div className="flex items-center justify-center min-h-[calc(100vh-16rem)] py-8 relative bg-white dark:bg-gray-900 overflow-hidden">
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Conversation Sidebar - Only visible when authenticated */}
+        {user && (
+          <ConversationSidebar
+            currentConversationId={currentConversationId}
+            onSelectConversation={handleSelectConversation}
+            onNewConversation={handleNewConversation}
+            isPremium={isPremium}
+          />
+        )}
+
+        {/* Main Chat Area */}
+        <div className="flex-1 flex items-center justify-center min-h-full py-8 relative bg-white dark:bg-gray-900 overflow-hidden">
         {/* Subtle Grid Background - Light Mode */}
         <div
           className="absolute inset-0 block dark:hidden pointer-events-none"
@@ -386,7 +445,8 @@ export default function Home() {
             <EmptyState />
           )}
         </div>
-      </div>
+        </div> {/* End Main Chat Area */}
+      </div> {/* End Flex Container */}
     </PageLayout>
   );
 }
