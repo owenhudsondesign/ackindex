@@ -161,7 +161,7 @@ export default function ConversationSidebar({
       </div>
 
       {/* Premium Badge or Upgrade CTA */}
-      <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-800/50">
+      <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-800/50">
         {isPremium ? (
           <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
             <span className="text-base">✨</span>

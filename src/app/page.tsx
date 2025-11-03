@@ -321,7 +321,7 @@ export default function Home() {
         )}
 
         {/* Main Chat Area */}
-        <div className={`flex-1 flex flex-col items-center py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center min-h-screen' : ''}`}>
+        <div className={`flex-1 flex flex-col items-center py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center min-h-screen' : 'justify-start'}`}>
         {/* Sidebar Toggle Button - Always visible on desktop */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
