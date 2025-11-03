@@ -77,7 +77,7 @@ export default function ConversationSidebar({
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* New Chat Button - Sticky Below Header (header is 64px/h-16) */}
-      <div className="flex-shrink-0 sticky top-16 z-10 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-800/50 p-4 pb-3">
+      <div className="flex-shrink-0 sticky top-0 z-10 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-b border-gray-200/50 dark:border-gray-800/50 p-4 pb-3">
         <button
           onClick={() => {
             onNewConversation();
@@ -209,7 +209,7 @@ export default function ConversationSidebar({
       <div className={`
         fixed lg:sticky lg:top-0 inset-y-0 left-0 z-40
         w-64 h-screen bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-800/50
-        overflow-hidden
+        pt-16
         transform transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
