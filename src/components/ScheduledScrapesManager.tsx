@@ -309,13 +309,13 @@ export default function ScheduledScrapesManager() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200';
       case 'paused':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
     }
   };
 
@@ -326,9 +326,9 @@ export default function ScheduledScrapesManager() {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mr-3">
+            <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3">
               <svg
-                className="w-5 h-5 text-purple-600"
+                className="w-5 h-5 text-purple-600 dark:text-purple-400"
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -340,8 +340,8 @@ export default function ScheduledScrapesManager() {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-ack-black">Scheduled Scrapes</h3>
-              <p className="text-sm text-ack-dark-gray">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Scheduled Scrapes</h3>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 {scrapes.length} total • {pendingCount} pending
               </p>
             </div>
@@ -380,12 +380,12 @@ export default function ScheduledScrapesManager() {
 
         {/* Add URL Form */}
         {showAddForm && (
-          <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Add New URL</h4>
+          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Add New URL</h4>
             <form onSubmit={handleAddUrl} className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                     URL *
                   </label>
                   <input
@@ -393,12 +393,12 @@ export default function ScheduledScrapesManager() {
                     value={formData.url}
                     onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                     placeholder="https://example.com/meeting"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                    className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Title
                   </label>
                   <input
@@ -406,19 +406,19 @@ export default function ScheduledScrapesManager() {
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Optional title"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                    className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Frequency
                   </label>
                   <select
                     value={formData.scrape_frequency}
                     onChange={(e) => setFormData({ ...formData, scrape_frequency: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                    className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                   >
                     <option value="1 day">Daily</option>
                     <option value="1 week">Weekly</option>
@@ -427,7 +427,7 @@ export default function ScheduledScrapesManager() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Priority (1-10)
                   </label>
                   <input
@@ -436,17 +436,17 @@ export default function ScheduledScrapesManager() {
                     max="10"
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                    className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Status
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                    className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                   >
                     <option value="active">Active</option>
                     <option value="paused">Paused</option>
@@ -475,9 +475,9 @@ export default function ScheduledScrapesManager() {
             <Loading />
           </div>
         ) : scrapes.length === 0 ? (
-          <div className="text-center py-12 text-ack-dark-gray">
+          <div className="text-center py-12 text-gray-700 dark:text-gray-300">
             <svg
-              className="w-12 h-12 mx-auto mb-4 text-gray-400"
+              className="w-12 h-12 mx-auto mb-4 text-gray-400 dark:text-gray-500"
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -493,8 +493,8 @@ export default function ScheduledScrapesManager() {
         ) : (
           <>
             {selectedIds.size > 0 && (
-              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-                <span className="text-sm text-blue-800">
+              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-between">
+                <span className="text-sm text-blue-800 dark:text-blue-200">
                   {selectedIds.size} URL{selectedIds.size !== 1 ? 's' : ''} selected
                 </span>
                 <Button
@@ -508,81 +508,81 @@ export default function ScheduledScrapesManager() {
             )}
 
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     <th className="px-4 py-3 text-left">
                       <input
                         type="checkbox"
                         checked={selectedIds.size === scrapes.length && scrapes.length > 0}
                         onChange={toggleSelectAll}
-                        className="rounded border-gray-300 text-ack-blue focus:ring-ack-blue"
+                        className="rounded border-gray-300 dark:border-gray-600 text-ack-blue dark:text-blue-500 focus:ring-ack-blue dark:focus:ring-blue-500 bg-white dark:bg-gray-700"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       URL
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Priority
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Frequency
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Last Scraped
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Next Scrape
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {scrapes.map((scrape) => (
                     editingId === scrape.id ? (
                       // Edit Row
-                      <tr key={scrape.id} className="bg-blue-50">
+                      <tr key={scrape.id} className="bg-blue-50 dark:bg-blue-900/30">
                         <td className="px-4 py-3" colSpan={8}>
                           <form onSubmit={handleUpdate} className="space-y-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                   URL
                                 </label>
                                 <input
                                   type="url"
                                   value={formData.url}
                                   onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                  className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                                   required
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                   Title
                                 </label>
                                 <input
                                   type="text"
                                   value={formData.title}
                                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                  className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                                 />
                               </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                   Frequency
                                 </label>
                                 <select
                                   value={formData.scrape_frequency}
                                   onChange={(e) => setFormData({ ...formData, scrape_frequency: e.target.value })}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                  className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                                 >
                                   <option value="1 day">Daily</option>
                                   <option value="1 week">Weekly</option>
@@ -591,7 +591,7 @@ export default function ScheduledScrapesManager() {
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                   Priority (1-10)
                                 </label>
                                 <input
@@ -600,17 +600,17 @@ export default function ScheduledScrapesManager() {
                                   max="10"
                                   value={formData.priority}
                                   onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                  className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                   Status
                                 </label>
                                 <select
                                   value={formData.status}
                                   onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ack-blue focus:border-ack-blue"
+                                  className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
                                 >
                                   <option value="active">Active</option>
                                   <option value="paused">Paused</option>
@@ -638,22 +638,22 @@ export default function ScheduledScrapesManager() {
                       // Regular Row
                       <tr
                         key={scrape.id}
-                        className={`hover:bg-gray-50 ${selectedIds.has(scrape.id) ? 'bg-blue-50' : ''}`}
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${selectedIds.has(scrape.id) ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
                       >
                         <td className="px-4 py-3 whitespace-nowrap">
                           <input
                             type="checkbox"
                             checked={selectedIds.has(scrape.id)}
                             onChange={() => toggleSelection(scrape.id)}
-                            className="rounded border-gray-300 text-ack-blue focus:ring-ack-blue"
+                            className="rounded border-gray-300 dark:border-gray-600 text-ack-blue dark:text-blue-500 focus:ring-ack-blue dark:focus:ring-blue-500 bg-white dark:bg-gray-700"
                           />
                         </td>
                         <td className="px-4 py-3">
                           <div className="max-w-md">
-                            <div className="text-sm font-medium text-gray-900 truncate">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                               {scrape.title || 'Untitled'}
                             </div>
-                            <div className="text-xs text-gray-500 truncate">{scrape.url}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{scrape.url}</div>
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -663,24 +663,24 @@ export default function ScheduledScrapesManager() {
                             {scrape.status}
                           </span>
                           {scrape.error_count > 0 && (
-                            <div className="text-xs text-red-600 mt-1">
+                            <div className="text-xs text-red-600 dark:text-red-400 mt-1">
                               {scrape.error_count} error{scrape.error_count !== 1 ? 's' : ''}
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           {scrape.priority}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           {scrape.scrape_frequency}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {scrape.last_scraped_at
                             ? new Date(scrape.last_scraped_at).toLocaleDateString()
                             : 'Never'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="text-sm text-gray-900">
+                          <span className="text-sm text-gray-900 dark:text-gray-100">
                             {formatDate(scrape.next_scrape_at)}
                           </span>
                         </td>
@@ -688,13 +688,13 @@ export default function ScheduledScrapesManager() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEdit(scrape)}
-                              className="text-blue-600 hover:text-blue-800 font-medium"
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDelete(scrape.id)}
-                              className="text-red-600 hover:text-red-800 font-medium"
+                              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
                             >
                               Delete
                             </button>

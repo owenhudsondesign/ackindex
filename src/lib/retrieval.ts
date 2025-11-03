@@ -216,11 +216,17 @@ export function extractCitations(results: RetrievalResult[]): Array<{
   title: string;
   url?: string;
   snippet?: string;
+  source?: string;
+  similarity?: number;
+  index?: number;
 }> {
   return results.map((result, index) => ({
     title: result.document?.title || result.document?.filename || 'Untitled',
     url: result.document?.source_url,
-    snippet: result.content.slice(0, 100),
+    snippet: result.content.slice(0, 200), // Increased snippet length
+    source: result.document?.source_type || 'unknown',
+    similarity: Math.round(result.similarity * 100), // Convert to percentage
+    index: index + 1,
   }));
 }
 
