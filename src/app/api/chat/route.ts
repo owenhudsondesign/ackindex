@@ -350,28 +350,29 @@ export async function POST(request: NextRequest) {
     // Calculate response time
     const responseTime = Date.now() - startTime;
 
-    // Save messages to conversation (PREMIUM ONLY - non-blocking)
+    // Save messages to conversation (PREMIUM ONLY)
     if (isPremium && activeConversationId) {
-      // Save user message
-      addMessage(activeConversationId, 'user', sanitizedMessage, 0, []).catch(err => {
-        log.error({ err, conversationId: activeConversationId }, 'Failed to save user message');
-      });
+      // Save messages and generate title sequentially to ensure proper order
+      (async () => {
+        try {
+          // Save user message first
+          await addMessage(activeConversationId!, 'user', sanitizedMessage, 0, []);
 
-      // Save assistant response
-      addMessage(activeConversationId, 'assistant', response, totalTokens, citations).catch(err => {
-        log.error({ err, conversationId: activeConversationId }, 'Failed to save assistant message');
-      });
+          // Save assistant response
+          await addMessage(activeConversationId!, 'assistant', response, totalTokens, citations);
 
-      // Auto-generate title if this is the first message
-      if (conversationHistory.length === 0) {
-        autoGenerateTitle(activeConversationId).then(title => {
-          if (title) {
-            updateConversationTitle(activeConversationId!, user.id, title).catch(err => {
-              log.error({ err }, 'Failed to update conversation title');
-            });
+          // Auto-generate descriptive title from first message
+          if (conversationHistory.length === 0) {
+            const title = await autoGenerateTitle(activeConversationId!);
+            if (title && title !== 'New Conversation') {
+              await updateConversationTitle(activeConversationId!, user.id, title);
+              log.info({ title, conversationId: activeConversationId }, 'Generated conversation title');
+            }
           }
-        });
-      }
+        } catch (err) {
+          log.error({ err, conversationId: activeConversationId }, 'Failed to save conversation messages');
+        }
+      })();
     }
 
     // Log query for analytics (non-blocking)

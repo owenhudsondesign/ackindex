@@ -76,7 +76,7 @@ export default function ConversationSidebar({
   // If not premium, show minimal upgrade prompt
   if (!isPremium) {
     return (
-      <div className="hidden lg:block w-64 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-800/50 p-6">
+      <div className="w-64 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-800/50 p-6 sticky top-0 h-screen">
         <div className="flex flex-col h-full">
           <div className="flex-grow flex items-center justify-center">
             <div className="text-center">
@@ -118,8 +118,8 @@ export default function ConversationSidebar({
 
       {/* Sidebar */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-40
-        w-64 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-800/50
+        fixed lg:sticky lg:top-0 inset-y-0 left-0 z-40
+        w-64 h-screen bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-800/50
         transform transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>

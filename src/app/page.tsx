@@ -277,20 +277,22 @@ export default function Home() {
 
   return (
     <PageLayout>
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex min-h-screen">
         {/* Conversation Sidebar - Only visible when authenticated */}
         {user && (
-          <ConversationSidebar
-            currentConversationId={currentConversationId}
-            onSelectConversation={handleSelectConversation}
-            onNewConversation={handleNewConversation}
-            isPremium={isPremium}
-            refreshTrigger={refreshTrigger}
-          />
+          <div className="hidden lg:block">
+            <ConversationSidebar
+              currentConversationId={currentConversationId}
+              onSelectConversation={handleSelectConversation}
+              onNewConversation={handleNewConversation}
+              isPremium={isPremium}
+              refreshTrigger={refreshTrigger}
+            />
+          </div>
         )}
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex items-center justify-center min-h-full py-8 relative bg-white dark:bg-gray-900 overflow-hidden">
+        <div className={`flex-1 flex flex-col py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center min-h-screen' : ''}`}>
         {/* Subtle Grid Background - Light Mode */}
         <div
           className="absolute inset-0 block dark:hidden pointer-events-none"
