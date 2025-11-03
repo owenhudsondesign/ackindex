@@ -52,33 +52,51 @@ export default function Home() {
       let role = 'user';
       let subscriptionTier = 'free';
 
-      // Check user's subscription tier
-      const { data: existingProfile } = await supabase
-        .from('user_profiles')
-        .select('subscription_tier')
-        .eq('id', currentUser.id)
-        .single();
-
-      if (existingProfile) {
-        subscriptionTier = existingProfile.subscription_tier;
-        setIsPremium(existingProfile.subscription_tier === 'premium');
-      }
+      // Determine role and tier based on email
       let tokenLimit = 3500;
-      
+
       if (currentUser.email === 'owenhudsondesign@gmail.com') {
         role = 'admin';
         subscriptionTier = 'premium';
         tokenLimit = 50000;
-        console.log('✅ Setting up ADMIN account for:', currentUser.email);
+        console.log('✅ Admin account detected:', currentUser.email);
       } else if (currentUser.email === 'hudsonowenr@gmail.com') {
         role = 'user';
         subscriptionTier = 'free';
         tokenLimit = 3500;
-        console.log('✅ Setting up USER account for:', currentUser.email);
+        console.log('✅ Regular user account:', currentUser.email);
       }
 
-      // Check if profile already exists (skip if we already checked above)
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
       if (existingProfile) {
+        // Update isPremium state
+        setIsPremium(existingProfile.subscription_tier === 'premium');
+
+        // If this is an admin account, ensure it's set to premium
+        if (currentUser.email === 'owenhudsondesign@gmail.com' && existingProfile.subscription_tier !== 'premium') {
+          console.log('⚠️ Admin account needs upgrade, updating to premium...');
+          const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update({
+              subscription_tier: 'premium',
+              subscription_status: 'active',
+              monthly_token_limit: 50000,
+              role: 'admin'
+            })
+            .eq('id', currentUser.id);
+
+          if (!updateError) {
+            console.log('✅ Admin account upgraded to premium');
+            setIsPremium(true);
+          }
+        }
+
         console.log('Profile already exists:', existingProfile);
         return;
       }
@@ -104,7 +122,8 @@ export default function Home() {
       } else {
         console.log('✅ Created profile:', profile);
         console.log(`🎉 Role: ${role}, Tier: ${subscriptionTier}, Tokens: ${tokenLimit}`);
-        
+        setIsPremium(subscriptionTier === 'premium');
+
         if (role === 'admin') {
           console.log('🔑 You now have admin access! Visit /admin to upload URLs');
         }
