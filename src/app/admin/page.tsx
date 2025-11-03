@@ -237,6 +237,16 @@ export default function AdminPage() {
                 </div>
                 <button
                   onClick={() => {
+                    // Check if DSN is available
+                    const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+                    console.log('🔍 DSN check:', dsn ? 'DSN is set ✅' : 'DSN is MISSING ❌');
+                    console.log('🔍 DSN value:', dsn || 'undefined');
+
+                    if (!dsn) {
+                      alert('❌ NEXT_PUBLIC_SENTRY_DSN is not set!\n\nThe environment variable was not included in the build.\n\nCheck Vercel dashboard and redeploy.');
+                      return;
+                    }
+
                     // Manually capture error to ensure it's sent to GlitchTip
                     const testError = new Error("Test GlitchTip Error - Admin Panel");
 
