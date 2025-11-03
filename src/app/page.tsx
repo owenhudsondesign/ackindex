@@ -20,7 +20,7 @@ export default function Home() {
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(undefined);
   const [isPremium, setIsPremium] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Trigger sidebar refresh
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Sidebar open/collapsed state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Sidebar open/collapsed state (default: closed)
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -265,20 +265,28 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json();
         console.log('Loaded messages:', data.messages?.length, 'messages');
+        console.log('Message data:', data.messages);
 
-        const loadedMessages: Message[] = data.messages.map((msg: any) => ({
-          id: msg.id,
-          role: msg.role,
-          content: msg.content,
-          citations: msg.citations || [],
-        }));
-        setMessages(loadedMessages);
+        if (data.messages && data.messages.length > 0) {
+          const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            citations: msg.citations || [],
+          }));
+          setMessages(loadedMessages);
+          console.log('Set messages in state:', loadedMessages.length);
+        } else {
+          console.warn('No messages in conversation');
+        }
       } else {
         const errorData = await response.json();
         console.error('Failed to load conversation:', response.status, errorData);
+        alert(`Failed to load conversation: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Exception loading conversation:', error);
+      alert('Exception loading conversation - check console for details');
     } finally {
       setIsLoading(false);
     }
