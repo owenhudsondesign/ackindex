@@ -14,11 +14,13 @@ interface ChatDialogueProps {
 
 export default function ChatDialogue({ messages, isVisible, onSubmit, isLoading }: ChatDialogueProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      // Scroll within the container, not the entire page
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -51,7 +53,10 @@ export default function ChatDialogue({ messages, isVisible, onSubmit, isLoading 
         </div>
 
         {/* Messages Container */}
-        <div className="px-6 py-6 max-h-[500px] overflow-y-auto bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+        <div
+          ref={messagesContainerRef}
+          className="px-6 py-6 max-h-[500px] overflow-y-auto bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 scroll-smooth"
+        >
           {messages.map((message) => (
             <ChatMessage
               key={message.id}
