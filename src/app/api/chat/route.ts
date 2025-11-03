@@ -9,6 +9,7 @@ import { captureException, setUserContext } from '@/lib/sentry';
 import { validateUserInput, createSecureSystemPrompt, validateAIResponse } from '@/lib/promptSecurity';
 import logger from '@/lib/logger';
 import { logQuery } from '@/lib/analytics';
+import { createConversation, addMessage, getRecentMessages, autoGenerateTitle, updateConversationTitle } from '@/lib/conversations';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -96,12 +97,12 @@ export async function POST(request: NextRequest) {
   // Declare variables outside try block so they're accessible in catch
   let body: any;
   let message: string | undefined;
-  let conversationHistory: any[] = [];
+  let conversationId: string | undefined;
 
   try {
     body = await request.json();
     message = body.message;
-    conversationHistory = body.conversationHistory || [];
+    conversationId = body.conversationId; // Optional - if provided, continue conversation
 
     if (!message || typeof message !== 'string') {
       log.warn('Chat request missing message field');
@@ -142,6 +143,23 @@ export async function POST(request: NextRequest) {
     }
 
     log.info('User authorized to query');
+
+    // Step 0: Handle conversation (create new or continue existing)
+    let activeConversationId = conversationId;
+    let conversationHistory: { role: string; content: string }[] = [];
+
+    if (!activeConversationId) {
+      // Create new conversation
+      const newConversation = await createConversation(user.id, 'New Conversation');
+      if (newConversation) {
+        activeConversationId = newConversation.id;
+        log.info({ conversationId: activeConversationId }, 'Created new conversation');
+      }
+    } else {
+      // Load conversation history
+      conversationHistory = await getRecentMessages(activeConversationId, user.id, 8);
+      log.info({ conversationId: activeConversationId, historyLength: conversationHistory.length }, 'Loaded conversation history');
+    }
 
     // Step 1: Validate and sanitize user input (prevent prompt injection)
     const validation = validateUserInput(message, user.id);
@@ -253,7 +271,7 @@ export async function POST(request: NextRequest) {
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: 'system', content: systemPrompt },
-      ...conversationHistory.slice(-4), // Include last 4 messages for context
+      ...conversationHistory.slice(-6), // Include last 6 messages for context (3 turns)
       { role: 'user', content: sanitizedMessage },
     ];
 
@@ -318,6 +336,30 @@ export async function POST(request: NextRequest) {
     // Calculate response time
     const responseTime = Date.now() - startTime;
 
+    // Save messages to conversation (non-blocking)
+    if (activeConversationId) {
+      // Save user message
+      addMessage(activeConversationId, 'user', sanitizedMessage, 0, []).catch(err => {
+        log.error({ err, conversationId: activeConversationId }, 'Failed to save user message');
+      });
+
+      // Save assistant response
+      addMessage(activeConversationId, 'assistant', response, totalTokens, citations).catch(err => {
+        log.error({ err, conversationId: activeConversationId }, 'Failed to save assistant message');
+      });
+
+      // Auto-generate title if this is the first message
+      if (conversationHistory.length === 0) {
+        autoGenerateTitle(activeConversationId).then(title => {
+          if (title) {
+            updateConversationTitle(activeConversationId!, user.id, title).catch(err => {
+              log.error({ err }, 'Failed to update conversation title');
+            });
+          }
+        });
+      }
+    }
+
     // Log query for analytics (non-blocking)
     logQuery({
       user_id: user.id,
@@ -331,12 +373,13 @@ export async function POST(request: NextRequest) {
       log.error({ err }, 'Failed to log query analytics');
     });
 
-    log.info({ responseTime }, 'Request completed');
+    log.info({ responseTime, conversationId: activeConversationId }, 'Request completed');
 
     return NextResponse.json({
       response,
       citations,
       hasContext: true,
+      conversationId: activeConversationId,
       stats: {
         chunksRetrieved: results.length,
         avgSimilarity: Math.round(
