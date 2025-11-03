@@ -142,7 +142,16 @@ export async function getConversationMessages(
         messageCount: directData?.length || 0 
       }, 'Retrieved messages via direct query fallback');
       
-      return directData || [];
+      // Ensure required field conversation_id is present for typing
+      return (directData || []).map((m: any) => ({
+        conversation_id: conversationId,
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        tokens_used: m.tokens_used,
+        citations: m.citations,
+        created_at: m.created_at,
+      }));
     }
 
     logger.debug({ 
@@ -152,7 +161,16 @@ export async function getConversationMessages(
       messages: data?.map((m: any) => ({ id: m.id, role: m.role, hasContent: !!m.content }))
     }, 'Successfully retrieved conversation messages via RPC');
 
-    return data || [];
+    // Normalize to include conversation_id for type safety
+    return (data || []).map((m: any) => ({
+      conversation_id: conversationId,
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      tokens_used: m.tokens_used,
+      citations: m.citations,
+      created_at: m.created_at,
+    }));
   } catch (error) {
     logger.error({ err: error, conversationId, userId }, 'Exception getting messages');
     return [];
