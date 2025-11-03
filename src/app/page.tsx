@@ -248,10 +248,19 @@ export default function Home() {
 
           {/* Heading */}
           <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
-            <span className="text-ack-black">Nantucket</span>
-            <br />
-            <span className="text-ack-black">Civic Data </span>
-            <span className="text-ack-blue">Made Accessible</span>
+            {/* Mobile version - Civic on second line */}
+            <span className="inline md:hidden">
+              <span className="text-ack-black">Nantucket</span>
+              <br />
+              <span className="text-ack-black">Civic Data </span>
+              <span className="text-ack-blue">Made Accessible</span>
+            </span>
+            {/* Desktop version - Civic Data on first line */}
+            <span className="hidden md:inline">
+              <span className="text-ack-black">Nantucket Civic Data</span>
+              <br />
+              <span className="text-ack-blue">Made Accessible</span>
+            </span>
           </h1>
 
           {/* Subheading */}
