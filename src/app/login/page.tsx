@@ -50,13 +50,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center py-8 px-4">
       <Container size="sm">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
             Welcome Back
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-600 dark:text-gray-300">
             Sign in to your AckIndex account
           </p>
         </div>
@@ -72,7 +72,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
               >
                 Email Address
               </label>
@@ -92,7 +92,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
               >
                 Password
               </label>
@@ -114,17 +114,17 @@ export default function LoginPage() {
             </Button>
 
             <div className="text-center space-y-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Don't have an account?{' '}
-                <Link href="/signup" className="text-blue-600 hover:underline">
+                <Link href="/signup" className="text-blue-600 dark:text-blue-400 hover:underline">
                   Sign up for free
                 </Link>
               </p>
-              
-              <div className="pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500">
+
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Admin?{' '}
-                  <Link href="/admin/login" className="text-gray-700 hover:underline">
+                  <Link href="/admin/login" className="text-gray-700 dark:text-gray-300 hover:underline">
                     Sign in here
                   </Link>
                 </p>

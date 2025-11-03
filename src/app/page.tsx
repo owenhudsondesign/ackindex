@@ -246,6 +246,13 @@ export default function Home() {
 
   const hasMessages = messages.length > 0;
 
+  // Debug: Log when messages change
+  useEffect(() => {
+    console.log('Messages state changed:', messages.length, 'messages');
+    console.log('hasMessages:', hasMessages);
+    console.log('Full messages:', messages);
+  }, [messages]);
+
   // Conversation management handlers
   const handleNewConversation = () => {
     setCurrentConversationId(undefined);
@@ -253,10 +260,12 @@ export default function Home() {
   };
 
   const handleSelectConversation = async (conversationId: string) => {
-    console.log('Loading conversation:', conversationId);
+    console.log('=== Loading conversation:', conversationId);
     setCurrentConversationId(conversationId);
-    setMessages([]);
     setIsLoading(true);
+
+    // Don't clear messages immediately - keep old ones until new ones load
+    // This prevents flickering and helps with debugging
 
     try {
       const response = await fetch(`/api/conversations/${conversationId}`);
@@ -274,10 +283,13 @@ export default function Home() {
             content: msg.content,
             citations: msg.citations || [],
           }));
+
+          console.log('About to set messages in state:', loadedMessages);
           setMessages(loadedMessages);
-          console.log('Set messages in state:', loadedMessages.length);
+          console.log('Called setMessages with', loadedMessages.length, 'messages');
         } else {
-          console.warn('No messages in conversation');
+          console.warn('No messages in conversation - clearing messages');
+          setMessages([]);
         }
       } else {
         const errorData = await response.json();
