@@ -207,9 +207,8 @@ export default function ConversationSidebar({
 
       {/* Sidebar */}
       <div className={`
-        fixed lg:sticky lg:top-0 inset-y-0 left-0 z-40
-        w-64 h-screen bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-800/50
-        pt-16
+        fixed lg:sticky lg:top-16 inset-y-0 left-0 z-40
+        w-64 h-[calc(100vh-4rem)] bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-r border-gray-200/50 dark:border-gray-800/50
         transform transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
