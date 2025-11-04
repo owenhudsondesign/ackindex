@@ -285,13 +285,37 @@ async function processPDFFromStorage(
 
     // Store chunks
     await storeChunks(documentId, enrichedChunks);
-    await job.updateProgress(85);
+    await job.updateProgress(70);
 
     // Update document with parsed metadata
     await updateDocument(documentId, {
       title: parsed.title || filename.replace('.pdf', ''),
       description: parsed.description,
     } as any);
+    await job.updateProgress(75);
+
+    // Queue embedding generation for the chunks
+    const { embeddingQueue } = await import('./queues');
+    await embeddingQueue.add(
+      'generate-embeddings',
+      {
+        chunks: enrichedChunks.map(chunk => ({
+          id: chunk.id || `${documentId}-${chunk.index}`,
+          content: chunk.content,
+        })),
+      },
+      {
+        priority: 5,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
+      }
+    );
+
+    log.info({ chunksCount: enrichedChunks.length }, 'Queued embedding generation');
+    await job.updateProgress(85);
 
     // Mark as completed
     await markDocumentCompleted(documentId, chunks.length, totalTokens);
