@@ -87,7 +87,7 @@ async function startWorkers() {
   validateEnvVars();
 
   // Import workers after environment is loaded
-  const { scrapingWorker, embeddingWorker } = await import('./src/lib/workers');
+  const { scrapingWorker, embeddingWorker, pdfProcessingWorker } = await import('./src/lib/workers');
 
   console.log('==============================================');
   console.log('🚀 AckIndex BullMQ Workers Starting...');
@@ -102,6 +102,7 @@ async function startWorkers() {
   console.log('📊 Worker Status:');
   console.log(`  Scraping Worker: ${scrapingWorker.isRunning() ? '✅ Running' : '❌ Stopped'}`);
   console.log(`  Embedding Worker: ${embeddingWorker.isRunning() ? '✅ Running' : '❌ Stopped'}`);
+  console.log(`  PDF Processing Worker: ${pdfProcessingWorker.isRunning() ? '✅ Running' : '❌ Stopped'}`);
   console.log('==============================================\n');
 
   // Keep the process alive
@@ -109,6 +110,7 @@ async function startWorkers() {
     console.log('\n🛑 SIGTERM received, shutting down workers...');
     await scrapingWorker.close();
     await embeddingWorker.close();
+    await pdfProcessingWorker.close();
     console.log('✅ Workers shut down gracefully');
     process.exit(0);
   });
@@ -117,6 +119,7 @@ async function startWorkers() {
     console.log('\n🛑 SIGINT received, shutting down workers...');
     await scrapingWorker.close();
     await embeddingWorker.close();
+    await pdfProcessingWorker.close();
     console.log('✅ Workers shut down gracefully');
     process.exit(0);
   });
