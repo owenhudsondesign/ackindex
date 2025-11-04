@@ -46,12 +46,36 @@ export const embeddingQueue = new Queue('embedding', {
   },
 });
 
+// PDF Processing Queue Configuration
+export const pdfProcessingQueue = new Queue('pdf-processing', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2, // Retry once on failure
+    backoff: {
+      type: 'exponential',
+      delay: 5000, // Start with 5s, then 10s
+    },
+    removeOnComplete: {
+      age: 24 * 3600,
+      count: 50,
+    },
+    removeOnFail: {
+      age: 7 * 24 * 3600,
+    },
+    timeout: 600000, // 10 minute timeout for large PDFs
+  },
+});
+
 // Queue events for monitoring
 export const scrapingQueueEvents = new QueueEvents('scraping', {
   connection: redisConnection,
 });
 
 export const embeddingQueueEvents = new QueueEvents('embedding', {
+  connection: redisConnection,
+});
+
+export const pdfProcessingQueueEvents = new QueueEvents('pdf-processing', {
   connection: redisConnection,
 });
 
@@ -70,4 +94,12 @@ embeddingQueueEvents.on('completed', ({ jobId }) => {
 
 embeddingQueueEvents.on('failed', ({ jobId, failedReason }) => {
   console.error(`[Queue] Embedding job ${jobId} failed:`, failedReason);
+});
+
+pdfProcessingQueueEvents.on('completed', ({ jobId }) => {
+  console.log(`[Queue] PDF processing job ${jobId} completed`);
+});
+
+pdfProcessingQueueEvents.on('failed', ({ jobId, failedReason }) => {
+  console.error(`[Queue] PDF processing job ${jobId} failed:`, failedReason);
 });

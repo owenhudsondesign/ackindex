@@ -4,6 +4,7 @@ import { parsePDF, validatePDFFile } from '@/lib/pdfParser';
 import { createDocument, storeChunks, markDocumentCompleted, markDocumentFailed, updateDocument } from '@/lib/database';
 import { chunkText } from '@/lib/chunking';
 import logger from '@/lib/logger';
+import { pdfProcessingQueue } from '@/lib/queues';
 
 // Configure route to handle large file uploads
 export const maxDuration = 300; // 5 minutes timeout for large PDFs
@@ -46,14 +47,20 @@ export async function POST(request: NextRequest) {
         created_by: adminOrError.id,
       });
 
-      // Process PDF from storage in the background
-      processPDFFromStorage(document.id, storagePath, filename, adminOrError.id, log, supabase).catch(error => {
-        log.error({ err: error }, 'Background processing failed');
+      // Queue PDF processing job
+      const job = await pdfProcessingQueue.add('process-pdf', {
+        documentId: document.id,
+        storagePath,
+        filename,
+        userId: adminOrError.id,
       });
+
+      log.info({ jobId: job.id, documentId: document.id }, 'PDF processing job queued');
 
       return NextResponse.json({
         message: 'PDF processing started successfully',
         documentId: document.id,
+        jobId: job.id,
         filename: filename,
       });
     } else {
@@ -103,97 +110,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }
-    );
-  }
-}
-
-/**
- * Process PDF from Supabase Storage
- */
-async function processPDFFromStorage(
-  documentId: string,
-  storagePath: string,
-  filename: string,
-  userId: string,
-  log: any,
-  supabase: any
-): Promise<void> {
-  try {
-    // Update status to processing
-    await updateDocument(documentId, { status: 'processing' } as any);
-
-    log.info({ filename, storagePath }, 'Downloading PDF from storage');
-
-    // Download PDF from storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('pdfs')
-      .download(storagePath);
-
-    if (downloadError) {
-      throw new Error(`Failed to download PDF from storage: ${downloadError.message}`);
-    }
-
-    // Convert blob to buffer
-    const arrayBuffer = await fileData.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    log.info({ filename, size: buffer.length }, 'Downloaded PDF, parsing');
-
-    // Parse PDF with AI enhancement
-    const parsed = await parsePDF(buffer, filename, true);
-
-    log.info({ textLength: parsed.text.length, pages: parsed.pages }, 'Extracted text from PDF');
-
-    // Chunk the text
-    const chunks = chunkText(parsed.text, {
-      maxTokens: 500,
-      overlap: 50,
-      preserveParagraphs: true,
-      preserveHeadings: true,
-    });
-
-    log.info({ chunksCount: chunks.length }, 'Created chunks');
-
-    // Add PDF metadata to chunks
-    const enrichedChunks = chunks.map(chunk => ({
-      ...chunk,
-      metadata: {
-        ...chunk.metadata,
-        source_type: 'pdf',
-        filename: filename,
-        pdf_title: parsed.title,
-        pdf_pages: parsed.pages,
-        ...parsed.metadata,
-      },
-    }));
-
-    // Calculate total tokens
-    const totalTokens = enrichedChunks.reduce((sum, chunk) => sum + chunk.tokens, 0);
-
-    // Store chunks
-    await storeChunks(documentId, enrichedChunks);
-
-    // Update document with parsed metadata
-    await updateDocument(documentId, {
-      title: parsed.title || filename.replace('.pdf', ''),
-      description: parsed.description,
-    } as any);
-
-    // Mark as completed
-    await markDocumentCompleted(documentId, chunks.length, totalTokens);
-
-    // Clean up storage (optional - you might want to keep originals)
-    await supabase.storage.from('pdfs').remove([storagePath]);
-
-    log.info(
-      { filename, chunksCount: chunks.length, totalTokens },
-      'Completed PDF processing from storage'
-    );
-  } catch (error) {
-    log.error({ err: error }, 'PDF processing from storage failed');
-    await markDocumentFailed(
-      documentId,
-      error instanceof Error ? error.message : 'Unknown error occurred'
     );
   }
 }

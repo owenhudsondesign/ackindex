@@ -46,6 +46,14 @@ interface EmbeddingJobData {
   }>;
 }
 
+// Interface for PDF processing job data
+interface PDFProcessingJobData {
+  documentId: string;
+  storagePath: string;
+  filename: string;
+  userId: string;
+}
+
 /**
  * Process URL scraping - extracted from scrape-url route for reusability
  */
@@ -198,6 +206,117 @@ async function processUrlScraping(
 }
 
 /**
+ * Process PDF from storage
+ */
+async function processPDFFromStorage(
+  documentId: string,
+  storagePath: string,
+  filename: string,
+  userId: string,
+  job: Job
+): Promise<void> {
+  const log = workerLogger.child({ jobId: job.id, documentId, userId, filename });
+
+  try {
+    // Update status to processing
+    await updateDocument(documentId, { status: 'processing' } as any);
+    await job.updateProgress(5);
+
+    log.info({ filename, storagePath }, 'Downloading PDF from storage');
+
+    // Create Supabase admin client for storage access
+    const { createClient } = require('@supabase/supabase-js');
+    const supabaseClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Download PDF from storage
+    const { data: fileData, error: downloadError } = await supabaseClient.storage
+      .from('pdfs')
+      .download(storagePath);
+
+    if (downloadError) {
+      throw new Error(`Failed to download PDF from storage: ${downloadError.message}`);
+    }
+
+    await job.updateProgress(20);
+
+    // Convert blob to buffer
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    log.info({ filename, size: buffer.length }, 'Downloaded PDF, parsing');
+    await job.updateProgress(30);
+
+    // Parse PDF with AI enhancement
+    const parsed = await parsePDF(buffer, filename, true);
+
+    log.info({ textLength: parsed.text.length, pages: parsed.pages }, 'Extracted text from PDF');
+    await job.updateProgress(50);
+
+    // Chunk the text
+    const chunks = chunkText(parsed.text, {
+      maxTokens: 500,
+      overlap: 50,
+      preserveParagraphs: true,
+      preserveHeadings: true,
+    });
+
+    log.info({ chunksCount: chunks.length }, 'Created chunks');
+    await job.updateProgress(60);
+
+    // Add PDF metadata to chunks
+    const enrichedChunks = chunks.map((chunk, index) => ({
+      ...chunk,
+      index,
+      metadata: {
+        ...chunk.metadata,
+        source_type: 'pdf',
+        filename: filename,
+        pdf_title: parsed.title,
+        pdf_pages: parsed.pages,
+        ...parsed.metadata,
+      },
+    }));
+
+    // Calculate total tokens
+    const totalTokens = enrichedChunks.reduce((sum, chunk) => sum + chunk.tokens, 0);
+
+    // Store chunks
+    await storeChunks(documentId, enrichedChunks);
+    await job.updateProgress(85);
+
+    // Update document with parsed metadata
+    await updateDocument(documentId, {
+      title: parsed.title || filename.replace('.pdf', ''),
+      description: parsed.description,
+    } as any);
+
+    // Mark as completed
+    await markDocumentCompleted(documentId, chunks.length, totalTokens);
+    await job.updateProgress(95);
+
+    // Clean up storage
+    await supabaseClient.storage.from('pdfs').remove([storagePath]);
+
+    await job.updateProgress(100);
+
+    log.info(
+      { filename, chunksCount: chunks.length, totalTokens },
+      'Completed PDF processing from storage'
+    );
+  } catch (error) {
+    log.error({ err: error }, 'PDF processing from storage failed');
+    await markDocumentFailed(
+      documentId,
+      error instanceof Error ? error.message : 'Unknown error occurred'
+    );
+    throw error; // Re-throw so BullMQ knows it failed
+  }
+}
+
+/**
  * Scraping Worker
  * Processes web scraping jobs
  */
@@ -270,6 +389,31 @@ export const embeddingWorker = new Worker<EmbeddingJobData>(
   }
 );
 
+/**
+ * PDF Processing Worker
+ * Processes PDF uploads from storage
+ */
+export const pdfProcessingWorker = new Worker<PDFProcessingJobData>(
+  'pdf-processing',
+  async (job) => {
+    const { documentId, storagePath, filename, userId } = job.data;
+
+    workerLogger.info({ jobId: job.id, filename }, 'Starting PDF processing job');
+
+    await processPDFFromStorage(documentId, storagePath, filename, userId, job);
+
+    return { success: true, documentId, filename };
+  },
+  {
+    connection: redisConnection,
+    concurrency: 3, // Process max 3 PDFs at once
+    limiter: {
+      max: 5, // Max 5 jobs
+      duration: 60000, // Per minute (rate limit OpenAI for embeddings)
+    },
+  }
+);
+
 // Event handlers for scraping worker
 scrapingWorker.on('completed', (job) => {
   workerLogger.info({ jobId: job.id }, 'Scraping job completed successfully');
@@ -338,11 +482,46 @@ embeddingWorker.on('error', (err) => {
   });
 });
 
+// Event handlers for PDF processing worker
+pdfProcessingWorker.on('completed', (job) => {
+  workerLogger.info({ jobId: job.id }, 'PDF processing job completed successfully');
+});
+
+pdfProcessingWorker.on('failed', (job, err) => {
+  workerLogger.error({ jobId: job?.id, error: err.message }, 'PDF processing job failed');
+
+  // Send to Sentry
+  Sentry.captureException(err, {
+    tags: {
+      worker: 'pdf-processing',
+      jobId: job?.id,
+      queue: 'pdf-processing',
+    },
+    extra: {
+      jobData: job?.data,
+      attemptsMade: job?.attemptsMade,
+    },
+  });
+});
+
+pdfProcessingWorker.on('error', (err) => {
+  workerLogger.error({ err }, 'PDF processing worker error');
+
+  // Send to Sentry
+  Sentry.captureException(err, {
+    tags: {
+      worker: 'pdf-processing',
+      type: 'worker-error',
+    },
+  });
+});
+
 // Graceful shutdown handler
 process.on('SIGTERM', async () => {
   workerLogger.info('SIGTERM received, shutting down workers');
   await scrapingWorker.close();
   await embeddingWorker.close();
+  await pdfProcessingWorker.close();
   await redisConnection.quit();
   process.exit(0);
 });
@@ -351,6 +530,7 @@ process.on('SIGINT', async () => {
   workerLogger.info('SIGINT received, shutting down workers');
   await scrapingWorker.close();
   await embeddingWorker.close();
+  await pdfProcessingWorker.close();
   await redisConnection.quit();
   process.exit(0);
 });
