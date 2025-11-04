@@ -193,8 +193,10 @@ export default function Home() {
       // Update conversation ID if premium user
       if (data.conversationId) {
         setCurrentConversationId(data.conversationId);
-        // Trigger sidebar refresh to show new conversation
-        setRefreshTrigger(prev => prev + 1);
+        // Trigger sidebar refresh after a brief delay to ensure DB has committed
+        setTimeout(() => {
+          setRefreshTrigger(prev => prev + 1);
+        }, 500);
       }
 
       // Create assistant message with response

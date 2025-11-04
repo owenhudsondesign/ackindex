@@ -351,6 +351,7 @@ export async function POST(request: NextRequest) {
     const responseTime = Date.now() - startTime;
 
     // Save messages to conversation (PREMIUM ONLY) - AWAIT to ensure completion
+    let messagesSaved = false;
     if (isPremium && activeConversationId) {
       try {
         log.info({ conversationId: activeConversationId, isPremium, hasHistory: conversationHistory.length > 0 }, 'Starting to save conversation messages');
@@ -359,33 +360,38 @@ export async function POST(request: NextRequest) {
         const userMessage = await addMessage(activeConversationId, 'user', sanitizedMessage, 0, []);
         if (!userMessage) {
           log.error({ conversationId: activeConversationId }, 'Failed to save user message - addMessage returned null');
+          // Don't continue if user message fails
+          activeConversationId = undefined; // Don't return conversationId if save failed
         } else {
           log.debug({ conversationId: activeConversationId, messageId: userMessage.id }, 'Saved user message');
-        }
 
-        // Save assistant response
-        const assistantMessage = await addMessage(activeConversationId, 'assistant', response, totalTokens, citations);
-        if (!assistantMessage) {
-          log.error({ conversationId: activeConversationId }, 'Failed to save assistant message - addMessage returned null');
-        } else {
-          log.debug({ conversationId: activeConversationId, messageId: assistantMessage.id }, 'Saved assistant message');
-        }
-
-        // Auto-generate descriptive title from first message (only if this is a new conversation)
-        if (conversationHistory.length === 0) {
-          log.debug({ conversationId: activeConversationId }, 'Generating title for new conversation');
-          const title = await autoGenerateTitle(activeConversationId);
-          log.debug({ title, conversationId: activeConversationId }, 'Generated title');
-
-          if (title && title !== 'New Conversation') {
-            const updated = await updateConversationTitle(activeConversationId, user.id, title);
-            log.info({ title, updated, conversationId: activeConversationId }, 'Updated conversation title');
+          // Save assistant response
+          const assistantMessage = await addMessage(activeConversationId, 'assistant', response, totalTokens, citations);
+          if (!assistantMessage) {
+            log.error({ conversationId: activeConversationId }, 'Failed to save assistant message - addMessage returned null');
+            activeConversationId = undefined; // Don't return conversationId if save failed
           } else {
-            log.warn({ title, conversationId: activeConversationId }, 'Title generation returned default or null');
+            log.debug({ conversationId: activeConversationId, messageId: assistantMessage.id }, 'Saved assistant message');
+            messagesSaved = true;
+
+            // Auto-generate descriptive title from first message (only if this is a new conversation)
+            if (conversationHistory.length === 0) {
+              log.debug({ conversationId: activeConversationId }, 'Generating title for new conversation');
+              const title = await autoGenerateTitle(activeConversationId);
+              log.debug({ title, conversationId: activeConversationId }, 'Generated title');
+
+              if (title && title !== 'New Conversation') {
+                const updated = await updateConversationTitle(activeConversationId, user.id, title);
+                log.info({ title, updated, conversationId: activeConversationId }, 'Updated conversation title');
+              } else {
+                log.warn({ title, conversationId: activeConversationId }, 'Title generation returned default or null');
+              }
+            }
           }
         }
       } catch (err) {
         log.error({ err, conversationId: activeConversationId }, 'Exception while saving conversation messages');
+        activeConversationId = undefined; // Don't return conversationId if exception occurred
       }
     }
 

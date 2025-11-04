@@ -4,10 +4,23 @@ import { resolve } from 'path';
 config({ path: resolve(__dirname, '../.env.local') });
 
 import { createClient } from '@supabase/supabase-js';
-import { embeddingQueue } from '../src/lib/queues';
+import { Queue } from 'bullmq';
+import Redis from 'ioredis';
 
 async function queueAllEmbeddings() {
   console.log('Queuing embedding generation for all chunks without embeddings...\n');
+
+  // Create Redis connection
+  const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    tls: process.env.REDIS_URL?.includes('upstash') ? {} : undefined,
+  });
+
+  // Create embedding queue
+  const embeddingQueue = new Queue('embedding', {
+    connection: redisConnection,
+  });
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,10 +88,12 @@ async function queueAllEmbeddings() {
     console.log(`Run this script again if there are more than 1000 chunks remaining.`);
 
     await embeddingQueue.close();
+    await redisConnection.quit();
     process.exit(0);
   } catch (error) {
     console.error('Error:', error);
     await embeddingQueue.close();
+    await redisConnection.quit();
     process.exit(1);
   }
 }
