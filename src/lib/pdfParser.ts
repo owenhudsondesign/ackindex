@@ -127,19 +127,22 @@ export async function parsePDF(
   let description: string | undefined;
 
   // Step 2: Use AI to enhance text (optional but recommended)
-  if (useAI && rawText.length > 100) {
+  // For large documents, skip AI enhancement to avoid truncation
+  if (useAI && rawText.length > 100 && rawText.length < 50000) {
     try {
       const enhanced = await enhanceWithAI(rawText);
-      finalText = enhanced.cleanedText;
+      // Only use AI enhancement for title/summary, keep full raw text
       title = enhanced.title;
       description = enhanced.summary;
-      
-      console.log(`[PDF Parser] AI enhancement complete`);
+      finalText = cleanText(rawText); // Use full cleaned text, not truncated AI version
+
+      console.log(`[PDF Parser] AI enhancement complete (metadata only)`);
     } catch (error) {
       console.error('[PDF Parser] AI enhancement failed, using raw text:', error);
       finalText = cleanText(rawText);
     }
   } else {
+    console.log(`[PDF Parser] Skipping AI enhancement (document too large), using raw text`);
     finalText = cleanText(rawText);
   }
 
