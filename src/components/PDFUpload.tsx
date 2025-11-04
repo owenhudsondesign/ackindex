@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import Button from './Button';
 import Toast from './Toast';
 
@@ -65,36 +66,33 @@ export default function PDFUpload({ onUploadSuccess }: PDFUploadProps) {
   };
 
   const uploadViaStorage = async (file: File): Promise<void> => {
-    // Step 1: Get presigned upload URL
-    const urlResponse = await fetch('/api/admin/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        filename: file.name,
-        contentType: file.type,
-      }),
-    });
+    // Upload directly to Supabase Storage from browser (bypasses Vercel limit)
+    const supabase = createClient();
 
-    if (!urlResponse.ok) {
-      throw new Error('Failed to get upload URL');
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('Not authenticated');
     }
 
-    const { uploadUrl, storagePath } = await urlResponse.json();
+    // Generate storage path
+    const timestamp = Date.now();
+    const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const storagePath = `${user.id}/${timestamp}-${sanitizedFilename}`;
 
-    // Step 2: Upload directly to Supabase Storage
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
-    });
+    // Upload directly to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('pdfs')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
 
-    if (!uploadResponse.ok) {
-      throw new Error('Failed to upload to storage');
+    if (uploadError) {
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
 
-    // Step 3: Trigger processing
+    // Trigger processing via API
     const processResponse = await fetch('/api/admin/upload-pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
