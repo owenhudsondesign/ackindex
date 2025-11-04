@@ -56,13 +56,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Lazy import queues to avoid module-level connection errors
-    const { scrapingQueue, embeddingQueue } = await import('@/lib/queues');
+    const { scrapingQueue, embeddingQueue, pdfProcessingQueue } = await import('@/lib/queues');
 
     // User is authenticated and has admin role - serve Bull Board UI
     // Get queue statistics directly (we're serving custom HTML, not using Bull Board UI)
-    const [scrapingCounts, embeddingCounts] = await Promise.all([
+    const [scrapingCounts, embeddingCounts, pdfProcessingCounts] = await Promise.all([
       scrapingQueue.getJobCounts(),
       embeddingQueue.getJobCounts(),
+      pdfProcessingQueue.getJobCounts(),
     ]);
 
     const html = `
@@ -299,7 +300,7 @@ export async function GET(request: NextRequest) {
         <div class="header">
             <div>
                 <h1>Queue Dashboard</h1>
-                <p class="subtitle">Real-time monitoring for scraping and embedding jobs</p>
+                <p class="subtitle">Real-time monitoring for scraping, embedding, and PDF processing jobs</p>
             </div>
             <a href="/admin" class="back-link">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -360,6 +361,33 @@ export async function GET(request: NextRequest) {
                     <div class="stat">
                         <span class="stat-label">Delayed</span>
                         <span class="stat-value">${embeddingCounts.delayed || 0}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PDF Processing Queue -->
+            <div class="card">
+                <h2>PDF Processing Queue</h2>
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-label">Waiting</span>
+                        <span class="stat-value">${pdfProcessingCounts.waiting || 0}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Active</span>
+                        <span class="stat-value">${pdfProcessingCounts.active || 0}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Completed</span>
+                        <span class="stat-value">${pdfProcessingCounts.completed || 0}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Failed</span>
+                        <span class="stat-value">${pdfProcessingCounts.failed || 0}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Delayed</span>
+                        <span class="stat-value">${pdfProcessingCounts.delayed || 0}</span>
                     </div>
                 </div>
             </div>
@@ -441,8 +469,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Lazy import queues
-    const { scrapingQueue, embeddingQueue } = await import('@/lib/queues');
-    const queue = queueName === 'scraping' ? scrapingQueue : embeddingQueue;
+    const { scrapingQueue, embeddingQueue, pdfProcessingQueue } = await import('@/lib/queues');
+    const queue =
+      queueName === 'scraping' ? scrapingQueue :
+      queueName === 'embedding' ? embeddingQueue :
+      queueName === 'pdf-processing' ? pdfProcessingQueue : null;
+
+    if (!queue) {
+      return NextResponse.json(
+        { error: 'Invalid queue name. Supported: scraping, embedding, pdf-processing' },
+        { status: 400 }
+      );
+    }
     const job = await queue.getJob(jobId);
 
     if (!job) {
