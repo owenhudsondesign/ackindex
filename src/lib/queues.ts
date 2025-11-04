@@ -62,7 +62,6 @@ export const pdfProcessingQueue = new Queue('pdf-processing', {
     removeOnFail: {
       age: 7 * 24 * 3600,
     },
-    timeout: 600000, // 10 minute timeout for large PDFs
   },
 });
 
