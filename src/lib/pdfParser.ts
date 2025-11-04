@@ -168,7 +168,7 @@ export async function parsePDF(
  */
 export function validatePDFFile(
   file: File | Buffer,
-  maxSizeBytes: number = 10 * 1024 * 1024
+  maxSizeBytes: number = 200 * 1024 * 1024
 ): { valid: boolean; error?: string } {
   if (file instanceof File) {
     if (file.type !== 'application/pdf') {

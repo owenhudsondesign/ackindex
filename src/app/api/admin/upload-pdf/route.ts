@@ -5,6 +5,15 @@ import { createDocument, storeChunks, markDocumentCompleted, markDocumentFailed,
 import { chunkText } from '@/lib/chunking';
 import logger from '@/lib/logger';
 
+// Configure Next.js to accept large file uploads (200MB)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '200mb',
+    },
+  },
+};
+
 export async function POST(request: NextRequest) {
   const log = logger.child({ endpoint: '/api/admin/upload-pdf' });
 
