@@ -20,6 +20,7 @@ export default function ActivityFeed() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDocuments();
@@ -42,6 +43,31 @@ export default function ActivityFeed() {
       setError('Failed to load activity');
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleDelete(documentId: string, title: string) {
+    if (!confirm(`Are you sure you want to delete "${title}"? This will also delete all associated chunks and embeddings.`)) {
+      return;
+    }
+
+    setDeletingId(documentId);
+    try {
+      const response = await fetch(`/api/admin/documents/${documentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete document');
+      }
+
+      // Remove from local state
+      setDocuments(documents.filter(doc => doc.id !== documentId));
+    } catch (err) {
+      console.error('Failed to delete document:', err);
+      setError('Failed to delete document. Please try again.');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -178,7 +204,47 @@ export default function ActivityFeed() {
                       {doc.source_type === 'url' ? doc.source_url : doc.filename}
                     </p>
                   </div>
-                  {getStatusBadge(doc.status)}
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(doc.status)}
+                    <button
+                      onClick={() => handleDelete(doc.id, doc.title || doc.filename || doc.source_url || 'document')}
+                      disabled={deletingId === doc.id}
+                      className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete document"
+                    >
+                      {deletingId === doc.id ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {doc.status === 'completed' && doc.total_chunks > 0 && (
