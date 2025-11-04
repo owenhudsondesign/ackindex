@@ -5,9 +5,10 @@ import logger from '@/lib/logger';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const log = logger.child({ endpoint: '/api/admin/documents/[id]', documentId: params.id });
+  const { id: documentId } = await params;
+  const log = logger.child({ endpoint: '/api/admin/documents/[id]', documentId });
 
   try {
     // Check authentication and admin authorization
@@ -18,8 +19,6 @@ export async function DELETE(
 
     const adminOrError = await requireAdminApi(session);
     if (adminOrError instanceof NextResponse) return adminOrError;
-
-    const documentId = params.id;
 
     if (!documentId) {
       return NextResponse.json(
