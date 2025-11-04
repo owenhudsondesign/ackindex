@@ -220,7 +220,22 @@ export function extractCitations(results: RetrievalResult[]): Array<{
   similarity?: number;
   index?: number;
 }> {
-  return results.map((result, index) => ({
+  // Deduplicate by document ID to avoid showing same source multiple times
+  const seenDocuments = new Set<string>();
+  const uniqueResults: RetrievalResult[] = [];
+
+  for (const result of results) {
+    const docId = result.document?.id;
+    if (docId && !seenDocuments.has(docId)) {
+      seenDocuments.add(docId);
+      uniqueResults.push(result);
+    }
+  }
+
+  // Only return top 3 most relevant sources
+  const topResults = uniqueResults.slice(0, 3);
+
+  return topResults.map((result, index) => ({
     title: result.document?.title || result.document?.filename || 'Untitled',
     url: result.document?.source_url,
     snippet: result.content.slice(0, 200), // Increased snippet length
