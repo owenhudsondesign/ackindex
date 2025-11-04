@@ -14,6 +14,12 @@ const nextConfig = {
   // Enable source maps for production (required for GlitchTip source map uploads)
   productionBrowserSourceMaps: true,
 
+  // Experimental features for large file uploads
+  experimental: {
+    // Increase body size limit for file uploads (200MB)
+    bodySizeLimit: '200mb',
+  },
+
   // Security headers
   async headers() {
     return [
