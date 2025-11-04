@@ -21,45 +21,83 @@ export async function POST(request: NextRequest) {
     const adminOrError = await requireAdminApi(session);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const contentType = request.headers.get('content-type') || '';
 
-    if (!file) {
-      return NextResponse.json(
-        { message: 'No file provided' },
-        { status: 400 }
-      );
+    // Two modes: Direct upload (small files) or Storage path (large files)
+    if (contentType.includes('application/json')) {
+      // Storage-based upload (for large files)
+      const body = await request.json();
+      const { storagePath, filename } = body;
+
+      if (!storagePath || !filename) {
+        return NextResponse.json(
+          { message: 'Storage path and filename are required' },
+          { status: 400 }
+        );
+      }
+
+      log.info({ filename, storagePath }, 'Starting storage-based PDF processing');
+
+      // Create document record
+      const document = await createDocument({
+        source_type: 'pdf',
+        filename: filename,
+        title: filename.replace('.pdf', ''),
+        created_by: adminOrError.id,
+      });
+
+      // Process PDF from storage in the background
+      processPDFFromStorage(document.id, storagePath, filename, adminOrError.id, log, supabase).catch(error => {
+        log.error({ err: error }, 'Background processing failed');
+      });
+
+      return NextResponse.json({
+        message: 'PDF processing started successfully',
+        documentId: document.id,
+        filename: filename,
+      });
+    } else {
+      // Direct file upload (legacy, for small files)
+      const formData = await request.formData();
+      const file = formData.get('file') as File;
+
+      if (!file) {
+        return NextResponse.json(
+          { message: 'No file provided' },
+          { status: 400 }
+        );
+      }
+
+      // Validate file
+      const validation = validatePDFFile(file);
+      if (!validation.valid) {
+        return NextResponse.json(
+          { message: validation.error || 'Invalid file' },
+          { status: 400 }
+        );
+      }
+
+      log.info({ filename: file.name }, 'Starting direct PDF upload');
+
+      // Create document record
+      const document = await createDocument({
+        source_type: 'pdf',
+        filename: file.name,
+        title: file.name.replace('.pdf', ''),
+        created_by: adminOrError.id,
+      });
+
+      // Process PDF in the background
+      processPDFUpload(document.id, file, adminOrError.id, log).catch(error => {
+        log.error({ err: error }, 'Background processing failed');
+      });
+
+      return NextResponse.json({
+        message: 'PDF upload started successfully',
+        documentId: document.id,
+        filename: file.name,
+      });
     }
-
-    // Validate file
-    const validation = validatePDFFile(file);
-    if (!validation.valid) {
-      return NextResponse.json(
-        { message: validation.error || 'Invalid file' },
-        { status: 400 }
-      );
-    }
-
-    log.info({ filename: file.name }, 'Starting PDF upload');
-
-    // Create document record
-    const document = await createDocument({
-      source_type: 'pdf',
-      filename: file.name,
-      title: file.name.replace('.pdf', ''),
-      created_by: adminOrError.id,
-    });
-
-    // Process PDF in the background
-    processPDFUpload(document.id, file, adminOrError.id, log).catch(error => {
-      log.error({ err: error }, 'Background processing failed');
-    });
-
-    return NextResponse.json({
-      message: 'PDF upload started successfully',
-      documentId: document.id,
-      filename: file.name,
-    });
   } catch (error) {
     log.error({ err: error }, 'Upload-pdf endpoint error');
     return NextResponse.json(
@@ -70,7 +108,98 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Process PDF upload in the background
+ * Process PDF from Supabase Storage
+ */
+async function processPDFFromStorage(
+  documentId: string,
+  storagePath: string,
+  filename: string,
+  userId: string,
+  log: any,
+  supabase: any
+): Promise<void> {
+  try {
+    // Update status to processing
+    await updateDocument(documentId, { status: 'processing' } as any);
+
+    log.info({ filename, storagePath }, 'Downloading PDF from storage');
+
+    // Download PDF from storage
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('pdfs')
+      .download(storagePath);
+
+    if (downloadError) {
+      throw new Error(`Failed to download PDF from storage: ${downloadError.message}`);
+    }
+
+    // Convert blob to buffer
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    log.info({ filename, size: buffer.length }, 'Downloaded PDF, parsing');
+
+    // Parse PDF with AI enhancement
+    const parsed = await parsePDF(buffer, filename, true);
+
+    log.info({ textLength: parsed.text.length, pages: parsed.pages }, 'Extracted text from PDF');
+
+    // Chunk the text
+    const chunks = chunkText(parsed.text, {
+      maxTokens: 500,
+      overlap: 50,
+      preserveParagraphs: true,
+      preserveHeadings: true,
+    });
+
+    log.info({ chunksCount: chunks.length }, 'Created chunks');
+
+    // Add PDF metadata to chunks
+    const enrichedChunks = chunks.map(chunk => ({
+      ...chunk,
+      metadata: {
+        ...chunk.metadata,
+        source_type: 'pdf',
+        filename: filename,
+        pdf_title: parsed.title,
+        pdf_pages: parsed.pages,
+        ...parsed.metadata,
+      },
+    }));
+
+    // Calculate total tokens
+    const totalTokens = enrichedChunks.reduce((sum, chunk) => sum + chunk.tokens, 0);
+
+    // Store chunks
+    await storeChunks(documentId, enrichedChunks);
+
+    // Update document with parsed metadata
+    await updateDocument(documentId, {
+      title: parsed.title || filename.replace('.pdf', ''),
+      description: parsed.description,
+    } as any);
+
+    // Mark as completed
+    await markDocumentCompleted(documentId, chunks.length, totalTokens);
+
+    // Clean up storage (optional - you might want to keep originals)
+    await supabase.storage.from('pdfs').remove([storagePath]);
+
+    log.info(
+      { filename, chunksCount: chunks.length, totalTokens },
+      'Completed PDF processing from storage'
+    );
+  } catch (error) {
+    log.error({ err: error }, 'PDF processing from storage failed');
+    await markDocumentFailed(
+      documentId,
+      error instanceof Error ? error.message : 'Unknown error occurred'
+    );
+  }
+}
+
+/**
+ * Process PDF upload in the background (direct upload, legacy)
  */
 async function processPDFUpload(
   documentId: string,

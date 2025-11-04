@@ -64,6 +64,67 @@ export default function PDFUpload({ onUploadSuccess }: PDFUploadProps) {
     }
   };
 
+  const uploadViaStorage = async (file: File): Promise<void> => {
+    // Step 1: Get presigned upload URL
+    const urlResponse = await fetch('/api/admin/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type,
+      }),
+    });
+
+    if (!urlResponse.ok) {
+      throw new Error('Failed to get upload URL');
+    }
+
+    const { uploadUrl, storagePath } = await urlResponse.json();
+
+    // Step 2: Upload directly to Supabase Storage
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload to storage');
+    }
+
+    // Step 3: Trigger processing
+    const processResponse = await fetch('/api/admin/upload-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storagePath: storagePath,
+        filename: file.name,
+      }),
+    });
+
+    if (!processResponse.ok) {
+      const error = await processResponse.json();
+      throw new Error(error.message || 'Failed to process PDF');
+    }
+  };
+
+  const uploadDirectly = async (file: File): Promise<void> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/admin/upload-pdf', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to upload PDF');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -77,22 +138,19 @@ export default function PDFUpload({ onUploadSuccess }: PDFUploadProps) {
     let successCount = 0;
     let failCount = 0;
 
+    // Vercel serverless function limit: 4.5MB
+    const VERCEL_LIMIT = 4.5 * 1024 * 1024;
+
     // Upload files sequentially
     for (const file of files) {
       setUploadProgress(prev => ({ ...prev, [file.name]: 'uploading' }));
 
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/api/admin/upload-pdf', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to upload PDF');
+        // Use storage upload for files > 4MB, direct upload for smaller files
+        if (file.size > VERCEL_LIMIT) {
+          await uploadViaStorage(file);
+        } else {
+          await uploadDirectly(file);
         }
 
         setUploadProgress(prev => ({ ...prev, [file.name]: 'success' }));
