@@ -407,6 +407,7 @@ export const pdfProcessingWorker = new Worker<PDFProcessingJobData>(
   {
     connection: redisConnection,
     concurrency: 3, // Process max 3 PDFs at once
+    lockDuration: 600000, // 10 minutes lock for large PDFs
     limiter: {
       max: 5, // Max 5 jobs
       duration: 60000, // Per minute (rate limit OpenAI for embeddings)
