@@ -17,7 +17,23 @@ export async function POST(request: NextRequest) {
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
-    const { urls, frequency = '1 week', priority = 5 } = body;
+    const {
+      urls,
+      frequency = '1 week',
+      priority = 5,
+      // Scraper configuration options
+      max_depth = 2,
+      max_pages = 20,
+      extract_pdfs = true,
+      scrape_javascript = false,
+      wait_for_dynamic_content = false,
+      timeout_seconds = 30,
+      // Chunking configuration
+      chunk_size = 500,
+      chunk_overlap = 50,
+      // Additional options
+      scrape_options = {}
+    } = body;
 
     if (!Array.isArray(urls) || urls.length === 0) {
       return NextResponse.json(
@@ -58,6 +74,18 @@ export async function POST(request: NextRequest) {
             status: 'active',
             created_by: adminOrError.id,
             next_scrape_at: new Date().toISOString(), // Schedule immediately
+            // Scraper configuration
+            max_depth,
+            max_pages,
+            extract_pdfs,
+            scrape_javascript,
+            wait_for_dynamic_content,
+            timeout_seconds,
+            // Chunking configuration
+            chunk_size,
+            chunk_overlap,
+            // Additional options
+            scrape_options,
           },
           {
             onConflict: 'url',

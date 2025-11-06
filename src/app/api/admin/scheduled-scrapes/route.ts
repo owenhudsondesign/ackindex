@@ -30,10 +30,45 @@ export async function POST(request: NextRequest) {
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
-    const { url, title, scrape_frequency = '1 week', priority = 5, status = 'active' } = body;
+    const {
+      url,
+      title,
+      scrape_frequency = '1 week',
+      priority = 5,
+      status = 'active',
+      // Scraper configuration options
+      max_depth = 2,
+      max_pages = 20,
+      extract_pdfs = true,
+      scrape_javascript = false,
+      wait_for_dynamic_content = false,
+      timeout_seconds = 30,
+      // Chunking configuration
+      chunk_size = 500,
+      chunk_overlap = 50,
+      // Additional options
+      scrape_options = {}
+    } = body;
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
+    }
+
+    // Validate configuration ranges
+    if (max_depth < 1 || max_depth > 10) {
+      return NextResponse.json({ error: 'max_depth must be between 1 and 10' }, { status: 400 });
+    }
+    if (max_pages < 1 || max_pages > 200) {
+      return NextResponse.json({ error: 'max_pages must be between 1 and 200' }, { status: 400 });
+    }
+    if (timeout_seconds < 10 || timeout_seconds > 120) {
+      return NextResponse.json({ error: 'timeout_seconds must be between 10 and 120' }, { status: 400 });
+    }
+    if (chunk_size < 100 || chunk_size > 2000) {
+      return NextResponse.json({ error: 'chunk_size must be between 100 and 2000' }, { status: 400 });
+    }
+    if (chunk_overlap < 0 || chunk_overlap > 500) {
+      return NextResponse.json({ error: 'chunk_overlap must be between 0 and 500' }, { status: 400 });
     }
 
     // Validate URL format
@@ -65,6 +100,18 @@ export async function POST(request: NextRequest) {
         status,
         created_by: adminOrError.id, // Set admin as creator
         next_scrape_at: new Date().toISOString(), // Schedule for immediate scraping
+        // Scraper configuration
+        max_depth,
+        max_pages,
+        extract_pdfs,
+        scrape_javascript,
+        wait_for_dynamic_content,
+        timeout_seconds,
+        // Chunking configuration
+        chunk_size,
+        chunk_overlap,
+        // Additional options
+        scrape_options,
       })
       .select()
       .single();
@@ -99,7 +146,23 @@ export async function PATCH(request: NextRequest) {
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
-    const { id, url, title, scrape_frequency, priority, status } = body;
+    const {
+      id,
+      url,
+      title,
+      scrape_frequency,
+      priority,
+      status,
+      max_depth,
+      max_pages,
+      extract_pdfs,
+      scrape_javascript,
+      wait_for_dynamic_content,
+      timeout_seconds,
+      chunk_size,
+      chunk_overlap,
+      scrape_options
+    } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Scrape ID is required' }, { status: 400 });
@@ -118,6 +181,44 @@ export async function PATCH(request: NextRequest) {
     if (scrape_frequency !== undefined) updates.scrape_frequency = scrape_frequency;
     if (priority !== undefined) updates.priority = priority;
     if (status !== undefined) updates.status = status;
+
+    // Scraper configuration updates with validation
+    if (max_depth !== undefined) {
+      if (max_depth < 1 || max_depth > 10) {
+        return NextResponse.json({ error: 'max_depth must be between 1 and 10' }, { status: 400 });
+      }
+      updates.max_depth = max_depth;
+    }
+    if (max_pages !== undefined) {
+      if (max_pages < 1 || max_pages > 200) {
+        return NextResponse.json({ error: 'max_pages must be between 1 and 200' }, { status: 400 });
+      }
+      updates.max_pages = max_pages;
+    }
+    if (extract_pdfs !== undefined) updates.extract_pdfs = extract_pdfs;
+    if (scrape_javascript !== undefined) updates.scrape_javascript = scrape_javascript;
+    if (wait_for_dynamic_content !== undefined) updates.wait_for_dynamic_content = wait_for_dynamic_content;
+    if (timeout_seconds !== undefined) {
+      if (timeout_seconds < 10 || timeout_seconds > 120) {
+        return NextResponse.json({ error: 'timeout_seconds must be between 10 and 120' }, { status: 400 });
+      }
+      updates.timeout_seconds = timeout_seconds;
+    }
+
+    // Chunking configuration updates with validation
+    if (chunk_size !== undefined) {
+      if (chunk_size < 100 || chunk_size > 2000) {
+        return NextResponse.json({ error: 'chunk_size must be between 100 and 2000' }, { status: 400 });
+      }
+      updates.chunk_size = chunk_size;
+    }
+    if (chunk_overlap !== undefined) {
+      if (chunk_overlap < 0 || chunk_overlap > 500) {
+        return NextResponse.json({ error: 'chunk_overlap must be between 0 and 500' }, { status: 400 });
+      }
+      updates.chunk_overlap = chunk_overlap;
+    }
+    if (scrape_options !== undefined) updates.scrape_options = scrape_options;
 
     const { data, error } = await serviceSupabase
       .from('scheduled_scrapes')

@@ -118,13 +118,22 @@ export async function executeScheduledScraping(
 }
 
 /**
- * Process a single scheduled URL
+ * Process a single scheduled URL with its configuration
  */
 async function processScheduledUrl(schedule: {
   id: string;
   url: string;
   title?: string;
   priority: number;
+  max_depth?: number;
+  max_pages?: number;
+  extract_pdfs?: boolean;
+  scrape_javascript?: boolean;
+  wait_for_dynamic_content?: boolean;
+  timeout_seconds?: number;
+  chunk_size?: number;
+  chunk_overlap?: number;
+  scrape_options?: any;
 }): Promise<void> {
   try {
     logger.info({ url: schedule.url }, 'Starting scrape for scheduled URL');
@@ -163,11 +172,13 @@ async function processScheduledUrl(schedule: {
       documentId = document.id;
     }
 
-    // Start Apify scrape job
+    // Start Apify scrape job using per-scrape configuration
     const runId = await startScrapeJob(schedule.url, {
-      maxDepth: 2,
-      maxPages: 20,
-      extractPDFs: true,
+      maxDepth: schedule.max_depth ?? 2,
+      maxPages: schedule.max_pages ?? 20,
+      extractPDFs: schedule.extract_pdfs ?? true,
+      // Additional options can be passed via scrape_options
+      ...(schedule.scrape_options || {}),
     });
 
     // Create scrape job record
@@ -206,8 +217,8 @@ async function processScheduledUrl(schedule: {
         fullContent += result.text + '\n\n';
 
         const chunks = chunkText(result.text, {
-          maxTokens: 500,
-          overlap: 50,
+          maxTokens: schedule.chunk_size ?? 500,
+          overlap: schedule.chunk_overlap ?? 50,
         });
 
         chunks.forEach((chunk) => {
