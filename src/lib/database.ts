@@ -1,11 +1,12 @@
 /**
  * Database Utilities for Document Storage
- * 
+ *
  * Handles storing and retrieving documents and chunks in Supabase.
  */
 
 import { supabaseAdmin } from './supabase';
 import { TextChunk } from './chunking';
+import logger from './logger';
 
 export interface Document {
   id: string;
@@ -70,7 +71,7 @@ export async function createDocument(data: {
     .single();
 
   if (error) {
-    console.error('[DB] Failed to create document:', error);
+    logger.error({ error, source_type: data.source_type, source_url: data.source_url, filename: data.filename }, 'Failed to create document');
     throw new Error('Failed to create document record');
   }
 
@@ -92,7 +93,7 @@ export async function updateDocument(
     .single();
 
   if (error) {
-    console.error('[DB] Failed to update document:', error);
+    logger.error({ error, documentId, updates }, 'Failed to update document');
     throw new Error('Failed to update document');
   }
 
@@ -147,11 +148,11 @@ export async function storeChunks(
     .insert(chunkRecords);
 
   if (error) {
-    console.error('[DB] Failed to store chunks:', error);
+    logger.error({ error, documentId, chunkCount: chunks.length }, 'Failed to store chunks');
     throw new Error('Failed to store document chunks');
   }
 
-  console.log(`[DB] Stored ${chunks.length} chunks for document ${documentId}`);
+  logger.info({ documentId, chunkCount: chunks.length }, 'Stored chunks for document');
 }
 
 /**
@@ -168,7 +169,7 @@ export async function updateChunkEmbedding(
     .eq('id', chunkId);
 
   if (error) {
-    console.error('[DB] Failed to update chunk embedding:', error);
+    logger.error({ error, chunkId }, 'Failed to update chunk embedding');
     throw new Error('Failed to update embedding');
   }
 }
@@ -186,7 +187,7 @@ export async function getChunksWithoutEmbeddings(
     .limit(limit);
 
   if (error) {
-    console.error('[DB] Failed to get chunks without embeddings:', error);
+    logger.error({ error }, 'Failed to get chunks without embeddings');
     throw new Error('Failed to fetch chunks');
   }
 
@@ -243,7 +244,7 @@ export async function createScrapeJob(data: {
     .single();
 
   if (error) {
-    console.error('[DB] Failed to create scrape job:', error);
+    logger.error({ error, url: data.url }, 'Failed to create scrape job');
     throw new Error('Failed to create scrape job record');
   }
 
@@ -265,7 +266,7 @@ export async function updateScrapeJob(
     .single();
 
   if (error) {
-    console.error('[DB] Failed to update scrape job:', error);
+    logger.error({ error, jobId, updates }, 'Failed to update scrape job');
     throw new Error('Failed to update scrape job');
   }
 
@@ -292,7 +293,7 @@ export async function getRecentDocuments(
   const { data, error } = await query;
 
   if (error) {
-    console.error('[DB] Failed to get recent documents:', error);
+    logger.error({ error, limit }, 'Failed to get recent documents');
     throw new Error('Failed to retrieve documents');
   }
 
@@ -322,7 +323,7 @@ export async function getDocumentWithChunks(
     .order('chunk_index', { ascending: true });
 
   if (chunksError) {
-    console.error('[DB] Failed to get chunks:', chunksError);
+    logger.error({ error: chunksError, documentId }, 'Failed to get chunks');
     return { document: document as Document, chunks: [] };
   }
 
@@ -354,7 +355,7 @@ export async function searchChunks(
     .limit(limit);
 
   if (error) {
-    console.error('[DB] Failed to search chunks:', error);
+    logger.error({ error, queryEmbedding: '...' }, 'Failed to search chunks');
     throw new Error('Failed to search content');
   }
 
@@ -371,11 +372,11 @@ export async function deleteDocument(documentId: string): Promise<void> {
     .eq('id', documentId);
 
   if (error) {
-    console.error('[DB] Failed to delete document:', error);
+    logger.error({ error, documentId }, 'Failed to delete document');
     throw new Error('Failed to delete document');
   }
 
-  console.log(`[DB] Deleted document ${documentId} and its chunks`);
+  logger.info({ documentId }, 'Deleted document and its chunks');
 }
 
 /**

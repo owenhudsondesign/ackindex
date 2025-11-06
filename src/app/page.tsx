@@ -31,8 +31,7 @@ export default function Home() {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
-      console.log('Auth check result:', currentUser ? 'Logged in' : 'Not logged in');
-      
+
       // If user is logged in, set up their role
       if (currentUser) {
         await setupUserRole(currentUser);
@@ -61,12 +60,10 @@ export default function Home() {
         role = 'admin';
         subscriptionTier = 'premium';
         tokenLimit = 50000;
-        console.log('✅ Admin account detected:', currentUser.email);
       } else if (currentUser.email === 'hudsonowenr@gmail.com') {
         role = 'user';
         subscriptionTier = 'free';
         tokenLimit = 3500;
-        console.log('✅ Regular user account:', currentUser.email);
       }
 
       // Check if profile already exists
@@ -82,7 +79,6 @@ export default function Home() {
 
         // If this is an admin account, ensure it's set to premium
         if (currentUser.email === 'owenhudsondesign@gmail.com' && existingProfile.subscription_tier !== 'premium') {
-          console.log('⚠️ Admin account needs upgrade, updating to premium...');
           const { error: updateError } = await supabase
             .from('user_profiles')
             .update({
@@ -94,12 +90,10 @@ export default function Home() {
             .eq('id', currentUser.id);
 
           if (!updateError) {
-            console.log('✅ Admin account upgraded to premium');
             setIsPremium(true);
           }
         }
 
-        console.log('Profile already exists:', existingProfile);
         return;
       }
 
@@ -122,13 +116,7 @@ export default function Home() {
       if (error) {
         console.error('Error creating profile:', error);
       } else {
-        console.log('✅ Created profile:', profile);
-        console.log(`🎉 Role: ${role}, Tier: ${subscriptionTier}, Tokens: ${tokenLimit}`);
         setIsPremium(subscriptionTier === 'premium');
-
-        if (role === 'admin') {
-          console.log('🔑 You now have admin access! Visit /admin to upload URLs');
-        }
       }
     } catch (error) {
       console.error('Error setting up user role:', error);
@@ -248,12 +236,7 @@ export default function Home() {
 
   const hasMessages = messages.length > 0;
 
-  // Debug: Log when messages change
-  useEffect(() => {
-    console.log('Messages state changed:', messages.length, 'messages');
-    console.log('hasMessages:', hasMessages);
-    console.log('Full messages:', messages);
-  }, [messages]);
+  // Note: Message change tracking removed to reduce console noise
 
   // Conversation management handlers
   const handleNewConversation = () => {
@@ -262,21 +245,14 @@ export default function Home() {
   };
 
   const handleSelectConversation = async (conversationId: string) => {
-    console.log('=== Loading conversation:', conversationId);
     setCurrentConversationId(conversationId);
     setIsLoading(true);
 
-    // Don't clear messages immediately - keep old ones until new ones load
-    // This prevents flickering and helps with debugging
-
     try {
       const response = await fetch(`/api/conversations/${conversationId}`);
-      console.log('Conversation API response:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Loaded messages:', data.messages?.length, 'messages');
-        console.log('Message data:', data.messages);
 
         if (data.messages && data.messages.length > 0) {
           const loadedMessages: Message[] = data.messages.map((msg: any) => ({
@@ -286,11 +262,8 @@ export default function Home() {
             citations: msg.citations || [],
           }));
 
-          console.log('About to set messages in state:', loadedMessages);
           setMessages(loadedMessages);
-          console.log('Called setMessages with', loadedMessages.length, 'messages');
         } else {
-          console.warn('No messages in conversation - clearing messages');
           setMessages([]);
         }
       } else {
@@ -515,7 +488,7 @@ export default function Home() {
               isLoading={isLoading}
             />
           ) : (
-            <EmptyState />
+            <EmptyState onQuestionClick={handleSubmit} />
           )}
         </div>
         </div> {/* End Main Chat Area */}

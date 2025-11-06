@@ -1,4 +1,8 @@
-export default function EmptyState() {
+interface EmptyStateProps {
+  onQuestionClick?: (question: string) => void;
+}
+
+export default function EmptyState({ onQuestionClick }: EmptyStateProps) {
   const exampleQueries = [
     "What are the latest Town Meeting articles?",
     "Tell me about recent zoning changes",
@@ -31,17 +35,10 @@ export default function EmptyState() {
             <button
               key={index}
               className="text-left px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-ack-blue dark:hover:border-blue-400 hover:bg-ack-blue/5 dark:hover:bg-blue-900/30 transition-all group"
-              onClick={() => {
-                // This will be handled by parent component
-                const input = document.querySelector('input[aria-label="Ask a question"]') as HTMLInputElement;
-                if (input) {
-                  input.value = query;
-                  input.focus();
-                }
-              }}
+              onClick={() => onQuestionClick?.(query)}
             >
               <div className="flex items-start space-x-2">
-                <svg 
+                <svg
                   className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-ack-blue dark:group-hover:text-blue-400 transition-colors mt-0.5 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"

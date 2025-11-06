@@ -18,9 +18,8 @@ export { default as ChatDialogue } from './ChatDialogue';
 export { default as EmptyState } from './EmptyState';
 
 // Admin Components
-export { default as URLUpload } from './URLUpload';
 export { default as PDFUpload } from './PDFUpload';
 export { default as SignOutButton } from './SignOutButton';
 export { default as ActivityFeed } from './ActivityFeed';
-export { default as EmbeddingsManager } from './EmbeddingsManager';
 export { default as ScheduledScrapesManager } from './ScheduledScrapesManager';
+export { default as DocumentsList } from './DocumentsList';

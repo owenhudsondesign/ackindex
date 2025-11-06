@@ -1,4 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
+import {
+  getCachedUserProfile,
+  setCachedUserProfile,
+  invalidateUserProfile,
+  getCachedSubscription,
+  setCachedSubscription,
+  invalidateSubscription,
+  invalidateUserCaches
+} from './cache';
+import logger from './logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -45,9 +55,16 @@ export interface UserDashboard {
 }
 
 /**
- * Get user profile by user ID
+ * Get user profile by user ID (with caching)
  */
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  // Try cache first
+  const cached = await getCachedUserProfile(userId);
+  if (cached) {
+    return cached as UserProfile;
+  }
+
+  // Cache miss - fetch from database
   const { data, error } = await supabaseAdmin
     .from('user_profiles')
     .select('*')
@@ -55,15 +72,20 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     .single();
 
   if (error) {
-    console.error('Error fetching user profile:', error);
+    logger.error({ error, userId }, 'Error fetching user profile');
     return null;
+  }
+
+  // Cache the result
+  if (data) {
+    await setCachedUserProfile(userId, data);
   }
 
   return data;
 }
 
 /**
- * Update user profile
+ * Update user profile (invalidates cache)
  */
 export async function updateUserProfile(
   userId: string,
@@ -77,9 +99,12 @@ export async function updateUserProfile(
     .single();
 
   if (error) {
-    console.error('Error updating user profile:', error);
+    logger.error({ error, userId }, 'Error updating user profile');
     return null;
   }
+
+  // Invalidate caches after update
+  await invalidateUserCaches(userId);
 
   return data;
 }
@@ -127,15 +152,55 @@ export async function getCurrentUsage(userId: string): Promise<UsageStats | null
 }
 
 /**
+ * Get subscription status with caching (5 min TTL)
+ */
+export async function getSubscriptionStatus(userId: string): Promise<{
+  tier: 'free' | 'premium';
+  status: string;
+  canQuery: boolean;
+} | null> {
+  // Try cache first
+  const cached = await getCachedSubscription(userId);
+  if (cached) {
+    return cached as { tier: 'free' | 'premium'; status: string; canQuery: boolean };
+  }
+
+  // Cache miss - fetch from database
+  const profile = await getUserProfile(userId);
+  if (!profile) {
+    return null;
+  }
+
+  const subscriptionStatus = {
+    tier: profile.subscription_tier,
+    status: profile.subscription_status,
+    canQuery: profile.subscription_tier === 'premium' || profile.subscription_status === 'active'
+  };
+
+  // Cache with 5 min TTL
+  await setCachedSubscription(userId, subscriptionStatus);
+
+  return subscriptionStatus;
+}
+
+/**
  * Check if user can make a query (has tokens remaining)
+ * Uses cached subscription status
  */
 export async function canUserQuery(userId: string): Promise<boolean> {
+  // First check cached subscription status
+  const subscription = await getSubscriptionStatus(userId);
+  if (subscription && !subscription.canQuery) {
+    return false;
+  }
+
+  // Then check actual token usage
   const { data, error } = await supabaseAdmin.rpc('can_user_query', {
     p_user_id: userId,
   });
 
   if (error) {
-    console.error('Error checking user query limit:', error);
+    logger.error({ error, userId }, 'Error checking user query limit');
     return false;
   }
 
@@ -210,7 +275,7 @@ export async function updateStripeCustomerId(
 }
 
 /**
- * Update subscription
+ * Update subscription (invalidates cache)
  */
 export async function updateSubscription(
   userId: string,
@@ -244,9 +309,12 @@ export async function updateSubscription(
     .eq('id', userId);
 
   if (error) {
-    console.error('Error updating subscription:', error);
+    logger.error({ error, userId }, 'Error updating subscription');
     return false;
   }
+
+  // Invalidate caches after subscription update
+  await invalidateUserCaches(userId);
 
   return true;
 }

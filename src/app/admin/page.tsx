@@ -11,6 +11,7 @@ import SignOutButton from '@/components/SignOutButton';
 import ActivityFeed from '@/components/ActivityFeed';
 import ScheduledScrapesManager from '@/components/ScheduledScrapesManager';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
+import DocumentsList from '@/components/DocumentsList';
 import Loading from '@/components/Loading';
 import Card from '@/components/Card';
 
@@ -221,6 +222,11 @@ export default function AdminPage() {
                 </a>
               </div>
             </Card>
+          </div>
+
+          {/* Documents List */}
+          <div className="mb-8">
+            <DocumentsList />
           </div>
 
           {/* Scheduled Scrapes Manager */}

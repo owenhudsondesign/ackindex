@@ -1,11 +1,12 @@
 /**
  * Apify Web Scraping Utilities
- * 
+ *
  * Handles website crawling and PDF extraction using Apify actors.
  */
 
 import { ApifyClient } from 'apify-client';
 import { cleanText } from './chunking';
+import logger from './logger';
 
 // Initialize Apify client with error handling
 function getApifyClient() {
@@ -105,7 +106,7 @@ function shouldUseStagehand(url: string): boolean {
     // Check if URL matches any Stagehand-required domains
     return stagehandDomains.some(domain => hostname.includes(domain));
   } catch (error) {
-    console.error('[Apify] Error parsing URL for actor selection:', error);
+    logger.error({ error, url }, 'Error parsing URL for actor selection');
     return false; // Default to Python actor
   }
 }
@@ -128,7 +129,7 @@ export async function startScrapeJob(
     extractPDFs = true,
   } = options;
 
-  console.log(`[Apify] Starting scrape job for: ${url}`);
+  logger.info({ url }, 'Starting scrape job');
 
   try {
     const apifyClient = getApifyClient();
@@ -142,7 +143,7 @@ export async function startScrapeJob(
       ? (process.env.STAGEHAND_ACTOR_ID || 'legible_radish/stagehand-nantucket-scraper')
       : (process.env.APIFY_ACTOR_ID || 'legible_radish/ackindex-3');
 
-    console.log(`[Apify] Using ${useStagehand ? 'Stagehand (AI-powered)' : 'Python (PDF-optimized)'} actor: ${actorId}`);
+    logger.info({ actorId, useStagehand }, `Using ${useStagehand ? 'Stagehand (AI-powered)' : 'Python (PDF-optimized)'} actor`);
     
     let runConfig: any;
     
@@ -155,7 +156,7 @@ export async function startScrapeJob(
         extractPDFs: extractPDFs,
         openaiApiKey: process.env.OPENAI_API_KEY, // Required for Stagehand AI
       };
-      console.log('[Apify] Using Stagehand AI-powered scraper');
+      logger.info('Using Stagehand AI-powered scraper');
     } else {
       // Python actor configuration (legacy)
       runConfig = {
@@ -170,15 +171,15 @@ export async function startScrapeJob(
           useApifyProxy: false,
         },
       };
-      console.log('[Apify] Using Python PDF scraper with table extraction');
+      logger.info('Using Python PDF scraper with table extraction');
     }
     
     const run = await apifyClient.actor(actorId).call(runConfig);
 
-    console.log(`[Apify] Job started with run ID: ${run.id}`);
+    logger.info({ runId: run.id }, 'Job started');
     return run.id;
   } catch (error) {
-    console.error('[Apify] Failed to start scrape job:', error);
+    logger.error({ error }, 'Failed to start scrape job');
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Failed to start web scraping job: ${errorMessage}`);
   }
@@ -200,7 +201,7 @@ export async function checkJobStatus(runId: string): Promise<{
       statusMessage: run?.statusMessage,
     };
   } catch (error) {
-    console.error('[Apify] Failed to check job status:', error);
+    logger.error({ error, runId }, 'Failed to check job status');
     throw new Error('Failed to check scraping job status');
   }
 }
@@ -219,12 +220,12 @@ export async function waitForJob(
     const { status } = await checkJobStatus(runId);
     
     if (status !== lastStatus) {
-      console.log(`[Apify] Job ${runId} status: ${status}`);
+      logger.info({ runId, status }, 'Job status check');
       lastStatus = status;
     }
     
     if (status === 'SUCCEEDED') {
-      console.log(`[Apify] Job ${runId} completed successfully`);
+      logger.info({ runId }, 'Job completed successfully');
       return;
     }
     
@@ -243,7 +244,7 @@ export async function waitForJob(
  * Get the results from a completed scraping job
  */
 export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
-  console.log(`[Apify] Fetching results for job: ${runId}`);
+  logger.info({ runId }, 'Fetching results for job');
 
   try {
     const apifyClient = getApifyClient();
@@ -253,19 +254,19 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
     const datasetId = run?.defaultDatasetId;
     
     if (!datasetId) {
-      console.error('[Apify] No dataset ID found for run:', runId);
+      logger.error({ runId }, 'No dataset ID found for run');
       throw new Error('No dataset found for this run');
     }
     
-    console.log(`[Apify] Using dataset ID: ${datasetId}`);
+    logger.info({ datasetId }, 'Using dataset ID');
     const { items } = await apifyClient.dataset(datasetId).listItems();
     
-    console.log(`[Apify] Dataset has ${items.length} items`);
+    logger.info({ itemCount: items.length }, 'Dataset items retrieved');
     
     const results: ScrapedContent[] = [];
     
     for (const item of items as any[]) {
-      console.log(`[Apify] Processing item:`, JSON.stringify(item).substring(0, 300));
+      logger.debug({ itemPreview: JSON.stringify(item).substring(0, 300) }, 'Processing item');
       
       // Handle different item types from custom actor
       if (item.type === 'page') {
@@ -286,9 +287,9 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
         // Only add pages with meaningful content
         if (content.url && content.text.length > 100) {
           results.push(content);
-          console.log(`[Apify] Added page with ${content.text.length} characters`);
+          logger.debug({ contentLength: content.text.length }, 'Added page with content');
         } else {
-          console.log(`[Apify] Skipped page with insufficient content (${content.text.length} chars)`);
+          logger.debug({ contentLength: content.text.length }, 'Skipped page with insufficient content');
         }
       } else if (item.type === 'pdf' && item.full_text) {
         // PDF data from Stagehand actor
@@ -313,7 +314,7 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
         
         if (content.text.length > 100 || (content.tables && content.tables.length > 0)) {
           results.push(content);
-          console.log(`[Apify] Added PDF with ${content.text.length} characters`);
+          logger.debug({ contentLength: content.text.length }, 'Added PDF with content');
         }
       } else if (item.status === 'success' && item.full_text) {
         // PDF data from Python actor (legacy format)
@@ -338,7 +339,7 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
         
         if (content.text.length > 100 || (content.tables && content.tables.length > 0)) {
           results.push(content);
-          console.log(`[Apify] Added PDF with ${content.tables?.length || 0} tables`);
+          logger.debug({ tableCount: content.tables?.length || 0 }, 'Added PDF with tables');
         }
       } else if (item.url && item.url.toLowerCase().endsWith('.pdf')) {
         // PDF link without content
@@ -361,10 +362,10 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
       }
     }
     
-    console.log(`[Apify] Retrieved ${results.length} pages with content`);
+    logger.info({ resultCount: results.length }, 'Retrieved pages with content');
     return results;
   } catch (error) {
-    console.error('[Apify] Failed to get job results:', error);
+    logger.error({ error, runId }, 'Failed to get job results');
     throw new Error('Failed to retrieve scraping results');
   }
 }
@@ -374,7 +375,7 @@ export async function getJobResults(runId: string): Promise<ScrapedContent[]> {
  */
 export async function downloadPDF(url: string): Promise<Buffer> {
   try {
-    console.log(`[Apify] Downloading PDF from: ${url}`);
+    logger.info({ url }, 'Downloading PDF');
     
     const response = await fetch(url);
     
@@ -390,7 +391,7 @@ export async function downloadPDF(url: string): Promise<Buffer> {
     const arrayBuffer = await response.arrayBuffer();
     return Buffer.from(arrayBuffer);
   } catch (error) {
-    console.error('[Apify] Failed to download PDF:', error);
+    logger.error({ error, url }, 'Failed to download PDF');
     throw error;
   }
 }

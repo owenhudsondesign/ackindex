@@ -13,6 +13,7 @@ import {
   storeChunks,
   markDocumentCompleted,
 } from '@/lib/database';
+import logger from '@/lib/logger';
 import { chunkText } from '@/lib/chunking';
 import { createHash } from 'crypto';
 
@@ -42,7 +43,7 @@ export interface ScrapeResults {
 export async function executeScheduledScraping(
   batchSize: number = 5
 ): Promise<ScrapeResults> {
-  console.log('[Scheduled Scraping] Starting scrape job...');
+  logger.info('Starting scheduled scrape job');
 
   // Get URLs that need scraping using the SQL function
   const { data: urlsToScrape, error: fetchError } = await supabase.rpc(
@@ -51,12 +52,12 @@ export async function executeScheduledScraping(
   );
 
   if (fetchError) {
-    console.error('[Scheduled Scraping] Error fetching URLs:', fetchError);
+    logger.error({ error: fetchError }, 'Error fetching scheduled URLs');
     throw new Error(`Failed to fetch URLs: ${fetchError.message}`);
   }
 
   if (!urlsToScrape || urlsToScrape.length === 0) {
-    console.log('[Scheduled Scraping] No URLs need scraping at this time');
+    logger.info('No URLs need scraping at this time');
     return {
       processed: 0,
       succeeded: 0,
@@ -65,7 +66,7 @@ export async function executeScheduledScraping(
     };
   }
 
-  console.log(`[Scheduled Scraping] Found ${urlsToScrape.length} URLs to scrape`);
+  logger.info({ urlCount: urlsToScrape.length }, 'Found URLs to scrape');
 
   const results: ScrapeResults = {
     processed: 0,
@@ -77,7 +78,7 @@ export async function executeScheduledScraping(
   // Process each URL
   for (const schedule of urlsToScrape) {
     try {
-      console.log(`[Scheduled Scraping] Processing: ${schedule.url}`);
+      logger.info({ url: schedule.url }, 'Processing scheduled URL');
 
       // Mark as being processed
       await supabase
@@ -91,7 +92,7 @@ export async function executeScheduledScraping(
       results.processed++;
       results.succeeded++;
     } catch (error) {
-      console.error(`[Scheduled Scraping] Failed to process ${schedule.url}:`, error);
+      logger.error({ error, url: schedule.url }, 'Failed to process scheduled URL');
 
       // Increment error count and mark as failed if too many errors
       const errorCount = (schedule.error_count || 0) + 1;
@@ -111,9 +112,7 @@ export async function executeScheduledScraping(
     }
   }
 
-  console.log(
-    `[Scheduled Scraping] Completed: ${results.succeeded} succeeded, ${results.failed} failed`
-  );
+  logger.info({ succeeded: results.succeeded, failed: results.failed }, 'Scheduled scraping completed');
 
   return results;
 }
@@ -128,12 +127,12 @@ async function processScheduledUrl(schedule: {
   priority: number;
 }): Promise<void> {
   try {
-    console.log(`[Scheduled Scraping] Starting scrape for: ${schedule.url}`);
+    logger.info({ url: schedule.url }, 'Starting scrape for scheduled URL');
 
     // Check if content has changed (deduplication)
     const shouldScrape = await checkIfShouldScrape(schedule.url);
     if (!shouldScrape) {
-      console.log(`[Scheduled Scraping] Content unchanged for ${schedule.url}, skipping...`);
+      logger.info({ url: schedule.url }, 'Content unchanged, skipping scrape');
       return;
     }
 
@@ -178,7 +177,7 @@ async function processScheduledUrl(schedule: {
       apify_run_id: runId,
     });
 
-    console.log(`[Scheduled Scraping] Waiting for Apify job ${runId} to complete...`);
+    logger.info({ runId }, 'Waiting for Apify job to complete');
 
     // Wait for job to complete (with 5 minute timeout)
     await waitForJob(runId, 300000);
@@ -186,7 +185,7 @@ async function processScheduledUrl(schedule: {
     // Get results
     const results = await getJobResults(runId);
 
-    console.log(`[Scheduled Scraping] Retrieved ${results.length} pages from scrape`);
+    logger.info({ pageCount: results.length }, 'Retrieved pages from scrape');
 
     // Update scrape job
     await updateScrapeJob(scrapeJob.id, {
@@ -267,11 +266,9 @@ async function processScheduledUrl(schedule: {
       })
       .eq('id', schedule.id);
 
-    console.log(
-      `[Scheduled Scraping] Completed scraping ${schedule.url}: ${allChunks.length} chunks, ${totalTokens} tokens`
-    );
+    logger.info({ url: schedule.url, chunkCount: allChunks.length, tokenCount: totalTokens }, 'Completed scraping URL');
   } catch (error) {
-    console.error('[Scheduled Scraping] Processing failed:', error);
+    logger.error({ error }, 'Processing failed');
     throw error;
   }
 }
@@ -286,7 +283,7 @@ async function checkIfShouldScrape(url: string): Promise<boolean> {
     // This is a placeholder for the deduplication logic
     return true;
   } catch (error) {
-    console.error('[Scheduled Scraping] Error checking if should scrape:', error);
+    logger.error({ error }, 'Error checking if should scrape');
     // On error, scrape anyway
     return true;
   }

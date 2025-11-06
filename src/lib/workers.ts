@@ -300,7 +300,7 @@ async function processPDFFromStorage(
       'generate-embeddings',
       {
         chunks: enrichedChunks.map(chunk => ({
-          id: chunk.id || `${documentId}-${chunk.index}`,
+          id: `${documentId}-${chunk.index}`,
           content: chunk.content,
         })),
       },

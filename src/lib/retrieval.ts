@@ -1,12 +1,14 @@
 /**
  * Retrieval Utilities
- * 
+ *
  * Semantic search and retrieval functions for RAG.
  * Finds relevant document chunks for user queries.
  */
 
 import { supabaseAdmin } from './supabase';
 import { generateEmbedding } from './embeddings';
+import { getCachedSearchQuery, setCachedSearchQuery } from './cache';
+import logger from './logger';
 
 export interface RetrievalResult {
   id: string;
@@ -16,6 +18,7 @@ export interface RetrievalResult {
   metadata: Record<string, any>;
   similarity: number;
   document?: {
+    id: string;
     title?: string;
     source_url?: string;
     filename?: string;
@@ -44,7 +47,7 @@ export async function retrieveRelevantChunks(
     searchMode = 'semantic',
   } = options;
 
-  console.log(`[Retrieval] Searching for: "${query}" (mode: ${searchMode})`);
+  logger.info({ query, mode: searchMode }, '[Retrieval] Searching');
 
   try {
     if (searchMode === 'keyword') {
@@ -55,13 +58,13 @@ export async function retrieveRelevantChunks(
       return await semanticSearch(query, maxResults, minSimilarity, includeDocumentInfo);
     }
   } catch (error) {
-    console.error('[Retrieval] Search failed:', error);
+    logger.error({ error, query }, '[Retrieval] Search failed');
     throw new Error('Failed to retrieve relevant content');
   }
 }
 
 /**
- * Semantic search using vector embeddings
+ * Semantic search using vector embeddings (with caching)
  */
 async function semanticSearch(
   query: string,
@@ -69,16 +72,32 @@ async function semanticSearch(
   minSimilarity: number,
   includeDocumentInfo: boolean
 ): Promise<RetrievalResult[]> {
+  // Try cache first - cache key includes params to ensure correct results
+  const cacheKey = `${query}|${maxResults}|${minSimilarity}|${includeDocumentInfo}`;
+  const cached = await getCachedSearchQuery(cacheKey);
+
+  if (cached) {
+    logger.debug({ query, cached: true }, '[Retrieval] Search cache hit');
+    return cached as RetrievalResult[];
+  }
+
+  logger.debug({ query, cached: false }, '[Retrieval] Search cache miss');
+
   // Generate embedding for the query
-  console.log('[Retrieval] Generating query embedding...');
-  console.log(`[Retrieval] Query text: "${query}"`);
+  logger.info({ query }, '[Retrieval] Generating query embedding');
   const queryEmbedding = await generateEmbedding(query);
-  console.log(`[Retrieval] Query embedding generated: ${queryEmbedding.length} dimensions`);
-  console.log(`[Retrieval] First 5 embedding values: [${queryEmbedding.slice(0, 5).join(', ')}...]`);
+  logger.debug({
+    dimensions: queryEmbedding.length,
+    preview: queryEmbedding.slice(0, 5)
+  }, '[Retrieval] Query embedding generated');
 
   // Search using the database function
   // Pass embedding as array - Supabase will automatically cast to vector(1536) type
-  console.log(`[Retrieval] Calling search_similar_chunks with threshold=${minSimilarity}, count=${maxResults}`);
+  logger.debug({
+    threshold: minSimilarity,
+    count: maxResults
+  }, '[Retrieval] Calling search_similar_chunks');
+
   const { data, error } = await supabaseAdmin.rpc('search_similar_chunks', {
     query_embedding: queryEmbedding,
     match_threshold: minSimilarity,
@@ -86,24 +105,30 @@ async function semanticSearch(
   });
 
   if (error) {
-    console.error('[Retrieval] Database search error:', error);
-    console.error('[Retrieval] Error details:', JSON.stringify(error, null, 2));
+    logger.error({ error }, '[Retrieval] Database search error');
     throw new Error('Database search failed');
   }
 
-  console.log(`[Retrieval] RPC returned ${data?.length || 0} results`);
+  logger.info({ count: data?.length || 0 }, '[Retrieval] Search results retrieved');
+
   if (data && data.length > 0) {
-    console.log(`[Retrieval] First result similarity: ${data[0].similarity}`);
-    console.log(`[Retrieval] First result content preview: ${data[0].content?.substring(0, 100)}...`);
+    logger.debug({
+      topSimilarity: data[0].similarity,
+      preview: data[0].content?.substring(0, 100)
+    }, '[Retrieval] Top result');
   }
 
   // Optionally fetch document info
-  if (includeDocumentInfo && data && data.length > 0) {
-    console.log('[Retrieval] Enriching with document info...');
-    return await enrichWithDocumentInfo(data);
+  let results = data || [];
+  if (includeDocumentInfo && results.length > 0) {
+    logger.debug('[Retrieval] Enriching with document info');
+    results = await enrichWithDocumentInfo(results);
   }
 
-  return data || [];
+  // Cache the results (24 hour TTL)
+  await setCachedSearchQuery(cacheKey, results);
+
+  return results;
 }
 
 /**
@@ -131,7 +156,7 @@ async function keywordSearch(
     .limit(maxResults);
 
   if (error) {
-    console.error('[Retrieval] Keyword search error:', error);
+    logger.error({ error }, '[Retrieval] Keyword search error');
     throw new Error('Keyword search failed');
   }
 
@@ -160,7 +185,7 @@ async function hybridSearch(
   });
 
   if (error) {
-    console.error('[Retrieval] Hybrid search error:', error);
+    logger.error({ error }, '[Retrieval] Hybrid search error');
     // Fallback to semantic search
     return await semanticSearch(query, maxResults, minSimilarity, true);
   }
