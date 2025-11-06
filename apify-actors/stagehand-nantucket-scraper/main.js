@@ -106,16 +106,79 @@ await Actor.main(async () => {
           timeout: 20000 // 20 second timeout
         });
 
-        // Special handling for CivicClerk portals - scroll to load dynamic content
+        // Special handling for CivicClerk portals - bi-directional infinite scroll
         if (url.includes('civicclerk.com')) {
-          console.log('🗓️ CivicClerk portal detected - scrolling to load meetings...');
+          console.log('🗓️ CivicClerk portal detected - scrolling to load all meetings...');
           try {
-            // Scroll down to trigger lazy-loaded content
-            await stagehand.page.act({
-              action: 'Scroll down the page slowly to load all meetings'
+            const maxScrollAttempts = 50; // Allow more scrolls for historical data
+            let scrollAttempts = 0;
+
+            // Step 1: Scroll DOWN to load future meetings (usually ~1 week)
+            console.log('⬇️ Phase 1: Scrolling down to load future meetings...');
+            let previousHeight = 0;
+            let currentHeight = await stagehand.page.evaluate(() => document.body.scrollHeight);
+
+            while (previousHeight !== currentHeight && scrollAttempts < 10) {
+              previousHeight = currentHeight;
+              await stagehand.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+              console.log(`📜 Down scroll ${scrollAttempts + 1}: ${currentHeight}px`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              currentHeight = await stagehand.page.evaluate(() => document.body.scrollHeight);
+              scrollAttempts++;
+            }
+            console.log(`✅ Loaded ${scrollAttempts} future meeting pages`);
+
+            // Step 2: Scroll back to top
+            await stagehand.page.evaluate(() => window.scrollTo(0, 0));
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log('⬆️ Phase 2: Scrolling up to load historical meetings...');
+
+            // Step 3: Scroll UP to load historical meetings (can go back years)
+            // On CivicClerk, scrolling to top (y=0) triggers loading of older meetings
+            scrollAttempts = 0;
+            let previousMeetingCount = 0;
+            let noChangeCount = 0; // Track consecutive times with no change
+            let currentMeetingCount = await stagehand.page.evaluate(() => {
+              // Count meeting items in the DOM
+              const items = document.querySelectorAll('[class*="event"], [class*="meeting"], [data-testid*="event"]');
+              return items.length;
             });
-            // Wait for content to load
-            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            while (scrollAttempts < maxScrollAttempts) {
+              // Scroll to top to trigger loading older content
+              await stagehand.page.evaluate(() => window.scrollTo(0, 0));
+              await new Promise(resolve => setTimeout(resolve, 3000)); // Longer wait for loading
+
+              // Check if new meetings loaded
+              currentMeetingCount = await stagehand.page.evaluate(() => {
+                const items = document.querySelectorAll('[class*="event"], [class*="meeting"], [data-testid*="event"]');
+                return items.length;
+              });
+
+              console.log(`📜 Up scroll ${scrollAttempts + 1}: ${currentMeetingCount} meetings loaded`);
+
+              // Stop only after 5 consecutive attempts with no new meetings
+              if (currentMeetingCount === previousMeetingCount) {
+                noChangeCount++;
+                if (noChangeCount >= 5) {
+                  console.log(`⏹️ No new meetings loaded after ${noChangeCount} attempts, stopping...`);
+                  break;
+                }
+              } else {
+                noChangeCount = 0; // Reset counter when new meetings are found
+              }
+
+              previousMeetingCount = currentMeetingCount;
+              scrollAttempts++;
+            }
+
+            console.log(`✅ Finished loading ${currentMeetingCount} total meetings (${scrollAttempts} scroll attempts)`);
+
+            // Scroll to middle for extraction
+            await stagehand.page.evaluate(() => {
+              window.scrollTo(0, document.body.scrollHeight / 2);
+            });
+            await new Promise(resolve => setTimeout(resolve, 1000));
           } catch (scrollError) {
             console.log('⚠️ Scroll action failed, continuing anyway:', scrollError.message);
           }
@@ -148,7 +211,8 @@ await Actor.main(async () => {
 
         // Process PDFs if enabled
         if (extractPDFs && pageData.pdfLinks && pageData.pdfLinks.length > 0) {
-          for (const pdfUrl of pageData.pdfLinks.slice(0, 5)) { // Limit to 5 PDFs per page
+          console.log(`📑 Processing ${pageData.pdfLinks.length} PDFs...`);
+          for (const pdfUrl of pageData.pdfLinks) { // Process all PDFs
             try {
               console.log(`📥 Downloading PDF: ${pdfUrl}`);
               
