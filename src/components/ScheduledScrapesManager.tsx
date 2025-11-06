@@ -202,28 +202,38 @@ export default function ScheduledScrapesManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this scheduled scrape?')) {
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) {
+      showToast('Please select at least one URL to delete', 'error');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} scheduled scrape${selectedIds.size !== 1 ? 's' : ''}?`)) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/admin/scheduled-scrapes?id=${id}`, {
-        method: 'DELETE',
-      });
+      // Delete all selected scrapes
+      const deletePromises = Array.from(selectedIds).map(id =>
+        fetch(`/api/admin/scheduled-scrapes?id=${id}`, {
+          method: 'DELETE',
+        })
+      );
 
-      const data = await response.json();
+      const responses = await Promise.all(deletePromises);
+      const failed = responses.filter(r => !r.ok);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete URL');
+      if (failed.length > 0) {
+        throw new Error(`Failed to delete ${failed.length} URL${failed.length !== 1 ? 's' : ''}`);
       }
 
-      showToast('URL deleted successfully!', 'success');
+      showToast(`Successfully deleted ${selectedIds.size} URL${selectedIds.size !== 1 ? 's' : ''}!`, 'success');
+      setSelectedIds(new Set());
       fetchScrapes();
     } catch (error) {
-      console.error('Error deleting URL:', error);
+      console.error('Error deleting URLs:', error);
       showToast(
-        error instanceof Error ? error.message : 'Failed to delete URL',
+        error instanceof Error ? error.message : 'Failed to delete URLs',
         'error'
       );
     }
@@ -713,13 +723,22 @@ export default function ScheduledScrapesManager() {
                 <span className="text-sm text-blue-800 dark:text-blue-200">
                   {selectedIds.size} URL{selectedIds.size !== 1 ? 's' : ''} selected
                 </span>
-                <Button
-                  onClick={handleTriggerSelected}
-                  disabled={isTriggering}
-                  size="sm"
-                >
-                  {isTriggering ? 'Triggering...' : 'Scrape Selected Now'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleDeleteSelected}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Delete Selected
+                  </Button>
+                  <Button
+                    onClick={handleTriggerSelected}
+                    disabled={isTriggering}
+                    size="sm"
+                  >
+                    {isTriggering ? 'Triggering...' : 'Scrape Selected Now'}
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -753,9 +772,6 @@ export default function ScheduledScrapesManager() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Next Scrape
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -763,7 +779,7 @@ export default function ScheduledScrapesManager() {
                     editingId === scrape.id ? (
                       // Edit Row
                       <tr key={scrape.id} className="bg-blue-50 dark:bg-blue-900/30">
-                        <td className="px-4 py-3" colSpan={8}>
+                        <td className="px-4 py-3" colSpan={7}>
                           <form onSubmit={handleUpdate} className="space-y-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               <div>
@@ -1043,11 +1059,22 @@ export default function ScheduledScrapesManager() {
                           />
                         </td>
                         <td className="px-4 py-3">
-                          <div className="max-w-md">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                              {scrape.title || 'Untitled'}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEdit(scrape)}
+                              className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                              title="Edit scheduled scrape"
+                            >
+                              <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                                <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <div className="max-w-md">
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                {scrape.title || 'Untitled'}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{scrape.url}</div>
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{scrape.url}</div>
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -1077,22 +1104,6 @@ export default function ScheduledScrapesManager() {
                           <span className="text-sm text-gray-900 dark:text-gray-100">
                             {formatDate(scrape.next_scrape_at)}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleEdit(scrape)}
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(scrape.id)}
-                              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
-                            >
-                              Delete
-                            </button>
-                          </div>
                         </td>
                       </tr>
                     )
