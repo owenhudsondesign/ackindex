@@ -593,11 +593,40 @@ export default function ScheduledScrapesManager() {
 
                     {/* Chunking Configuration */}
                     <div>
-                      <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Chunking Settings</h5>
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Chunking Settings</h5>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, chunk_size: 300, chunk_overlap: 30 })}
+                            className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                            title="Best for dense technical docs, API references"
+                          >
+                            Small
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, chunk_size: 500, chunk_overlap: 50 })}
+                            className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                            title="Good for general content, meeting minutes (default)"
+                          >
+                            Default
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, chunk_size: 1200, chunk_overlap: 150 })}
+                            className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                            title="Best for long articles, research papers"
+                          >
+                            Large
+                          </button>
+                        </div>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Chunk Size (100-2000 tokens)
+                            Chunk Size (tokens)
+                            <span className="ml-1 text-gray-500 dark:text-gray-400" title="How many tokens per text chunk. ~4 characters = 1 token">ⓘ</span>
                           </label>
                           <input
                             type="number"
@@ -606,11 +635,18 @@ export default function ScheduledScrapesManager() {
                             value={formData.chunk_size}
                             onChange={(e) => setFormData({ ...formData, chunk_size: parseInt(e.target.value) })}
                             className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                            placeholder="500"
                           />
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            {formData.chunk_size < 400 ? '📄 Small chunks - precise search' :
+                             formData.chunk_size > 800 ? '📚 Large chunks - more context' :
+                             '📃 Balanced - good for most content'}
+                          </p>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Chunk Overlap (0-500 tokens)
+                            Chunk Overlap (tokens)
+                            <span className="ml-1 text-gray-500 dark:text-gray-400" title="Tokens repeated between chunks to preserve context across boundaries">ⓘ</span>
                           </label>
                           <input
                             type="number"
@@ -619,7 +655,13 @@ export default function ScheduledScrapesManager() {
                             value={formData.chunk_overlap}
                             onChange={(e) => setFormData({ ...formData, chunk_overlap: parseInt(e.target.value) })}
                             className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                            placeholder="50"
                           />
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            {formData.chunk_overlap === 0 ? '⚠️ No overlap - may lose context' :
+                             formData.chunk_overlap > 150 ? '🔗 High overlap - better continuity' :
+                             '✓ Good balance'}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -894,11 +936,40 @@ export default function ScheduledScrapesManager() {
 
                                   {/* Chunking Configuration */}
                                   <div>
-                                    <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Chunking Settings</h5>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Chunking Settings</h5>
+                                      <div className="flex gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => setFormData({ ...formData, chunk_size: 300, chunk_overlap: 30 })}
+                                          className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                                          title="Best for dense technical docs, API references"
+                                        >
+                                          Small
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setFormData({ ...formData, chunk_size: 500, chunk_overlap: 50 })}
+                                          className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                                          title="Good for general content, meeting minutes (default)"
+                                        >
+                                          Default
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setFormData({ ...formData, chunk_size: 1200, chunk_overlap: 150 })}
+                                          className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                                          title="Best for long articles, research papers"
+                                        >
+                                          Large
+                                        </button>
+                                      </div>
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                       <div>
                                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                          Chunk Size (100-2000 tokens)
+                                          Chunk Size (tokens)
+                                          <span className="ml-1 text-gray-500 dark:text-gray-400" title="How many tokens per text chunk. ~4 characters = 1 token">ⓘ</span>
                                         </label>
                                         <input
                                           type="number"
@@ -907,11 +978,18 @@ export default function ScheduledScrapesManager() {
                                           value={formData.chunk_size}
                                           onChange={(e) => setFormData({ ...formData, chunk_size: parseInt(e.target.value) })}
                                           className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                                          placeholder="500"
                                         />
+                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                          {formData.chunk_size < 400 ? '📄 Small chunks - precise search' :
+                                           formData.chunk_size > 800 ? '📚 Large chunks - more context' :
+                                           '📃 Balanced - good for most content'}
+                                        </p>
                                       </div>
                                       <div>
                                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                          Chunk Overlap (0-500 tokens)
+                                          Chunk Overlap (tokens)
+                                          <span className="ml-1 text-gray-500 dark:text-gray-400" title="Tokens repeated between chunks to preserve context across boundaries">ⓘ</span>
                                         </label>
                                         <input
                                           type="number"
@@ -920,7 +998,13 @@ export default function ScheduledScrapesManager() {
                                           value={formData.chunk_overlap}
                                           onChange={(e) => setFormData({ ...formData, chunk_overlap: parseInt(e.target.value) })}
                                           className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                                          placeholder="50"
                                         />
+                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                          {formData.chunk_overlap === 0 ? '⚠️ No overlap - may lose context' :
+                                           formData.chunk_overlap > 150 ? '🔗 High overlap - better continuity' :
+                                           '✓ Good balance'}
+                                        </p>
                                       </div>
                                     </div>
                                   </div>
