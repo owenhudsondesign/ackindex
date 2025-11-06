@@ -167,7 +167,7 @@ function AccountContent() {
                   </h2>
                   <p className="text-gray-600 dark:text-gray-300">
                     {isPremium
-                      ? 'Unlimited tokens and queries'
+                      ? '50,000 tokens per month'
                       : '3,500 tokens per month'}
                   </p>
                 </div>
@@ -228,32 +228,24 @@ function AccountContent() {
                       Token Usage
                     </span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {isPremium ? (
-                        <span className="text-green-600 dark:text-green-400">Unlimited</span>
-                      ) : (
-                        `${dashboard.tokens_used_this_month.toLocaleString()} / ${dashboard.monthly_token_limit.toLocaleString()}`
-                      )}
+                      {`${dashboard.tokens_used_this_month.toLocaleString()} / ${dashboard.monthly_token_limit.toLocaleString()}`}
                     </span>
                   </div>
-                  {!isPremium && (
-                    <>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            usagePercentage > 90
-                              ? 'bg-red-500 dark:bg-red-600'
-                              : usagePercentage > 70
-                              ? 'bg-yellow-500 dark:bg-yellow-600'
-                              : 'bg-blue-500 dark:bg-blue-600'
-                          }`}
-                          style={{ width: `${usagePercentage}%` }}
-                        />
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        {dashboard.tokens_remaining.toLocaleString()} tokens remaining
-                      </p>
-                    </>
-                  )}
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        usagePercentage > 90
+                          ? 'bg-red-500 dark:bg-red-600'
+                          : usagePercentage > 70
+                          ? 'bg-yellow-500 dark:bg-yellow-600'
+                          : 'bg-blue-500 dark:bg-blue-600'
+                      }`}
+                      style={{ width: `${usagePercentage}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    {dashboard.tokens_remaining.toLocaleString()} tokens remaining
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
