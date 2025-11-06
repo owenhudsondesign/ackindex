@@ -18,6 +18,16 @@ interface ScheduledScrape {
   created_at: string;
   error_message: string | null;
   error_count: number;
+  // Scraper configuration
+  max_depth?: number;
+  max_pages?: number;
+  extract_pdfs?: boolean;
+  scrape_javascript?: boolean;
+  wait_for_dynamic_content?: boolean;
+  timeout_seconds?: number;
+  // Chunking configuration
+  chunk_size?: number;
+  chunk_overlap?: number;
 }
 
 export default function ScheduledScrapesManager() {
@@ -27,6 +37,7 @@ export default function ScheduledScrapesManager() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [toast, setToast] = useState<{
     show: boolean;
     message: string;
@@ -44,6 +55,16 @@ export default function ScheduledScrapesManager() {
     scrape_frequency: '1 week',
     priority: 5,
     status: 'active' as 'active' | 'paused' | 'failed',
+    // Scraper configuration with defaults
+    max_depth: 2,
+    max_pages: 20,
+    extract_pdfs: true,
+    scrape_javascript: false,
+    wait_for_dynamic_content: false,
+    timeout_seconds: 30,
+    // Chunking configuration
+    chunk_size: 500,
+    chunk_overlap: 50,
   });
 
   const showToast = (message: string, type: 'success' | 'error') => {
@@ -58,9 +79,18 @@ export default function ScheduledScrapesManager() {
       scrape_frequency: '1 week',
       priority: 5,
       status: 'active',
+      max_depth: 2,
+      max_pages: 20,
+      extract_pdfs: true,
+      scrape_javascript: false,
+      wait_for_dynamic_content: false,
+      timeout_seconds: 30,
+      chunk_size: 500,
+      chunk_overlap: 50,
     });
     setEditingId(null);
     setShowAddForm(false);
+    setShowAdvanced(false);
   };
 
   const fetchScrapes = async () => {
@@ -129,6 +159,14 @@ export default function ScheduledScrapesManager() {
       scrape_frequency: scrape.scrape_frequency,
       priority: scrape.priority,
       status: scrape.status,
+      max_depth: scrape.max_depth ?? 2,
+      max_pages: scrape.max_pages ?? 20,
+      extract_pdfs: scrape.extract_pdfs ?? true,
+      scrape_javascript: scrape.scrape_javascript ?? false,
+      wait_for_dynamic_content: scrape.wait_for_dynamic_content ?? false,
+      timeout_seconds: scrape.timeout_seconds ?? 30,
+      chunk_size: scrape.chunk_size ?? 500,
+      chunk_overlap: scrape.chunk_overlap ?? 50,
     });
     setEditingId(scrape.id);
     setShowAddForm(false);
@@ -453,6 +491,142 @@ export default function ScheduledScrapesManager() {
                   </select>
                 </div>
               </div>
+
+              {/* Advanced Configuration Section */}
+              <div className="border-t border-gray-200 dark:border-gray-600 pt-3 mt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                >
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-90' : ''}`}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path d="M9 5l7 7-7 7" />
+                  </svg>
+                  Advanced Configuration
+                </button>
+
+                {showAdvanced && (
+                  <div className="mt-3 space-y-3">
+                    {/* Scraper Configuration */}
+                    <div>
+                      <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Scraper Settings</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Max Depth (1-10)
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={formData.max_depth}
+                            onChange={(e) => setFormData({ ...formData, max_depth: parseInt(e.target.value) })}
+                            className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Max Pages (1-200)
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="200"
+                            value={formData.max_pages}
+                            onChange={(e) => setFormData({ ...formData, max_pages: parseInt(e.target.value) })}
+                            className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Timeout (10-120s)
+                          </label>
+                          <input
+                            type="number"
+                            min="10"
+                            max="120"
+                            value={formData.timeout_seconds}
+                            onChange={(e) => setFormData({ ...formData, timeout_seconds: parseInt(e.target.value) })}
+                            className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                        <label className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                          <input
+                            type="checkbox"
+                            checked={formData.extract_pdfs}
+                            onChange={(e) => setFormData({ ...formData, extract_pdfs: e.target.checked })}
+                            className="rounded border-gray-300 dark:border-gray-600 text-ack-blue dark:text-blue-500 focus:ring-ack-blue dark:focus:ring-blue-500 mr-2"
+                          />
+                          Extract PDFs
+                        </label>
+                        <label className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                          <input
+                            type="checkbox"
+                            checked={formData.scrape_javascript}
+                            onChange={(e) => setFormData({ ...formData, scrape_javascript: e.target.checked })}
+                            className="rounded border-gray-300 dark:border-gray-600 text-ack-blue dark:text-blue-500 focus:ring-ack-blue dark:focus:ring-blue-500 mr-2"
+                          />
+                          Execute JavaScript
+                        </label>
+                        <label className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                          <input
+                            type="checkbox"
+                            checked={formData.wait_for_dynamic_content}
+                            onChange={(e) => setFormData({ ...formData, wait_for_dynamic_content: e.target.checked })}
+                            className="rounded border-gray-300 dark:border-gray-600 text-ack-blue dark:text-blue-500 focus:ring-ack-blue dark:focus:ring-blue-500 mr-2"
+                          />
+                          Wait for Dynamic Content
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Chunking Configuration */}
+                    <div>
+                      <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Chunking Settings</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Chunk Size (100-2000 tokens)
+                          </label>
+                          <input
+                            type="number"
+                            min="100"
+                            max="2000"
+                            value={formData.chunk_size}
+                            onChange={(e) => setFormData({ ...formData, chunk_size: parseInt(e.target.value) })}
+                            className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Chunk Overlap (0-500 tokens)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="500"
+                            value={formData.chunk_overlap}
+                            onChange={(e) => setFormData({ ...formData, chunk_overlap: parseInt(e.target.value) })}
+                            className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
@@ -618,6 +792,142 @@ export default function ScheduledScrapesManager() {
                                 </select>
                               </div>
                             </div>
+
+                            {/* Advanced Configuration Section - Edit Form */}
+                            <div className="border-t border-gray-200 dark:border-gray-600 pt-3 mt-3">
+                              <button
+                                type="button"
+                                onClick={() => setShowAdvanced(!showAdvanced)}
+                                className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                              >
+                                <svg
+                                  className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-90' : ''}`}
+                                  fill="none"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path d="M9 5l7 7-7 7" />
+                                </svg>
+                                Advanced Configuration
+                              </button>
+
+                              {showAdvanced && (
+                                <div className="mt-3 space-y-3">
+                                  {/* Scraper Configuration */}
+                                  <div>
+                                    <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Scraper Settings</h5>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                          Max Depth (1-10)
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          max="10"
+                                          value={formData.max_depth}
+                                          onChange={(e) => setFormData({ ...formData, max_depth: parseInt(e.target.value) })}
+                                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                          Max Pages (1-200)
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          max="200"
+                                          value={formData.max_pages}
+                                          onChange={(e) => setFormData({ ...formData, max_pages: parseInt(e.target.value) })}
+                                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                          Timeout (10-120s)
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="10"
+                                          max="120"
+                                          value={formData.timeout_seconds}
+                                          onChange={(e) => setFormData({ ...formData, timeout_seconds: parseInt(e.target.value) })}
+                                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                                      <label className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                        <input
+                                          type="checkbox"
+                                          checked={formData.extract_pdfs}
+                                          onChange={(e) => setFormData({ ...formData, extract_pdfs: e.target.checked })}
+                                          className="rounded border-gray-300 dark:border-gray-600 text-ack-blue dark:text-blue-500 focus:ring-ack-blue dark:focus:ring-blue-500 mr-2"
+                                        />
+                                        Extract PDFs
+                                      </label>
+                                      <label className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                        <input
+                                          type="checkbox"
+                                          checked={formData.scrape_javascript}
+                                          onChange={(e) => setFormData({ ...formData, scrape_javascript: e.target.checked })}
+                                          className="rounded border-gray-300 dark:border-gray-600 text-ack-blue dark:text-blue-500 focus:ring-ack-blue dark:focus:ring-blue-500 mr-2"
+                                        />
+                                        Execute JavaScript
+                                      </label>
+                                      <label className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                        <input
+                                          type="checkbox"
+                                          checked={formData.wait_for_dynamic_content}
+                                          onChange={(e) => setFormData({ ...formData, wait_for_dynamic_content: e.target.checked })}
+                                          className="rounded border-gray-300 dark:border-gray-600 text-ack-blue dark:text-blue-500 focus:ring-ack-blue dark:focus:ring-blue-500 mr-2"
+                                        />
+                                        Wait for Dynamic Content
+                                      </label>
+                                    </div>
+                                  </div>
+
+                                  {/* Chunking Configuration */}
+                                  <div>
+                                    <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Chunking Settings</h5>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                          Chunk Size (100-2000 tokens)
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="100"
+                                          max="2000"
+                                          value={formData.chunk_size}
+                                          onChange={(e) => setFormData({ ...formData, chunk_size: parseInt(e.target.value) })}
+                                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                          Chunk Overlap (0-500 tokens)
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max="500"
+                                          value={formData.chunk_overlap}
+                                          onChange={(e) => setFormData({ ...formData, chunk_overlap: parseInt(e.target.value) })}
+                                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-500 focus:border-ack-blue dark:focus:border-blue-500"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
                             <div className="flex justify-end gap-2">
                               <Button
                                 type="button"
