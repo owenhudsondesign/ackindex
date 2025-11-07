@@ -33,9 +33,13 @@ const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:63
 
 // Interface for scraping job data
 interface ScrapingJobData {
-  documentId: string;
+  documentId?: string;
   url: string;
   userId: string;
+  language?: string;
+  enableCodeSwitching?: boolean;
+  chunkSize?: number;
+  chunkOverlap?: number;
 }
 
 // Interface for embedding job data
@@ -341,19 +345,102 @@ async function processPDFFromStorage(
 }
 
 /**
+ * Process YouTube video with Gladia transcription
+ */
+async function processYouTubeVideoJob(
+  url: string,
+  options: {
+    language?: string;
+    enableCodeSwitching?: boolean;
+    chunkSize?: number;
+    chunkOverlap?: number;
+  },
+  job: Job
+): Promise<string> {
+  const log = workerLogger.child({ jobId: job.id, url });
+
+  try {
+    log.info({ url }, 'Starting YouTube video processing with Gladia');
+    await job.updateProgress(5);
+
+    // Import the YouTube processor
+    const { processYouTubeVideo } = await import('@/lib/youtubeGladiaScraper');
+
+    await job.updateProgress(10);
+
+    // Process video (this handles everything: metadata, transcription, enrichment, storage)
+    const documentId = await processYouTubeVideo(url, undefined, {
+      language: options.language || 'en',
+      enableCodeSwitching: options.enableCodeSwitching ?? false,
+      chunkSize: options.chunkSize ?? 500,
+      chunkOverlap: options.chunkOverlap ?? 50,
+    });
+
+    await job.updateProgress(90);
+
+    // Queue embedding generation
+    const { embeddingQueue } = await import('./queues');
+    const { createClient } = require('@supabase/supabase-js');
+    const supabaseClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Get chunks that need embeddings
+    const { data: chunks } = await supabaseClient
+      .from('document_chunks')
+      .select('id, content')
+      .eq('document_id', documentId)
+      .is('embedding', null)
+      .limit(100);
+
+    if (chunks && chunks.length > 0) {
+      await embeddingQueue.add('generate-embeddings', { chunks });
+      log.info({ documentId, chunkCount: chunks.length }, 'Queued embedding generation');
+    }
+
+    await job.updateProgress(100);
+
+    log.info({ documentId, url }, 'Completed YouTube video processing');
+    return documentId;
+  } catch (error) {
+    log.error({ err: error, url }, 'YouTube video processing failed');
+    throw error;
+  }
+}
+
+/**
  * Scraping Worker
- * Processes web scraping jobs
+ * Processes web scraping jobs and YouTube video processing
  */
 export const scrapingWorker = new Worker<ScrapingJobData>(
   'scraping',
   async (job) => {
-    const { documentId, url, userId } = job.data;
+    const { documentId, url, userId, language, enableCodeSwitching, chunkSize, chunkOverlap } = job.data;
 
-    workerLogger.info({ jobId: job.id, url }, 'Starting scraping job');
+    // Check job name to determine which processor to use
+    if (job.name === 'process-youtube-video') {
+      workerLogger.info({ jobId: job.id, url }, 'Starting YouTube video processing job');
 
-    await processUrlScraping(documentId, url, userId, job);
+      const resultDocumentId = await processYouTubeVideoJob(
+        url,
+        { language, enableCodeSwitching, chunkSize, chunkOverlap },
+        job
+      );
 
-    return { success: true, documentId, url };
+      return { success: true, documentId: resultDocumentId, url };
+    } else {
+      // Regular URL scraping
+      workerLogger.info({ jobId: job.id, url }, 'Starting scraping job');
+
+      if (!documentId) {
+        throw new Error('documentId is required for regular scraping jobs');
+      }
+
+      await processUrlScraping(documentId, url, userId, job);
+
+      return { success: true, documentId, url };
+    }
   },
   {
     connection: redisConnection,

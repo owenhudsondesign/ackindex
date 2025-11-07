@@ -14,6 +14,7 @@ import AnalyticsDashboard from '@/components/AnalyticsDashboard';
 import DocumentsList from '@/components/DocumentsList';
 import Loading from '@/components/Loading';
 import Card from '@/components/Card';
+import VideoScraper from '@/components/VideoScraper';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -222,6 +223,11 @@ export default function AdminPage() {
                 </a>
               </div>
             </Card>
+          </div>
+
+          {/* Video Scraper - NEW */}
+          <div className="mb-8">
+            <VideoScraper />
           </div>
 
           {/* Documents List */}
