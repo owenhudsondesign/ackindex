@@ -121,7 +121,7 @@ async function fetchChannelVideos(channelId, apiKey, maxResults = 50, includeLiv
 async function getVideoInfo(videoId) {
   try {
     const { stdout } = await execAsync(
-      `yt-dlp --dump-json --no-warnings "https://www.youtube.com/watch?v=${videoId}"`
+      `yt-dlp --dump-json --no-warnings --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --extractor-args "youtube:player_client=android" "https://www.youtube.com/watch?v=${videoId}"`
     );
     return JSON.parse(stdout);
   } catch (error) {
@@ -132,9 +132,9 @@ async function getVideoInfo(videoId) {
 // Helper: Download audio using yt-dlp
 async function downloadAudio(videoId, outputPath) {
   try {
-    // Download audio-only, best quality
+    // Download audio-only, best quality with anti-bot measures
     await execAsync(
-      `yt-dlp -f "bestaudio[ext=m4a]/bestaudio/best" --extract-audio --audio-format m4a --output "${outputPath}" --no-warnings "https://www.youtube.com/watch?v=${videoId}"`
+      `yt-dlp -f "bestaudio[ext=m4a]/bestaudio/best" --extract-audio --audio-format m4a --output "${outputPath}" --no-warnings --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --extractor-args "youtube:player_client=android" "https://www.youtube.com/watch?v=${videoId}"`
     );
 
     // Check if file exists
