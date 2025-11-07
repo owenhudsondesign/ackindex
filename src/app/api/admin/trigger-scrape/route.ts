@@ -48,11 +48,16 @@ export async function POST(request: NextRequest) {
 
     log.info('Starting manual scrape trigger');
 
-    // If specific IDs provided, update their next_scrape_at to now
+    // If specific IDs provided, update their next_scrape_at to now and reset failed status
     if (scrapeIds && scrapeIds.length > 0) {
       const { error: updateError } = await serviceSupabase
         .from('scheduled_scrapes')
-        .update({ next_scrape_at: new Date().toISOString() })
+        .update({
+          next_scrape_at: new Date().toISOString(),
+          status: 'active',  // Reset failed scrapes to active
+          error_count: 0,    // Reset error count
+          error_message: null // Clear error message
+        })
         .in('id', scrapeIds);
 
       if (updateError) {
@@ -63,7 +68,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      log.info({ scrapesCount: scrapeIds.length }, 'Updated scrapes to run immediately');
+      log.info({ scrapesCount: scrapeIds.length }, 'Updated scrapes to run immediately and reset status');
     }
 
     // If triggerAll, update all active scrapes that haven't been scraped yet
