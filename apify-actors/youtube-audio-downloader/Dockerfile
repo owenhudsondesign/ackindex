@@ -1,16 +1,16 @@
-# Use official Node.js 20 on Debian
-FROM node:20-bullseye-slim
+# Use official Node.js 20 on Debian Bookworm (has Python 3.11)
+FROM node:20-bookworm-slim
 
-# Install ffmpeg, yt-dlp for robust YouTube downloading
+# Install ffmpeg, Python 3.11, and dependencies for yt-dlp
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     python3 \
+    python3-pip \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install yt-dlp (more reliable than ytdl-core, bypasses bot detection)
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod a+rx /usr/local/bin/yt-dlp
+# Install yt-dlp via pip (requires Python 3.10+)
+RUN pip3 install --no-cache-dir --break-system-packages yt-dlp
 
 # Set working directory
 WORKDIR /usr/src/app
