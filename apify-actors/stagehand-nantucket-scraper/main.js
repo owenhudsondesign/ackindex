@@ -65,8 +65,14 @@ await Actor.main(async () => {
     const match = startDomain.match(/^([^.]+)\.portal\.civicclerk\.com$/);
     if (match) {
       const govSlug = match[1]; // "nantucketma"
-      // Convert to government domain format (nantucketma -> nantucket-ma.gov)
-      const govDomain = govSlug.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase() + '.gov';
+      // Convert to government domain format
+      // Handle patterns like "nantucketma" -> "nantucket-ma"
+      let govName = govSlug;
+      // Add hyphen before state abbreviation if it's 2 letters at the end
+      if (govSlug.length > 2 && govSlug.slice(-2).match(/[a-z]{2}/)) {
+        govName = govSlug.slice(0, -2) + '-' + govSlug.slice(-2);
+      }
+      const govDomain = govName.toLowerCase() + '.gov';
       allowedDomains.push(`www.${govDomain}`);
       allowedDomains.push(govDomain);
       console.log(`🔓 CivicClerk portal detected - also allowing: ${govDomain}`);
@@ -214,9 +220,11 @@ await Actor.main(async () => {
           console.log(`📑 Processing ${pageData.pdfLinks.length} PDFs...`);
           for (const pdfUrl of pageData.pdfLinks) { // Process all PDFs
             try {
-              console.log(`📥 Downloading PDF: ${pdfUrl}`);
-              
-              const response = await fetch(pdfUrl);
+              // Convert relative URLs to absolute URLs
+              const absolutePdfUrl = new URL(pdfUrl, url).href;
+              console.log(`📥 Downloading PDF: ${absolutePdfUrl}`);
+
+              const response = await fetch(absolutePdfUrl);
               if (!response.ok) {
                 console.log(`⚠️ Failed to download PDF: ${response.status}`);
                 continue;
@@ -229,9 +237,9 @@ await Actor.main(async () => {
 
               await Actor.pushData({
                 type: 'pdf',
-                url: pdfUrl,
+                url: absolutePdfUrl,
                 source_page: url,
-                title: pdfUrl.split('/').pop() || 'document.pdf',
+                title: absolutePdfUrl.split('/').pop() || 'document.pdf',
                 full_text: pdfText,
                 num_pages: pdfData.numpages,
                 text_length: pdfText.length,
@@ -242,7 +250,7 @@ await Actor.main(async () => {
 
               console.log(`✅ Extracted PDF: ${pdfData.numpages} pages, ${pdfText.length} chars`);
             } catch (pdfError) {
-              console.log(`⚠️ Failed to process PDF ${pdfUrl}:`, pdfError.message);
+              console.log(`⚠️ Failed to process PDF ${pdfUrl} (${pdfError.message})`);
             }
           }
         }

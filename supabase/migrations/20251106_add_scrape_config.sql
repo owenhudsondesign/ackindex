@@ -34,11 +34,13 @@ COMMENT ON COLUMN scheduled_scrapes.scrape_options IS 'Additional scraping optio
 DROP FUNCTION IF EXISTS get_urls_for_scraping(INTEGER);
 
 -- Recreate the get_urls_for_scraping function to include new columns
-CREATE OR REPLACE FUNCTION get_urls_for_scraping(batch_size_param INTEGER DEFAULT 5)
+CREATE OR REPLACE FUNCTION get_urls_for_scraping(batch_size INTEGER DEFAULT 5)
 RETURNS TABLE (
   id UUID,
   url TEXT,
   title TEXT,
+  priority INTEGER,
+  error_count INTEGER,
   max_depth INTEGER,
   max_pages INTEGER,
   extract_pdfs BOOLEAN,
@@ -55,6 +57,8 @@ BEGIN
     ss.id,
     ss.url,
     ss.title,
+    ss.priority,
+    ss.error_count,
     ss.max_depth,
     ss.max_pages,
     ss.extract_pdfs,
@@ -68,6 +72,6 @@ BEGIN
   WHERE ss.status = 'active'
     AND ss.next_scrape_at <= NOW()
   ORDER BY ss.priority DESC, ss.next_scrape_at ASC
-  LIMIT batch_size_param;
+  LIMIT batch_size;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

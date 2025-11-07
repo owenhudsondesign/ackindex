@@ -24,9 +24,13 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
-    const { data: { session } } = await authSupabase.auth.getSession();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminOrError = await requireAdminApi({ user });
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
@@ -140,9 +144,13 @@ export async function PATCH(request: NextRequest) {
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
-    const { data: { session } } = await authSupabase.auth.getSession();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminOrError = await requireAdminApi({ user });
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
@@ -251,9 +259,13 @@ export async function DELETE(request: NextRequest) {
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
-    const { data: { session } } = await authSupabase.auth.getSession();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminOrError = await requireAdminApi({ user });
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const { searchParams } = new URL(request.url);

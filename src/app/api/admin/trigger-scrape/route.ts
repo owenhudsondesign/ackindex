@@ -27,9 +27,13 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
-    const { data: { session } } = await authSupabase.auth.getSession();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminOrError = await requireAdminApi({ user });
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
@@ -84,17 +88,38 @@ export async function POST(request: NextRequest) {
     log.info('URLs updated, now executing scraping');
 
     // Execute the scraping directly using shared logic
-    const results = await executeScheduledScraping(5); // Process 5 URLs at a time
+    try {
+      const results = await executeScheduledScraping(5); // Process 5 URLs at a time
 
-    log.info({ results }, 'Scraping completed successfully');
+      log.info({ results }, 'Scraping completed successfully');
 
-    return NextResponse.json({
-      success: true,
-      message: 'Scraping triggered successfully',
-      result: results,
-    });
+      return NextResponse.json({
+        success: true,
+        message: 'Scraping triggered successfully',
+        result: results,
+      });
+    } catch (scrapeError) {
+      // Log the specific scraping error
+      log.error({
+        err: scrapeError,
+        message: scrapeError instanceof Error ? scrapeError.message : 'Unknown scraping error',
+        stack: scrapeError instanceof Error ? scrapeError.stack : undefined
+      }, 'Scraping execution failed');
+
+      return NextResponse.json(
+        {
+          error: 'Scraping failed',
+          details: scrapeError instanceof Error ? scrapeError.message : 'Unknown error',
+        },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    log.error({ err: error }, 'Manual trigger error');
+    log.error({
+      err: error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    }, 'Manual trigger error');
     return NextResponse.json(
       {
         error: 'Internal server error',
@@ -114,9 +139,13 @@ export async function GET(request: NextRequest) {
   try {
     // Check authentication and admin authorization
     const authSupabase = await createAdminSupabaseClient();
-    const { data: { session } } = await authSupabase.auth.getSession();
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminOrError = await requireAdminApi({ user });
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     log.info('Fetching scheduled scrapes');
