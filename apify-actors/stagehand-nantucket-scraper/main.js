@@ -190,101 +190,261 @@ await Actor.main(async () => {
           }
         }
 
-        // Extract page content using AI
-        const pageData = await stagehand.page.extract({
-          instruction: 'Extract the main title, all body text content, and find all PDF links. Return clean, readable text without navigation menus or boilerplate.',
-          schema: z.object({
-            title: z.string().describe('The main page title'),
-            text: z.string().describe('All readable body text content'),
-            pdfLinks: z.array(z.string()).describe('Array of URLs to PDF files found on the page')
-          })
-        });
+        // Special handling for CivicClerk portal - extract PDFs from meetings
+        if (url.includes('civicclerk.com')) {
+          console.log('📅 CivicClerk portal detected - extracting meeting PDFs...');
 
-        const cleanedText = cleanText(pageData.text);
-        
-        // Save page data
-        await Actor.pushData({
-          type: 'page',
-          url,
-          title: pageData.title || '',
-          text: cleanedText,
-          text_length: cleanedText.length,
-          pdf_count: pageData.pdfLinks?.length || 0,
-          scraped_at: new Date().toISOString(),
-        });
+          try {
+            // First extract overview content
+            const pageData = await stagehand.page.extract({
+              instruction: 'Extract the main title and summary of what meetings are shown on this page.',
+              schema: z.object({
+                title: z.string().describe('The main page title'),
+                text: z.string().describe('Brief summary of the meetings calendar')
+              })
+            });
 
-        console.log(`✅ Extracted ${cleanedText.length} chars, found ${pageData.pdfLinks?.length || 0} PDFs`);
+            const cleanedText = cleanText(pageData.text);
+            await Actor.pushData({
+              type: 'page',
+              url,
+              title: pageData.title || '',
+              text: cleanedText,
+              text_length: cleanedText.length,
+              scraped_at: new Date().toISOString(),
+            });
 
-        // Process PDFs if enabled
-        if (extractPDFs && pageData.pdfLinks && pageData.pdfLinks.length > 0) {
-          console.log(`📑 Processing ${pageData.pdfLinks.length} PDFs...`);
-          for (const pdfUrl of pageData.pdfLinks) { // Process all PDFs
-            try {
-              // Convert relative URLs to absolute URLs
-              const absolutePdfUrl = new URL(pdfUrl, url).href;
-              console.log(`📥 Downloading PDF: ${absolutePdfUrl}`);
-
-              const response = await fetch(absolutePdfUrl);
-              if (!response.ok) {
-                console.log(`⚠️ Failed to download PDF: ${response.status}`);
-                continue;
-              }
-
-              const buffer = await response.arrayBuffer();
-              const pdfData = await pdfParse(Buffer.from(buffer));
-
-              const pdfText = cleanText(pdfData.text);
-
-              await Actor.pushData({
-                type: 'pdf',
-                url: absolutePdfUrl,
-                source_page: url,
-                title: absolutePdfUrl.split('/').pop() || 'document.pdf',
-                full_text: pdfText,
-                num_pages: pdfData.numpages,
-                text_length: pdfText.length,
-                status: 'success',
-                parser: 'pdf-parse',
-                scraped_at: new Date().toISOString(),
+            // Extract all meeting items from the portal
+            console.log('🔍 Finding meeting items in the portal...');
+            const meetingItems = await stagehand.page.evaluate(() => {
+              // Find all meeting/event items in the CivicClerk DOM
+              const items = Array.from(document.querySelectorAll('[class*="event"], [class*="meeting"], [data-testid*="event"], .cc-event-item, .event-list-item'));
+              return items.map((item, index) => {
+                const title = item.querySelector('[class*="title"], h2, h3, h4')?.textContent?.trim() || `Meeting ${index + 1}`;
+                const date = item.querySelector('[class*="date"], time')?.textContent?.trim() || '';
+                return {
+                  title,
+                  date,
+                  index
+                };
               });
+            });
 
-              console.log(`✅ Extracted PDF: ${pdfData.numpages} pages, ${pdfText.length} chars`);
-            } catch (pdfError) {
-              console.log(`⚠️ Failed to process PDF ${pdfUrl} (${pdfError.message})`);
+            console.log(`📋 Found ${meetingItems.length} meeting items`);
+
+            // Click into each meeting to extract PDFs
+            let pdfsExtracted = 0;
+            const maxMeetingsToProcess = Math.min(meetingItems.length, 50); // Limit to prevent timeout
+
+            for (let i = 0; i < maxMeetingsToProcess; i++) {
+              const meeting = meetingItems[i];
+              console.log(`🖱️ Clicking meeting ${i + 1}/${maxMeetingsToProcess}: ${meeting.title}`);
+
+              try {
+                // Find and click the meeting item
+                const clicked = await stagehand.page.evaluate((itemIndex) => {
+                  const items = Array.from(document.querySelectorAll('[class*="event"], [class*="meeting"], [data-testid*="event"], .cc-event-item, .event-list-item'));
+                  const item = items[itemIndex];
+                  if (!item) return false;
+
+                  // Try to find a clickable element (link or button)
+                  const clickable = item.querySelector('a, button') || item;
+                  clickable.click();
+                  return true;
+                }, i);
+
+                if (!clicked) {
+                  console.log(`⚠️ Could not click meeting ${i + 1}`);
+                  continue;
+                }
+
+                // Wait for detail view to load
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                // Extract PDF links from the detail view
+                const pdfData = await stagehand.page.extract({
+                  instruction: 'Find all PDF download links in this meeting detail view. Look for "Agenda", "Minutes", "Packet", or other document links. Return only actual PDF download URLs that end in .pdf or are clearly PDF download links.',
+                  schema: z.object({
+                    pdfLinks: z.array(z.string()).describe('Array of PDF download URLs'),
+                    meetingTitle: z.string().describe('The meeting title/name'),
+                    meetingDate: z.string().describe('The meeting date if visible')
+                  })
+                });
+
+                console.log(`📎 Found ${pdfData.pdfLinks?.length || 0} PDFs in meeting: ${pdfData.meetingTitle}`);
+
+                // Download and process each PDF
+                if (extractPDFs && pdfData.pdfLinks && pdfData.pdfLinks.length > 0) {
+                  for (const pdfUrl of pdfData.pdfLinks) {
+                    try {
+                      const absolutePdfUrl = new URL(pdfUrl, url).href;
+
+                      // Skip if not actually a PDF URL
+                      if (!absolutePdfUrl.includes('.pdf') && !absolutePdfUrl.includes('download')) {
+                        console.log(`⏭️ Skipping non-PDF URL: ${absolutePdfUrl}`);
+                        continue;
+                      }
+
+                      console.log(`📥 Downloading PDF: ${absolutePdfUrl}`);
+                      const response = await fetch(absolutePdfUrl);
+
+                      if (!response.ok) {
+                        console.log(`⚠️ Failed to download PDF: ${response.status}`);
+                        continue;
+                      }
+
+                      const buffer = await response.arrayBuffer();
+                      const parsedPdf = await pdfParse(Buffer.from(buffer));
+                      const pdfText = cleanText(parsedPdf.text);
+
+                      await Actor.pushData({
+                        type: 'pdf',
+                        url: absolutePdfUrl,
+                        source_page: url,
+                        meeting_title: pdfData.meetingTitle,
+                        meeting_date: pdfData.meetingDate,
+                        title: absolutePdfUrl.split('/').pop() || 'document.pdf',
+                        full_text: pdfText,
+                        num_pages: parsedPdf.numpages,
+                        text_length: pdfText.length,
+                        status: 'success',
+                        parser: 'pdf-parse',
+                        scraped_at: new Date().toISOString(),
+                      });
+
+                      console.log(`✅ Extracted PDF: ${parsedPdf.numpages} pages, ${pdfText.length} chars`);
+                      pdfsExtracted++;
+                    } catch (pdfError) {
+                      console.log(`⚠️ Failed to process PDF ${pdfUrl}: ${pdfError.message}`);
+                    }
+                  }
+                }
+
+                // Navigate back to the calendar view
+                console.log('⬅️ Returning to calendar view...');
+                await stagehand.page.evaluate(() => {
+                  // Try to find and click back button
+                  const backButton = document.querySelector('[class*="back"], [aria-label*="back"], button:has-text("Back")');
+                  if (backButton) {
+                    backButton.click();
+                  } else {
+                    // If no back button, try going back in history
+                    window.history.back();
+                  }
+                });
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+              } catch (meetingError) {
+                console.log(`⚠️ Error processing meeting ${i + 1}: ${meetingError.message}`);
+                // Try to recover by reloading the calendar page
+                try {
+                  await stagehand.page.goto(url, { waitUntil: 'networkidle', timeout: 20000 });
+                  await new Promise(resolve => setTimeout(resolve, 2000));
+                } catch (recoveryError) {
+                  console.log(`⚠️ Failed to recover: ${recoveryError.message}`);
+                  break;
+                }
+              }
             }
+
+            console.log(`✅ CivicClerk extraction complete: ${pdfsExtracted} PDFs extracted from ${maxMeetingsToProcess} meetings`);
+
+          } catch (civicclerkError) {
+            console.log(`⚠️ CivicClerk extraction failed: ${civicclerkError.message}`);
           }
-        }
 
-        // Find links for crawling (if not at max depth)
-        if (depth < maxDepth) {
-          // Customize instruction based on page type
-          const linkInstruction = url.includes('civicclerk.com')
-            ? 'Find ALL links to specific meetings, agendas, minutes, and documents. Look for calendar events, meeting dates, committee names, and document links. Include links that go to www.nantucket-ma.gov for meeting details. DO NOT include navigation, login, or help links.'
-            : 'Find links to meeting pages, agendas, agenda packets, and documents. DO NOT include navigation menus, breadcrumbs, or links to parent/home pages. Only return links that go deeper into meeting content or documents.';
-
-          const links = await stagehand.page.extract({
-            instruction: linkInstruction,
+        } else {
+          // Standard extraction for non-CivicClerk pages
+          const pageData = await stagehand.page.extract({
+            instruction: 'Extract the main title, all body text content, and find all PDF links. Return clean, readable text without navigation menus or boilerplate.',
             schema: z.object({
-              links: z.array(z.string()).describe('Array of absolute URLs to meetings, agendas, and documents')
+              title: z.string().describe('The main page title'),
+              text: z.string().describe('All readable body text content'),
+              pdfLinks: z.array(z.string()).describe('Array of URLs to PDF files found on the page')
             })
           });
 
-          if (links.links && Array.isArray(links.links)) {
-            console.log(`🔗 Found ${links.links.length} potential links to follow`);
-            for (const link of links.links) {
+          const cleanedText = cleanText(pageData.text);
+
+          // Save page data
+          await Actor.pushData({
+            type: 'page',
+            url,
+            title: pageData.title || '',
+            text: cleanedText,
+            text_length: cleanedText.length,
+            pdf_count: pageData.pdfLinks?.length || 0,
+            scraped_at: new Date().toISOString(),
+          });
+
+          console.log(`✅ Extracted ${cleanedText.length} chars, found ${pageData.pdfLinks?.length || 0} PDFs`);
+
+          // Process PDFs if enabled
+          if (extractPDFs && pageData.pdfLinks && pageData.pdfLinks.length > 0) {
+            console.log(`📑 Processing ${pageData.pdfLinks.length} PDFs...`);
+            for (const pdfUrl of pageData.pdfLinks) {
               try {
-                const linkUrl = new URL(link, url).href;
-                const linkDomain = new URL(linkUrl).hostname;
-                
-                // Only queue links within allowed domains
-                if (!visited.has(linkUrl) && linkUrl.startsWith('http') && allowedDomains.includes(linkDomain)) {
-                  console.log(`➕ Queuing: ${linkUrl}`);
-                  queue.push({ url: linkUrl, depth: depth + 1 });
-                } else if (!allowedDomains.includes(linkDomain)) {
-                  console.log(`⏭️ Skipping external link: ${linkUrl} (domain ${linkDomain} not allowed)`);
+                const absolutePdfUrl = new URL(pdfUrl, url).href;
+                console.log(`📥 Downloading PDF: ${absolutePdfUrl}`);
+
+                const response = await fetch(absolutePdfUrl);
+                if (!response.ok) {
+                  console.log(`⚠️ Failed to download PDF: ${response.status}`);
+                  continue;
                 }
-              } catch (e) {
-                // Invalid URL, skip
+
+                const buffer = await response.arrayBuffer();
+                const pdfData = await pdfParse(Buffer.from(buffer));
+                const pdfText = cleanText(pdfData.text);
+
+                await Actor.pushData({
+                  type: 'pdf',
+                  url: absolutePdfUrl,
+                  source_page: url,
+                  title: absolutePdfUrl.split('/').pop() || 'document.pdf',
+                  full_text: pdfText,
+                  num_pages: pdfData.numpages,
+                  text_length: pdfText.length,
+                  status: 'success',
+                  parser: 'pdf-parse',
+                  scraped_at: new Date().toISOString(),
+                });
+
+                console.log(`✅ Extracted PDF: ${pdfData.numpages} pages, ${pdfText.length} chars`);
+              } catch (pdfError) {
+                console.log(`⚠️ Failed to process PDF ${pdfUrl} (${pdfError.message})`);
+              }
+            }
+          }
+
+          // Find links for crawling (if not at max depth)
+          if (depth < maxDepth) {
+            const linkInstruction = 'Find links to meeting pages, agendas, agenda packets, and documents. DO NOT include navigation menus, breadcrumbs, or links to parent/home pages. Only return links that go deeper into meeting content or documents.';
+
+            const links = await stagehand.page.extract({
+              instruction: linkInstruction,
+              schema: z.object({
+                links: z.array(z.string()).describe('Array of absolute URLs to meetings, agendas, and documents')
+              })
+            });
+
+            if (links.links && Array.isArray(links.links)) {
+              console.log(`🔗 Found ${links.links.length} potential links to follow`);
+              for (const link of links.links) {
+                try {
+                  const linkUrl = new URL(link, url).href;
+                  const linkDomain = new URL(linkUrl).hostname;
+
+                  // Only queue links within allowed domains
+                  if (!visited.has(linkUrl) && linkUrl.startsWith('http') && allowedDomains.includes(linkDomain)) {
+                    console.log(`➕ Queuing: ${linkUrl}`);
+                    queue.push({ url: linkUrl, depth: depth + 1 });
+                  } else if (!allowedDomains.includes(linkDomain)) {
+                    console.log(`⏭️ Skipping external link: ${linkUrl} (domain ${linkDomain} not allowed)`);
+                  }
+                } catch (e) {
+                  // Invalid URL, skip
+                }
               }
             }
           }
