@@ -324,19 +324,15 @@ await Actor.main(async () => {
                           await stagehand.page.goto(absolutePdfUrl, { waitUntil: 'domcontentloaded' });
                           await new Promise(resolve => setTimeout(resolve, 2000));
 
-                          // Extract PDF links from the file browser page
-                          const fileBrowserPdfs = await stagehand.page.evaluate(() => {
-                            const links = [];
-                            document.querySelectorAll('a[href]').forEach(link => {
-                              const href = link.getAttribute('href');
-                              const text = link.textContent?.toLowerCase() || '';
-                              if (href && (href.endsWith('.pdf') || text.includes('pdf') || text.includes('download'))) {
-                                links.push(href);
-                              }
-                            });
-                            return links;
+                          // Use Stagehand AI to extract PDF links from the file browser page
+                          const extractionResult = await stagehand.extract({
+                            instruction: "Find all document download links on this page. Look for any links to files like Agenda, Minutes, Packet, or Attachments. Return the URLs.",
+                            schema: z.object({
+                              links: z.array(z.string()).describe("Array of document download URLs")
+                            })
                           });
 
+                          const fileBrowserPdfs = extractionResult?.links || [];
                           console.log(`📋 Found ${fileBrowserPdfs.length} PDF links in file browser`);
 
                           // Try to download each PDF found in the file browser
