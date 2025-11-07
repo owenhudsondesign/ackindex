@@ -16,6 +16,7 @@ import {
 import logger from '@/lib/logger';
 import { chunkText } from '@/lib/chunking';
 import { createHash } from 'crypto';
+import { isYouTubeUrl, processYouTubeUrl } from '@/lib/youtubeScraper';
 
 // Server-side Supabase client with service role key
 const supabase = createClient(
@@ -137,6 +138,13 @@ async function processScheduledUrl(schedule: {
 }): Promise<void> {
   try {
     logger.info({ url: schedule.url }, 'Starting scrape for scheduled URL');
+
+    // Check if this is a YouTube URL and route to YouTube orchestrator
+    if (isYouTubeUrl(schedule.url)) {
+      logger.info({ url: schedule.url }, 'Detected YouTube URL, routing to orchestrator');
+      await processYouTubeUrl(schedule);
+      return;
+    }
 
     // Check if content has changed (deduplication)
     const shouldScrape = await checkIfShouldScrape(schedule.url);

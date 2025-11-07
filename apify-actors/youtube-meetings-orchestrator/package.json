@@ -1,0 +1,17 @@
+{
+  "name": "youtube-meetings-orchestrator",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Orchestrates the full pipeline: video download → transcription → AI enrichment",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "apify": "^3.0.0",
+    "apify-client": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

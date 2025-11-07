@@ -1,0 +1,85 @@
+{
+  "title": "YouTube Meetings Orchestrator Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "youtubeUrls": {
+      "title": "YouTube URLs",
+      "type": "array",
+      "description": "Array of YouTube video, playlist, or channel URLs",
+      "editor": "stringList",
+      "default": [],
+      "example": ["https://www.youtube.com/@NantucketTownGovernment"]
+    },
+    "channelIds": {
+      "title": "Channel IDs",
+      "type": "array",
+      "description": "Array of YouTube channel IDs",
+      "editor": "stringList",
+      "default": []
+    },
+    "youtubeApiKey": {
+      "title": "YouTube API Key",
+      "type": "string",
+      "description": "YouTube Data API v3 key",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "maxVideos": {
+      "title": "Max Videos",
+      "type": "integer",
+      "description": "Maximum videos to process",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 100
+    },
+    "transcriptionService": {
+      "title": "Transcription Service",
+      "type": "string",
+      "description": "Which transcription service to use",
+      "enum": ["deepgram", "assemblyai", "openai-whisper"],
+      "default": "deepgram",
+      "editor": "select"
+    },
+    "transcriptionApiKey": {
+      "title": "Transcription API Key",
+      "type": "string",
+      "description": "API key for transcription service",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "openaiApiKey": {
+      "title": "OpenAI API Key",
+      "type": "string",
+      "description": "OpenAI API key for GPT analysis and embeddings",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "openaiModel": {
+      "title": "OpenAI Model",
+      "type": "string",
+      "description": "Model for meeting analysis",
+      "enum": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+      "default": "gpt-4o-mini",
+      "editor": "select"
+    },
+    "enableEmbeddings": {
+      "title": "Generate Embeddings",
+      "type": "boolean",
+      "description": "Generate semantic embeddings",
+      "default": true
+    },
+    "actorIds": {
+      "title": "Actor IDs (Advanced)",
+      "type": "object",
+      "description": "Custom actor IDs if you've forked/modified the actors",
+      "editor": "json",
+      "prefill": {
+        "downloader": "legible_radish/youtube-audio-downloader",
+        "transcriber": "legible_radish/transcription-processor",
+        "enricher": "legible_radish/meeting-ai-enrichment"
+      }
+    }
+  },
+  "required": ["youtubeUrls", "transcriptionApiKey", "openaiApiKey"]
+}

@@ -1,0 +1,10 @@
+{
+  "actorSpecification": 1,
+  "name": "transcription-processor",
+  "version": "1.0",
+  "buildTag": "latest",
+  "environmentVariables": {},
+  "dockerfile": "./Dockerfile",
+  "readme": "./README.md",
+  "input": "./input_schema.json"
+}

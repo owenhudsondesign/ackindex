@@ -1,0 +1,70 @@
+{
+  "title": "Meeting AI Enrichment Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "datasetId": {
+      "title": "Dataset ID",
+      "type": "string",
+      "description": "Dataset ID from Actor 2 (transcription-processor)",
+      "editor": "textfield",
+      "example": "abc123def456"
+    },
+    "openaiApiKey": {
+      "title": "OpenAI API Key",
+      "type": "string",
+      "description": "OpenAI API key for GPT analysis and embeddings",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "openaiModel": {
+      "title": "OpenAI Model",
+      "type": "string",
+      "description": "Which OpenAI model to use for analysis",
+      "enum": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+      "default": "gpt-4o-mini",
+      "editor": "select"
+    },
+    "outputFormat": {
+      "title": "Output Format",
+      "type": "string",
+      "description": "Output format for processed data",
+      "enum": ["ackindex", "elasticsearch", "json"],
+      "default": "ackindex",
+      "editor": "select"
+    },
+    "enableEmbeddings": {
+      "title": "Generate Embeddings",
+      "type": "boolean",
+      "description": "Generate semantic embeddings for search",
+      "default": true
+    },
+    "categories": {
+      "title": "Categories",
+      "type": "array",
+      "description": "Categories to tag meetings with",
+      "editor": "stringList",
+      "default": [
+        "zoning",
+        "budget",
+        "public safety",
+        "infrastructure",
+        "education",
+        "health",
+        "environment",
+        "transportation",
+        "housing",
+        "economic development"
+      ]
+    },
+    "maxTokens": {
+      "title": "Max Tokens",
+      "type": "integer",
+      "description": "Maximum tokens for Claude response",
+      "default": 4096,
+      "minimum": 1024,
+      "maximum": 8192
+    }
+  },
+  "required": ["datasetId", "openaiApiKey"]
+}

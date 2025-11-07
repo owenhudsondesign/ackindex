@@ -1,0 +1,73 @@
+{
+  "title": "YouTube Audio Downloader Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "youtubeUrls": {
+      "title": "YouTube URLs",
+      "type": "array",
+      "description": "Array of YouTube video, playlist, or channel URLs to process",
+      "editor": "stringList",
+      "default": [],
+      "example": ["https://www.youtube.com/watch?v=abc123", "https://www.youtube.com/@NantucketTownGovernment"]
+    },
+    "channelIds": {
+      "title": "Channel IDs",
+      "type": "array",
+      "description": "Array of YouTube channel IDs to monitor for new videos",
+      "editor": "stringList",
+      "default": [],
+      "example": ["UCxxxxxxxxxxxxxxx"]
+    },
+    "downloadAudio": {
+      "title": "Download Audio",
+      "type": "boolean",
+      "description": "Whether to download audio files (set false to just collect metadata)",
+      "default": true
+    },
+    "maxVideos": {
+      "title": "Max Videos",
+      "type": "integer",
+      "description": "Maximum number of videos to process per run",
+      "default": 50,
+      "minimum": 1,
+      "maximum": 500
+    },
+    "filterKeywords": {
+      "title": "Filter Keywords",
+      "type": "array",
+      "description": "Filter videos by title/description keywords (e.g., 'meeting', 'council', 'hearing')",
+      "editor": "stringList",
+      "default": ["meeting", "council", "board", "hearing", "session", "committee"],
+      "example": ["town meeting", "city council", "public hearing"]
+    },
+    "minDuration": {
+      "title": "Min Duration (seconds)",
+      "type": "integer",
+      "description": "Minimum video duration in seconds (filters out short clips)",
+      "default": 300,
+      "minimum": 0
+    },
+    "maxDuration": {
+      "title": "Max Duration (seconds)",
+      "type": "integer",
+      "description": "Maximum video duration in seconds (filters out very long videos)",
+      "default": 18000,
+      "minimum": 0
+    },
+    "youtubeApiKey": {
+      "title": "YouTube Data API Key",
+      "type": "string",
+      "description": "YouTube Data API v3 key for discovering videos from channels/playlists",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "includeLivestreams": {
+      "title": "Include Livestreams",
+      "type": "boolean",
+      "description": "Search for archived livestreams in addition to regular uploads (may find more videos but uses more API quota)",
+      "default": true
+    }
+  },
+  "required": []
+}

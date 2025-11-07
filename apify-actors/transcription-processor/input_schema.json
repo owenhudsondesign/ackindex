@@ -1,0 +1,64 @@
+{
+  "title": "Transcription Processor Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "datasetId": {
+      "title": "Dataset ID",
+      "type": "string",
+      "description": "Dataset ID from Actor 1 (youtube-audio-downloader)",
+      "editor": "textfield",
+      "example": "abc123def456"
+    },
+    "transcriptionService": {
+      "title": "Transcription Service",
+      "type": "string",
+      "description": "Which transcription service to use",
+      "enum": ["deepgram", "assemblyai", "openai-whisper"],
+      "default": "deepgram",
+      "editor": "select"
+    },
+    "apiKey": {
+      "title": "API Key",
+      "type": "string",
+      "description": "API key for chosen transcription service",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "enableSpeakerDiarization": {
+      "title": "Speaker Diarization",
+      "type": "boolean",
+      "description": "Identify different speakers (may increase cost)",
+      "default": true
+    },
+    "language": {
+      "title": "Language",
+      "type": "string",
+      "description": "Language code for transcription",
+      "default": "en",
+      "example": "en"
+    },
+    "maxConcurrent": {
+      "title": "Max Concurrent Requests",
+      "type": "integer",
+      "description": "Maximum number of concurrent transcription requests",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 10
+    },
+    "model": {
+      "title": "Model",
+      "type": "string",
+      "description": "Transcription model to use (service-specific)",
+      "default": "nova-2",
+      "example": "nova-2"
+    },
+    "skipExisting": {
+      "title": "Skip Existing",
+      "type": "boolean",
+      "description": "Skip videos that already have transcripts",
+      "default": true
+    }
+  },
+  "required": ["datasetId", "transcriptionService", "apiKey"]
+}

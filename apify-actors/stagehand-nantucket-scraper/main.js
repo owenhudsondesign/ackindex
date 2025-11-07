@@ -321,19 +321,61 @@ await Actor.main(async () => {
                         console.log(`📂 Found file browser page, navigating to extract PDFs: ${absolutePdfUrl}`);
 
                         try {
-                          await stagehand.page.goto(absolutePdfUrl, { waitUntil: 'domcontentloaded' });
-                          await new Promise(resolve => setTimeout(resolve, 2000));
+                          await stagehand.page.goto(absolutePdfUrl, { waitUntil: 'networkidle' });
+                          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for SPA to render
 
-                          // Use Stagehand AI to extract PDF links from the file browser page
-                          const extractionResult = await stagehand.extract({
-                            instruction: "Find all document download links on this page. Look for any links to files like Agenda, Minutes, Packet, or Attachments. Return the URLs.",
-                            schema: z.object({
-                              links: z.array(z.string()).describe("Array of document download URLs")
-                            })
+                          console.log('🔍 Extracting PDF links from file browser page...');
+
+                          // Use raw Playwright to extract ALL possible download links
+                          const fileBrowserPdfs = await stagehand.page.evaluate(() => {
+                            const links = [];
+
+                            // Find all links and buttons that might be downloads
+                            const allElements = document.querySelectorAll('a, button, [role="button"]');
+
+                            allElements.forEach(el => {
+                              // Get href from links
+                              const href = el.getAttribute('href');
+                              if (href) {
+                                // Look for PDF links or download links
+                                if (href.includes('.pdf') ||
+                                    href.includes('/download') ||
+                                    href.includes('/file') ||
+                                    href.includes('/document')) {
+                                  links.push(href);
+                                }
+                              }
+
+                              // Get onclick handlers that might trigger downloads
+                              const onclick = el.getAttribute('onclick');
+                              if (onclick && onclick.includes('download')) {
+                                // Try to extract URL from onclick
+                                const urlMatch = onclick.match(/['"]([^'"]*\.pdf[^'"]*)['"]/);
+                                if (urlMatch) {
+                                  links.push(urlMatch[1]);
+                                }
+                              }
+
+                              // Check data attributes that might contain download URLs
+                              for (let attr of el.attributes) {
+                                if (attr.name.startsWith('data-') &&
+                                    (attr.value.includes('.pdf') || attr.value.includes('/download'))) {
+                                  links.push(attr.value);
+                                }
+                              }
+                            });
+
+                            // Also search for any URLs in the page that look like PDFs
+                            const bodyText = document.body.innerHTML;
+                            const urlRegex = /(https?:\/\/[^\s"'<>]+\.pdf[^\s"'<>]*)/gi;
+                            const urlMatches = bodyText.match(urlRegex) || [];
+                            urlMatches.forEach(url => links.push(url));
+
+                            // Return unique links
+                            return [...new Set(links)];
                           });
 
-                          const fileBrowserPdfs = extractionResult?.links || [];
-                          console.log(`📋 Found ${fileBrowserPdfs.length} PDF links in file browser`);
+                          console.log(`📋 Found ${fileBrowserPdfs.length} potential document links in file browser`);
 
                           // Try to download each PDF found in the file browser
                           for (const browserPdfUrl of fileBrowserPdfs) {

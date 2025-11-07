@@ -1,0 +1,17 @@
+{
+  "name": "meeting-ai-enrichment",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI-powered enrichment of meeting transcripts using OpenAI API for ackindex",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "apify": "^3.0.0",
+    "openai": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
