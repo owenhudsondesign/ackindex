@@ -86,7 +86,7 @@ export async function processYouTubeUrl(schedule: {
         .single();
 
       const document = await createDocument({
-        source_type: 'youtube',
+        source_type: 'url',
         source_url: schedule.url,
         title: schedule.title || 'YouTube Video',
         created_by: scheduleData?.created_by,
