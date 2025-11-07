@@ -33,9 +33,9 @@ await Actor.main(async () => {
     openaiModel = 'gpt-4o-mini',
     enableEmbeddings = true,
     actorIds = {
-      downloader: 'your-username/youtube-audio-downloader',
-      transcriber: 'your-username/transcription-processor',
-      enricher: 'your-username/meeting-ai-enrichment'
+      downloader: 'legible_radish/youtube-audio-downloader',
+      transcriber: 'legible_radish/transcription-processor',
+      enricher: 'legible_radish/meeting-ai-enrichment'
     }
   } = input;
 
