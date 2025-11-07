@@ -8,9 +8,7 @@
     "start": "node main.js"
   },
   "dependencies": {
-    "apify": "^3.0.0",
-    "@distube/ytdl-core": "^4.14.4",
-    "ytdl-core": "^4.11.5"
+    "apify": "^3.0.0"
   },
   "engines": {
     "node": ">=20.0.0"
