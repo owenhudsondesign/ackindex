@@ -261,21 +261,47 @@ await Actor.main(async () => {
                 // Wait for detail view to load
                 await new Promise(resolve => setTimeout(resolve, 3000));
 
-                // Extract PDF links from the detail view
+                // Try to find and extract all PDF links directly from the DOM first
+                const domPdfLinks = await stagehand.page.evaluate(() => {
+                  const links = [];
+                  // Find all links that might be PDFs
+                  const allLinks = document.querySelectorAll('a[href]');
+                  allLinks.forEach(link => {
+                    const href = link.getAttribute('href');
+                    const text = link.textContent?.toLowerCase() || '';
+                    // Include links that end in .pdf OR contain document-related text
+                    if (href && (
+                      href.includes('.pdf') ||
+                      text.includes('agenda') ||
+                      text.includes('minutes') ||
+                      text.includes('packet') ||
+                      text.includes('document')
+                    )) {
+                      links.push(href);
+                    }
+                  });
+                  return links;
+                });
+
+                console.log(`🔍 Found ${domPdfLinks.length} potential PDF links in DOM`);
+
+                // Also use AI extraction as backup
                 const pdfData = await stagehand.page.extract({
-                  instruction: 'Find all PDF download links in this meeting detail view. Look for "Agenda", "Minutes", "Packet", or other document links. Return only actual PDF download URLs that end in .pdf or are clearly PDF download links.',
+                  instruction: 'Find ALL document download links on this page. Look for "Agenda", "Minutes", "Packet", "Attachment", or any document links. Include links even if they don\'t end in .pdf - they might be download links. Return ALL URLs you find.',
                   schema: z.object({
-                    pdfLinks: z.array(z.string()).describe('Array of PDF download URLs'),
+                    pdfLinks: z.array(z.string()).describe('Array of all document/file download URLs found'),
                     meetingTitle: z.string().describe('The meeting title/name'),
                     meetingDate: z.string().describe('The meeting date if visible')
                   })
                 });
 
-                console.log(`📎 Found ${pdfData.pdfLinks?.length || 0} PDFs in meeting: ${pdfData.meetingTitle}`);
+                // Combine both sources and deduplicate
+                const allPdfLinks = [...new Set([...domPdfLinks, ...(pdfData.pdfLinks || [])])];
+                console.log(`📎 Total unique links found: ${allPdfLinks.length} in meeting: ${pdfData.meetingTitle}`);
 
                 // Download and process each PDF
-                if (extractPDFs && pdfData.pdfLinks && pdfData.pdfLinks.length > 0) {
-                  for (const pdfUrl of pdfData.pdfLinks) {
+                if (extractPDFs && allPdfLinks.length > 0) {
+                  for (const pdfUrl of allPdfLinks) {
                     try {
                       const absolutePdfUrl = new URL(pdfUrl, url).href;
 
@@ -323,8 +349,14 @@ await Actor.main(async () => {
                 // Navigate back to the calendar view
                 console.log('⬅️ Returning to calendar view...');
                 await stagehand.page.evaluate(() => {
-                  // Try to find and click back button
-                  const backButton = document.querySelector('[class*="back"], [aria-label*="back"], button:has-text("Back")');
+                  // Try to find back button using various selectors
+                  const backButton =
+                    document.querySelector('button[aria-label*="back" i]') ||
+                    document.querySelector('button[aria-label*="close" i]') ||
+                    document.querySelector('[class*="back"]') ||
+                    document.querySelector('button[id*="back"]') ||
+                    document.querySelector('#backToContentButton');
+
                   if (backButton) {
                     backButton.click();
                   } else {
@@ -332,7 +364,7 @@ await Actor.main(async () => {
                     window.history.back();
                   }
                 });
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
               } catch (meetingError) {
                 console.log(`⚠️ Error processing meeting ${i + 1}: ${meetingError.message}`);
