@@ -142,6 +142,7 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await authSupabase.auth.getUser();
 
     if (authError || !user) {
+      log.error({ authError: authError?.message }, 'Authentication failed in GET');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

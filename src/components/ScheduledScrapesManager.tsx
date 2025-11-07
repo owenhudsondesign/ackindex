@@ -96,10 +96,16 @@ export default function ScheduledScrapesManager() {
   const fetchScrapes = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/admin/trigger-scrape?limit=50');
+      const response = await fetch('/api/admin/trigger-scrape?limit=50&status=all', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
 
       if (!response.ok) {
+        console.error('Fetch scrapes failed:', response.status, data);
         throw new Error(data.error || 'Failed to fetch scrapes');
       }
 

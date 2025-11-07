@@ -305,20 +305,98 @@ await Actor.main(async () => {
                     try {
                       const absolutePdfUrl = new URL(pdfUrl, url).href;
 
-                      // Skip if not actually a PDF URL
-                      if (!absolutePdfUrl.includes('.pdf') && !absolutePdfUrl.includes('download')) {
-                        console.log(`⏭️ Skipping non-PDF URL: ${absolutePdfUrl}`);
-                        continue;
-                      }
-
-                      console.log(`📥 Downloading PDF: ${absolutePdfUrl}`);
+                      console.log(`📥 Attempting to download: ${absolutePdfUrl}`);
                       const response = await fetch(absolutePdfUrl);
 
                       if (!response.ok) {
-                        console.log(`⚠️ Failed to download PDF: ${response.status}`);
+                        console.log(`⚠️ Failed to download: ${response.status}`);
                         continue;
                       }
 
+                      // Check Content-Type header to verify it's actually a PDF
+                      const contentType = response.headers.get('content-type');
+
+                      // If it's HTML, it might be a file browser page - navigate and extract PDFs from it
+                      if (contentType?.includes('text/html')) {
+                        console.log(`📂 Found file browser page, navigating to extract PDFs: ${absolutePdfUrl}`);
+
+                        try {
+                          await stagehand.page.goto(absolutePdfUrl, { waitUntil: 'domcontentloaded' });
+                          await new Promise(resolve => setTimeout(resolve, 2000));
+
+                          // Extract PDF links from the file browser page
+                          const fileBrowserPdfs = await stagehand.page.evaluate(() => {
+                            const links = [];
+                            document.querySelectorAll('a[href]').forEach(link => {
+                              const href = link.getAttribute('href');
+                              const text = link.textContent?.toLowerCase() || '';
+                              if (href && (href.endsWith('.pdf') || text.includes('pdf') || text.includes('download'))) {
+                                links.push(href);
+                              }
+                            });
+                            return links;
+                          });
+
+                          console.log(`📋 Found ${fileBrowserPdfs.length} PDF links in file browser`);
+
+                          // Try to download each PDF found in the file browser
+                          for (const browserPdfUrl of fileBrowserPdfs) {
+                            try {
+                              const absoluteBrowserPdfUrl = new URL(browserPdfUrl, absolutePdfUrl).href;
+                              console.log(`📥 Downloading PDF from file browser: ${absoluteBrowserPdfUrl}`);
+
+                              const pdfResponse = await fetch(absoluteBrowserPdfUrl);
+                              if (!pdfResponse.ok) {
+                                console.log(`⚠️ Failed to download PDF: ${pdfResponse.status}`);
+                                continue;
+                              }
+
+                              const pdfContentType = pdfResponse.headers.get('content-type');
+                              if (!pdfContentType?.includes('application/pdf')) {
+                                console.log(`⏭️ Skipping non-PDF: ${pdfContentType}`);
+                                continue;
+                              }
+
+                              console.log(`✅ Confirmed PDF via Content-Type: ${absoluteBrowserPdfUrl}`);
+                              const pdfBuffer = await pdfResponse.arrayBuffer();
+                              const parsedPdf = await pdfParse(Buffer.from(pdfBuffer));
+                              const pdfText = cleanText(parsedPdf.text);
+
+                              await Actor.pushData({
+                                type: 'pdf',
+                                url: absoluteBrowserPdfUrl,
+                                source_page: url,
+                                meeting_title: pdfData.meetingTitle,
+                                meeting_date: pdfData.meetingDate,
+                                title: absoluteBrowserPdfUrl.split('/').pop() || 'document.pdf',
+                                content: pdfText,
+                                extracted_at: new Date().toISOString()
+                              });
+
+                              pdfsExtracted++;
+                              console.log(`✅ Extracted PDF ${pdfsExtracted}: ${absoluteBrowserPdfUrl.split('/').pop()}`);
+                            } catch (browserPdfError) {
+                              console.log(`⚠️ Error processing PDF from browser: ${browserPdfError.message}`);
+                            }
+                          }
+
+                          // Navigate back to the meeting page
+                          await stagehand.page.goBack();
+                          await new Promise(resolve => setTimeout(resolve, 1000));
+
+                        } catch (browserError) {
+                          console.log(`⚠️ Error navigating to file browser: ${browserError.message}`);
+                        }
+
+                        continue;
+                      }
+
+                      if (!contentType?.includes('application/pdf')) {
+                        console.log(`⏭️ Skipping non-PDF content (${contentType}): ${absolutePdfUrl}`);
+                        continue;
+                      }
+
+                      console.log(`✅ Confirmed PDF via Content-Type: ${absolutePdfUrl}`);
                       const buffer = await response.arrayBuffer();
                       const parsedPdf = await pdfParse(Buffer.from(buffer));
                       const pdfText = cleanText(parsedPdf.text);
