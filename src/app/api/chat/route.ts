@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
       model: 'gpt-4o-mini',
       messages,
       temperature: 0.3, // Low temperature for more factual responses
-      max_tokens: 500,
+      max_tokens: 800, // Increased from 500 to allow for specific, detailed answers with quotes
     });
 
     const rawResponse = completion.choices[0].message.content || 'I apologize, but I was unable to generate a response.';

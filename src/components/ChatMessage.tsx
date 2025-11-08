@@ -1,5 +1,6 @@
 'use client';
 import { Citation } from '@/lib/types';
+import { useState } from 'react';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant';
@@ -9,6 +10,7 @@ interface ChatMessageProps {
 }
 
 export default function ChatMessage({ role, content, citations, isLoading }: ChatMessageProps) {
+  const [showSources, setShowSources] = useState(false);
   if (role === 'user') {
     return (
       <div className="flex justify-end mb-4">
@@ -40,14 +42,30 @@ export default function ChatMessage({ role, content, citations, isLoading }: Cha
           )}
         </div>
 
-        {/* Citations */}
+        {/* Citations - Collapsible */}
         {citations && citations.length > 0 && !isLoading && (
-          <div className="mt-4 ml-1">
-            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
-              Sources ({citations.length})
-            </p>
-            <div className="space-y-2.5">
-              {citations.map((citation, idx) => (
+          <div className="mt-3 ml-1">
+            <button
+              onClick={() => setShowSources(!showSources)}
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-ack-blue dark:hover:text-blue-400 transition-colors uppercase tracking-wide"
+            >
+              <svg
+                className={`w-3.5 h-3.5 transition-transform ${showSources ? 'rotate-90' : ''}`}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M9 5l7 7-7 7" />
+              </svg>
+              <span>Sources ({citations.length})</span>
+            </button>
+
+            {showSources && (
+              <div className="space-y-2 mt-3">
+                {citations.map((citation, idx) => (
                 <div
                   key={idx}
                   className="group bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-lg px-3 py-3 border border-gray-200 dark:border-gray-600 hover:border-ack-blue dark:hover:border-blue-400 transition-all"
@@ -136,8 +154,9 @@ export default function ChatMessage({ role, content, citations, isLoading }: Cha
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

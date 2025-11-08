@@ -123,6 +123,17 @@ async function semanticSearch(
   if (includeDocumentInfo && results.length > 0) {
     logger.debug('[Retrieval] Enriching with document info');
     results = await enrichWithDocumentInfo(results);
+
+    // Apply recency boost: newer documents get a slight similarity boost
+    // This helps prioritize recent meetings over old reports
+    results = applyRecencyBoost(results);
+
+    // Apply chunk type boost: summary chunks get priority over transcript chunks
+    // This ensures users see high-level summaries first, with transcript details available on request
+    results = applyChunkTypeBoost(results);
+
+    // Re-sort by boosted similarity
+    results.sort((a, b) => b.similarity - a.similarity);
   }
 
   // Cache the results (24 hour TTL)
@@ -215,6 +226,70 @@ async function enrichWithDocumentInfo(
     ...result,
     document: docMap.get(result.document_id),
   }));
+}
+
+/**
+ * Apply chunk type boost to search results
+ * Summary chunks get boosted to appear first, transcript chunks for detailed quotes
+ */
+function applyChunkTypeBoost(results: RetrievalResult[]): RetrievalResult[] {
+  return results.map(result => {
+    const chunkType = result.metadata?.chunk_type;
+
+    // Boost summary chunks by +10% to ensure they appear first
+    if (chunkType === 'summary') {
+      return {
+        ...result,
+        similarity: Math.min(1.0, result.similarity + 0.10),
+      };
+    }
+
+    // Transcript chunks get no boost (available for specific quote searches)
+    return result;
+  });
+}
+
+/**
+ * Apply recency boost to search results
+ * Newer documents get a small similarity boost to prioritize recent content
+ */
+function applyRecencyBoost(results: RetrievalResult[]): RetrievalResult[] {
+  const now = new Date();
+
+  return results.map(result => {
+    if (!result.document || !result.metadata) {
+      return result;
+    }
+
+    // Extract date from document metadata
+    const docDate = result.metadata?.published_at || result.metadata?.created_at;
+
+    if (docDate) {
+      const date = new Date(docDate);
+      const ageInDays = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+
+      // Apply boost:
+      // - Last 30 days: +5% similarity boost
+      // - Last 90 days: +3% similarity boost
+      // - Last 180 days: +1% similarity boost
+      // - Older: no boost
+      let boost = 0;
+      if (ageInDays <= 30) {
+        boost = 0.05;
+      } else if (ageInDays <= 90) {
+        boost = 0.03;
+      } else if (ageInDays <= 180) {
+        boost = 0.01;
+      }
+
+      return {
+        ...result,
+        similarity: Math.min(1.0, result.similarity + boost), // Cap at 1.0
+      };
+    }
+
+    return result;
+  });
 }
 
 /**

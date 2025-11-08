@@ -458,26 +458,29 @@ Options:
       ...enrichedData,
     };
 
-    // Build searchable content
-    const meetingContent = buildMeetingContent(enrichedMeeting);
+    // Build searchable content (enriched summary only)
+    const summaryContent = buildMeetingContent(enrichedMeeting);
 
-    // Chunk the content
-    const chunks = chunkText(meetingContent, {
-      maxTokens: options.chunkSize ?? 500,
+    // Create hybrid chunks: summary chunks + transcript chunks
+    const allChunks = [];
+
+    // 1. Create summary chunk(s) from enriched metadata
+    const summaryChunks = chunkText(summaryContent, {
+      maxTokens: options.chunkSize ?? 1000, // Larger chunks for summaries
       overlap: options.chunkOverlap ?? 50,
     });
 
-    // Add metadata to chunks
-    const chunksWithMetadata = chunks.map((chunk, index) => ({
+    allChunks.push(...summaryChunks.map((chunk, index) => ({
       content: chunk.content,
-      index,
+      index: allChunks.length + index,
       tokens: chunk.tokens,
+      chunkType: 'summary' as const,
       metadata: {
-        ...chunk.metadata, // Keep original metadata (start_char, end_char, etc.)
         video_id: videoId,
         video_title: videoInfo.title,
         channel: videoInfo.channel,
         published_at: videoInfo.publishedAt,
+        created_at: videoInfo.publishedAt,
         duration: videoInfo.duration,
         meeting_type: enrichedData.meetingType,
         departments: enrichedData.departments,
@@ -485,8 +488,40 @@ Options:
         keywords: enrichedData.keywords,
         category: enrichedData.category,
         priority_level: enrichedData.priorityLevel,
+        chunk_type: 'summary', // Tag for boosting in search
       },
-    }));
+    })));
+
+    // 2. Create transcript chunks from full transcript
+    const transcriptChunks = chunkText(enrichedMeeting.transcript, {
+      maxTokens: 500, // Smaller chunks for transcript (better for finding specific quotes)
+      overlap: 50,
+    });
+
+    allChunks.push(...transcriptChunks.map((chunk, index) => ({
+      content: chunk.content,
+      index: allChunks.length + index,
+      tokens: chunk.tokens,
+      chunkType: 'transcript' as const,
+      metadata: {
+        video_id: videoId,
+        video_title: videoInfo.title,
+        channel: videoInfo.channel,
+        published_at: videoInfo.publishedAt,
+        created_at: videoInfo.publishedAt,
+        duration: videoInfo.duration,
+        meeting_type: enrichedData.meetingType,
+        topics: enrichedData.topics,
+        category: enrichedData.category,
+        chunk_type: 'transcript', // Tag for reference
+      },
+    })));
+
+    console.log(`\n📊 Created ${allChunks.length} total chunks:`);
+    console.log(`   Summary chunks: ${summaryChunks.length}`);
+    console.log(`   Transcript chunks: ${transcriptChunks.length}`);
+
+    const chunksWithMetadata = allChunks;
 
     // Store content hash for deduplication
     const contentHash = createHash('sha256')
@@ -638,9 +673,10 @@ function buildMeetingContent(meeting: EnrichedMeetingData): string {
     sections.push('');
   }
 
-  // Full transcript
-  sections.push('## Full Transcript');
-  sections.push(meeting.transcript);
+  // Note: We intentionally do NOT include the full raw transcript here.
+  // The enriched metadata above (summary, decisions, action items, quotes, topics)
+  // provides much better semantic search results than the verbose raw transcript.
+  // The full transcript is still stored in the database for reference.
 
   return sections.join('\n');
 }
