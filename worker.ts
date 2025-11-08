@@ -105,6 +105,33 @@ async function startWorkers() {
   console.log(`  PDF Processing Worker: ${pdfProcessingWorker.isRunning() ? '✅ Running' : '❌ Stopped'}`);
   console.log('==============================================\n');
 
+  // Start HTTP server for Railway health checks
+  const http = require('http');
+  const PORT = process.env.PORT || 3001;
+
+  const server = http.createServer((req: any, res: any) => {
+    if (req.url === '/health' || req.url === '/') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'healthy',
+        workers: {
+          scraping: scrapingWorker.isRunning(),
+          embedding: embeddingWorker.isRunning(),
+          pdfProcessing: pdfProcessingWorker.isRunning()
+        },
+        timestamp: new Date().toISOString()
+      }));
+    } else {
+      res.writeHead(404);
+      res.end('Not Found');
+    }
+  });
+
+  server.listen(PORT, () => {
+    console.log(`🏥 Health check server listening on port ${PORT}`);
+    console.log('');
+  });
+
   // Keep the process alive
   process.on('SIGTERM', async () => {
     console.log('\n🛑 SIGTERM received, shutting down workers...');
