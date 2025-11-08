@@ -133,7 +133,7 @@ async function semanticSearch(
     results = applyChunkTypeBoost(results);
 
     // Re-sort by boosted similarity
-    results.sort((a, b) => b.similarity - a.similarity);
+    results.sort((a: RetrievalResult, b: RetrievalResult) => b.similarity - a.similarity);
   }
 
   // Cache the results (24 hour TTL)
