@@ -601,13 +601,9 @@ scrapingWorker.on('error', (err) => {
   });
 });
 
-// Add active/waiting event handlers for debugging
+// Add active event handler for debugging
 scrapingWorker.on('active', (job) => {
   console.log(`\n⚡ [WORKER] Job ${job.id} is now ACTIVE (processing started)`);
-});
-
-scrapingWorker.on('waiting', (jobId) => {
-  console.log(`\n⏳ [WORKER] Job ${jobId} is WAITING in queue`);
 });
 
 // Event handlers for embedding worker
