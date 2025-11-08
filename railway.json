@@ -2,13 +2,15 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm install"
+    "buildCommand": "npm install && npm install -g tsx"
   },
   "deploy": {
-    "startCommand": "npm run worker",
-    "restartPolicyType": "NEVER",
+    "startCommand": "tsx worker.ts",
+    "restartPolicyType": "ON_FAILURE",
     "environmentVariables": {
       "NODE_VERSION": "20"
-    }
+    },
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300
   }
 }
