@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapingQueue } from '@/lib/queues';
-import { createAdminSupabaseClient } from '@/lib/auth/admin-helpers';
-import { requireAdminApi } from '@/lib/auth/require-admin';
+import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import logger from '@/lib/logger';
 
 /**
