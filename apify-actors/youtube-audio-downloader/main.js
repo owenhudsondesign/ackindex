@@ -1,10 +1,5 @@
 import { Actor } from 'apify';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import fs from 'fs';
-import path from 'path';
-
-const execAsync = promisify(exec);
+import { Innertube } from 'youtubei.js';
 
 // Helper: Extract video ID from various YouTube URL formats
 function extractVideoId(url) {
@@ -117,34 +112,79 @@ async function fetchChannelVideos(channelId, apiKey, maxResults = 50, includeLiv
   return Array.from(allVideos.values()).slice(0, maxResults);
 }
 
-// Helper: Get video metadata using yt-dlp
-async function getVideoInfo(videoId) {
+// Helper: Get video metadata using YouTube API
+async function getVideoInfo(videoId, apiKey) {
+  if (!apiKey) {
+    throw new Error('YouTube API key is required');
+  }
+
   try {
-    const { stdout } = await execAsync(
-      `yt-dlp --dump-json --no-warnings --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --extractor-args "youtube:player_client=android" "https://www.youtube.com/watch?v=${videoId}"`
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${apiKey}`
     );
-    return JSON.parse(stdout);
+
+    if (!response.ok) {
+      throw new Error(`YouTube API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.items || data.items.length === 0) {
+      throw new Error('Video not found');
+    }
+
+    const video = data.items[0];
+
+    // Parse ISO 8601 duration (PT1H30M15S)
+    const duration = parseDuration(video.contentDetails.duration);
+
+    return {
+      videoId,
+      title: video.snippet.title,
+      description: video.snippet.description,
+      channel: video.snippet.channelTitle,
+      channelId: video.snippet.channelId,
+      publishedAt: video.snippet.publishedAt,
+      duration: duration,
+      viewCount: parseInt(video.statistics.viewCount) || 0,
+      thumbnails: video.snippet.thumbnails
+    };
   } catch (error) {
     throw new Error(`Failed to get video info: ${error.message}`);
   }
 }
 
-// Helper: Download audio using yt-dlp
-async function downloadAudio(videoId, outputPath) {
-  try {
-    // Download audio-only, best quality with anti-bot measures
-    await execAsync(
-      `yt-dlp -f "bestaudio[ext=m4a]/bestaudio/best" --extract-audio --audio-format m4a --output "${outputPath}" --no-warnings --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --extractor-args "youtube:player_client=android" "https://www.youtube.com/watch?v=${videoId}"`
-    );
+// Helper: Parse ISO 8601 duration to seconds
+function parseDuration(isoDuration) {
+  const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
 
-    // Check if file exists
-    if (!fs.existsSync(outputPath)) {
-      throw new Error('Audio file was not created');
+  const hours = parseInt(match[1] || 0);
+  const minutes = parseInt(match[2] || 0);
+  const seconds = parseInt(match[3] || 0);
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+// Helper: Fetch transcript using youtubei.js
+async function fetchTranscript(videoId, youtube) {
+  try {
+    const info = await youtube.getInfo(videoId);
+    const transcriptData = await info.getTranscript();
+
+    if (!transcriptData || !transcriptData.content) {
+      throw new Error('No transcript available');
     }
 
-    return outputPath;
+    // Convert to format compatible with our pipeline
+    const transcript = transcriptData.content.body.initial_segments.map(segment => ({
+      text: segment.snippet.text,
+      offset: segment.start_ms / 1000, // Convert ms to seconds
+      duration: segment.end_ms / 1000 - segment.start_ms / 1000
+    }));
+
+    return transcript;
   } catch (error) {
-    throw new Error(`Failed to download audio: ${error.message}`);
+    throw new Error(`Failed to fetch transcript: ${error.message}`);
   }
 }
 
@@ -181,7 +221,6 @@ await Actor.main(async () => {
   const {
     youtubeUrls = [],
     channelIds = [],
-    downloadAudio: shouldDownloadAudio = true,
     maxVideos = 50,
     filterKeywords = ['meeting', 'council', 'board', 'hearing', 'session', 'committee'],
     minDuration = 300, // 5 minutes
@@ -190,10 +229,18 @@ await Actor.main(async () => {
     includeLivestreams = true
   } = input;
 
-  console.log('🎬 Starting YouTube Audio Downloader...');
-  console.log(`📊 Settings: maxVideos=${maxVideos}, downloadAudio=${shouldDownloadAudio}`);
+  if (!youtubeApiKey) {
+    throw new Error('YouTube API key is required');
+  }
+
+  console.log('🎬 Starting YouTube Transcript Fetcher...');
+  console.log(`📊 Settings: maxVideos=${maxVideos}`);
   console.log(`🔍 Filter keywords: ${filterKeywords.join(', ')}`);
   console.log(`⏱️ Duration range: ${minDuration}s - ${maxDuration}s`);
+
+  // Initialize YouTube client
+  console.log('📺 Initializing YouTube client...');
+  const youtube = await Innertube.create();
 
   // Collect all video IDs to process
   const videoIdsToProcess = new Set();
@@ -218,15 +265,13 @@ await Actor.main(async () => {
       if (parsed.isHandle || parsed.type === 'streams') {
         console.log(`🔍 Resolving channel handle: @${parsed.id}`);
         // Use search to find channel
-        if (youtubeApiKey) {
-          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(parsed.id)}&maxResults=1&key=${youtubeApiKey}`;
-          const response = await fetch(searchUrl);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.items && data.items.length > 0) {
-              channelId = data.items[0].snippet.channelId;
-              console.log(`✅ Resolved to channel ID: ${channelId}`);
-            }
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(parsed.id)}&maxResults=1&key=${youtubeApiKey}`;
+        const response = await fetch(searchUrl);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.items && data.items.length > 0) {
+            channelId = data.items[0].snippet.channelId;
+            console.log(`✅ Resolved to channel ID: ${channelId}`);
           }
         }
       }
@@ -249,13 +294,9 @@ await Actor.main(async () => {
   console.log(`\n📦 Total videos to process: ${videoIdsToProcess.size}\n`);
 
   let processed = 0;
-  let downloaded = 0;
+  let transcriptsFetched = 0;
   let filtered = 0;
-
-  const tmpDir = '/tmp/audio';
-  if (!fs.existsSync(tmpDir)) {
-    fs.mkdirSync(tmpDir, { recursive: true });
-  }
+  let failed = 0;
 
   for (const videoId of Array.from(videoIdsToProcess).slice(0, maxVideos)) {
     processed++;
@@ -264,8 +305,8 @@ await Actor.main(async () => {
     try {
       console.log(`📹 Processing (${processed}/${Math.min(videoIdsToProcess.size, maxVideos)}): ${videoId}`);
 
-      // Get video info
-      const info = await getVideoInfo(videoId);
+      // Get video info from YouTube API
+      const info = await getVideoInfo(videoId, youtubeApiKey);
 
       // Check filters
       if (!matchesFilters(info, filterKeywords, minDuration, maxDuration)) {
@@ -277,43 +318,36 @@ await Actor.main(async () => {
       const duration = info.duration || 0;
 
       console.log(`✅ Match: ${info.title}`);
-      console.log(`   Channel: ${info.uploader || info.channel}`);
+      console.log(`   Channel: ${info.channel}`);
       console.log(`   Duration: ${Math.floor(duration / 60)}m ${duration % 60}s`);
-      console.log(`   Published: ${info.upload_date || 'unknown'}`);
+      console.log(`   Published: ${info.publishedAt}`);
 
-      let audioFileKey = null;
-      let audioFileSize = 0;
       let status = 'metadata_only';
+      let transcript = null;
+      let transcriptText = '';
+      let transcriptWordCount = 0;
 
-      // Download audio if enabled
-      if (shouldDownloadAudio) {
-        try {
-          console.log('🎵 Downloading audio...');
+      // Fetch transcript
+      try {
+        console.log('📝 Fetching transcript...');
 
-          const audioPath = path.join(tmpDir, `${videoId}.m4a`);
-          await downloadAudio(videoId, audioPath);
+        transcript = await fetchTranscript(videoId, youtube);
 
-          const stats = fs.statSync(audioPath);
-          audioFileSize = stats.size;
+        if (transcript && transcript.length > 0) {
+          // Combine all transcript segments into full text
+          transcriptText = transcript.map(t => t.text).join(' ');
+          transcriptWordCount = transcriptText.split(/\s+/).length;
 
-          console.log(`   Downloaded: ${(audioFileSize / 1024 / 1024).toFixed(2)} MB`);
-
-          // Save to Key-Value Store
-          audioFileKey = `audio_${videoId}.m4a`;
-          const audioBuffer = fs.readFileSync(audioPath);
-          await Actor.setValue(audioFileKey, audioBuffer, { contentType: 'audio/mp4' });
-
-          console.log(`   Saved to KVS: ${audioFileKey}`);
-
-          // Clean up temp file
-          fs.unlinkSync(audioPath);
-
-          status = 'downloaded';
-          downloaded++;
-        } catch (downloadError) {
-          console.log(`⚠️ Audio download failed: ${downloadError.message}`);
-          status = 'download_failed';
+          console.log(`   Transcript: ${transcript.length} segments, ${transcriptWordCount} words`);
+          status = 'transcript_fetched';
+          transcriptsFetched++;
+        } else {
+          console.log(`   ⚠️ Transcript is empty`);
+          status = 'no_transcript';
         }
+      } catch (transcriptError) {
+        console.log(`⚠️ Transcript fetch failed: ${transcriptError.message}`);
+        status = 'transcript_unavailable';
       }
 
       // Save to dataset
@@ -322,17 +356,15 @@ await Actor.main(async () => {
         url: videoUrl,
         title: info.title,
         description: info.description,
-        channel: info.uploader || info.channel,
-        channelId: info.channel_id,
-        channelUrl: info.uploader_url || info.channel_url,
+        channel: info.channel,
+        channelId: info.channelId,
+        publishedAt: info.publishedAt,
         duration: duration,
         durationFormatted: `${Math.floor(duration / 60)}m ${duration % 60}s`,
-        uploadDate: info.upload_date,
-        publishDate: info.release_date || info.upload_date,
-        viewCount: info.view_count || 0,
-        audioFileKey,
-        audioFileSize,
-        audioFileSizeMB: audioFileSize ? (audioFileSize / 1024 / 1024).toFixed(2) : 0,
+        viewCount: info.viewCount,
+        transcript: transcript,  // Array of {text, offset, duration}
+        transcriptText: transcriptText,  // Full text
+        transcriptWordCount: transcriptWordCount,
         status,
         processedAt: new Date().toISOString()
       });
@@ -340,6 +372,7 @@ await Actor.main(async () => {
       console.log('');
     } catch (error) {
       console.log(`⚠️ Error processing video ${videoId}: ${error.message}`);
+      failed++;
       console.log('');
     }
   }
@@ -348,6 +381,7 @@ await Actor.main(async () => {
   console.log('📊 Summary:');
   console.log(`   Total videos discovered: ${videoIdsToProcess.size}`);
   console.log(`   Videos processed: ${processed}`);
-  console.log(`   Audio files downloaded: ${downloaded}`);
+  console.log(`   Transcripts fetched: ${transcriptsFetched}`);
   console.log(`   Videos filtered out: ${filtered}`);
+  console.log(`   Failed: ${failed}`);
 });

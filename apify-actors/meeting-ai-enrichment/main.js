@@ -100,9 +100,10 @@ await Actor.main(async () => {
 
   console.log(`📦 Found ${items.length} videos in dataset`);
 
-  // Filter to transcribed videos
+  // Filter to videos with transcripts
   const videosToProcess = items.filter(item =>
-    item.status === 'transcribed' && item.transcriptKey
+    (item.status === 'transcript_fetched' || item.status === 'transcribed') &&
+    (item.transcript || item.transcriptKey)
   );
 
   console.log(`📝 ${videosToProcess.length} videos have transcripts ready for processing`);
@@ -124,12 +125,33 @@ await Actor.main(async () => {
       console.log(`   Video ID: ${video.videoId}`);
       console.log(`   Duration: ${video.durationFormatted || `${Math.floor(video.duration / 60)}m`}`);
 
-      // Load full transcript from KVS
-      console.log(`   📥 Loading transcript: ${video.transcriptKey}`);
-      const transcript = await Actor.getValue(video.transcriptKey);
+      // Load transcript data (either from KVS or directly from dataset)
+      let transcript;
 
-      if (!transcript) {
-        throw new Error('Transcript not found in KVS');
+      if (video.transcriptKey) {
+        // Old format: Transcript in KVS from Actor 2 (transcription-processor)
+        console.log(`   📥 Loading transcript from KVS: ${video.transcriptKey}`);
+        transcript = await Actor.getValue(video.transcriptKey);
+
+        if (!transcript) {
+          throw new Error('Transcript not found in KVS');
+        }
+      } else if (video.transcript && video.transcriptText) {
+        // New format: Transcript directly from Actor 1 (youtube-transcript-fetcher)
+        console.log(`   📥 Using transcript from dataset`);
+        transcript = {
+          fullText: video.transcriptText,
+          segments: video.transcript.map(seg => ({
+            start: seg.offset,
+            end: seg.offset + (seg.duration || 0),
+            text: seg.text,
+            speaker: null // YouTube transcripts don't have speaker info
+          })),
+          wordCount: video.transcriptWordCount,
+          speakers: 0 // No speaker diarization from YouTube
+        };
+      } else {
+        throw new Error('No transcript data found in video record');
       }
 
       console.log(`   ✅ Loaded transcript: ${transcript.wordCount} words`);

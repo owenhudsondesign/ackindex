@@ -6,47 +6,32 @@
     "youtubeUrls": {
       "title": "YouTube URLs",
       "type": "array",
-      "description": "Array of YouTube video, playlist, or channel URLs",
+      "description": "Array of YouTube video, playlist, channel URLs, or /streams page URLs",
       "editor": "stringList",
       "default": [],
-      "example": ["https://www.youtube.com/@NantucketTownGovernment"]
+      "example": ["https://www.youtube.com/@townofnantucket/streams"]
     },
     "channelIds": {
       "title": "Channel IDs",
       "type": "array",
-      "description": "Array of YouTube channel IDs",
+      "description": "Array of YouTube channel IDs to monitor",
       "editor": "stringList",
       "default": []
     },
     "youtubeApiKey": {
       "title": "YouTube API Key",
       "type": "string",
-      "description": "YouTube Data API v3 key",
+      "description": "YouTube Data API v3 key for video discovery and metadata",
       "editor": "textfield",
       "isSecret": true
     },
     "maxVideos": {
       "title": "Max Videos",
       "type": "integer",
-      "description": "Maximum videos to process",
+      "description": "Maximum videos to process per run",
       "default": 10,
       "minimum": 1,
       "maximum": 100
-    },
-    "transcriptionService": {
-      "title": "Transcription Service",
-      "type": "string",
-      "description": "Which transcription service to use",
-      "enum": ["deepgram", "assemblyai", "openai-whisper"],
-      "default": "deepgram",
-      "editor": "select"
-    },
-    "transcriptionApiKey": {
-      "title": "Transcription API Key",
-      "type": "string",
-      "description": "API key for transcription service",
-      "editor": "textfield",
-      "isSecret": true
     },
     "openaiApiKey": {
       "title": "OpenAI API Key",
@@ -66,7 +51,7 @@
     "enableEmbeddings": {
       "title": "Generate Embeddings",
       "type": "boolean",
-      "description": "Generate semantic embeddings",
+      "description": "Generate semantic embeddings for search",
       "default": true
     },
     "actorIds": {
@@ -75,11 +60,10 @@
       "description": "Custom actor IDs if you've forked/modified the actors",
       "editor": "json",
       "prefill": {
-        "downloader": "your-username/youtube-audio-downloader",
-        "transcriber": "your-username/transcription-processor",
-        "enricher": "your-username/meeting-ai-enrichment"
+        "transcriptFetcher": "legible_radish/youtube-transcript-fetcher",
+        "enricher": "legible_radish/meeting-ai-enrichment"
       }
     }
   },
-  "required": ["youtubeUrls", "transcriptionApiKey", "openaiApiKey"]
+  "required": ["youtubeUrls", "youtubeApiKey", "openaiApiKey"]
 }

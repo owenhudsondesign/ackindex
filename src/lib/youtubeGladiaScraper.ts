@@ -313,6 +313,38 @@ export async function processYouTubeVideo(
     logger.info({ videoId }, 'Fetching video metadata');
     const videoInfo = await getVideoMetadata(videoId);
 
+    // Check if video exceeds Gladia's limit (135 minutes for regular, 120 for YouTube URLs)
+    const GLADIA_MAX_DURATION_SECONDS = 120 * 60; // 120 minutes for YouTube URLs
+    if (videoInfo.duration > GLADIA_MAX_DURATION_SECONDS) {
+      const durationMinutes = Math.floor(videoInfo.duration / 60);
+      const maxMinutes = Math.floor(GLADIA_MAX_DURATION_SECONDS / 60);
+
+      logger.warn(
+        { videoId, duration: durationMinutes, maxDuration: maxMinutes },
+        'Video exceeds Gladia maximum duration for YouTube URLs'
+      );
+
+      // Update document with error status
+      await updateDocument(documentId, {
+        title: videoInfo.title,
+        description: videoInfo.description.slice(0, 200),
+        status: 'failed',
+      } as any);
+
+      // Store error message in database
+      await supabase
+        .from('documents')
+        .update({
+          error_message: `Video duration (${durationMinutes} minutes) exceeds Gladia's maximum for YouTube URLs (${maxMinutes} minutes). Please contact support to enable longer video processing or split the video into shorter segments.`,
+        })
+        .eq('id', documentId);
+
+      throw new Error(
+        `Video too long: ${durationMinutes} minutes (max: ${maxMinutes} minutes). ` +
+        `Gladia limits YouTube URLs to ${maxMinutes} minutes. Contact Gladia support for enterprise limits.`
+      );
+    }
+
     // Update document with video title
     await updateDocument(documentId, {
       title: videoInfo.title,

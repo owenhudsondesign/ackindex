@@ -27,20 +27,17 @@ await Actor.main(async () => {
     channelIds = [],
     youtubeApiKey,
     maxVideos = 10,
-    transcriptionService = 'deepgram',
-    transcriptionApiKey,
     openaiApiKey,
     openaiModel = 'gpt-4o-mini',
     enableEmbeddings = true,
     actorIds = {
-      downloader: 'legible_radish/youtube-audio-downloader',
-      transcriber: 'legible_radish/transcription-processor',
+      transcriptFetcher: 'legible_radish/youtube-transcript-fetcher',
       enricher: 'legible_radish/meeting-ai-enrichment'
     }
   } = input;
 
-  if (!transcriptionApiKey) {
-    throw new Error('transcriptionApiKey is required');
+  if (!youtubeApiKey) {
+    throw new Error('youtubeApiKey is required');
   }
 
   if (!openaiApiKey) {
@@ -48,7 +45,7 @@ await Actor.main(async () => {
   }
 
   console.log('🎬 Starting YouTube Meetings Orchestrator...');
-  console.log(`📊 Pipeline: Download → Transcribe (${transcriptionService}) → Enrich (${openaiModel})`);
+  console.log(`📊 Pipeline: Fetch Transcripts (YouTube API) → Enrich (${openaiModel})`);
   console.log(`🎯 Max videos: ${maxVideos}`);
   console.log('');
 
@@ -61,111 +58,57 @@ await Actor.main(async () => {
   let totalCost = 0;
 
   // ============================================
-  // STAGE 1: Video Discovery & Audio Download
+  // STAGE 1: Video Discovery & Transcript Fetching
   // ============================================
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📥 STAGE 1: Video Discovery & Audio Download');
+  console.log('📥 STAGE 1: Video Discovery & Transcript Fetching');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-  const downloaderInput = {
+  const transcriptFetcherInput = {
     youtubeUrls,
     channelIds,
     youtubeApiKey,
-    downloadAudio: true,
     maxVideos,
     filterKeywords: ['meeting', 'council', 'board', 'hearing', 'session', 'committee'],
     minDuration: 300,
-    maxDuration: 18000
+    maxDuration: 18000,
+    includeLivestreams: true
   };
 
-  console.log(`🎬 Starting Actor: ${actorIds.downloader}`);
+  console.log(`🎬 Starting Actor: ${actorIds.transcriptFetcher}`);
   const stage1Start = Date.now();
 
-  const downloaderRun = await client.actor(actorIds.downloader).call(downloaderInput, {
+  const transcriptFetcherRun = await client.actor(actorIds.transcriptFetcher).call(transcriptFetcherInput, {
     memory: 4096,
     timeout: 3600
   });
 
   const stage1Duration = ((Date.now() - stage1Start) / 1000 / 60).toFixed(1);
   console.log(`\n✅ Stage 1 complete in ${stage1Duration} minutes`);
-  console.log(`📦 Dataset: ${downloaderRun.defaultDatasetId}`);
+  console.log(`📦 Dataset: ${transcriptFetcherRun.defaultDatasetId}`);
 
   // Get results from Stage 1
-  const downloaderDataset = client.dataset(downloaderRun.defaultDatasetId);
-  const { items: downloadedVideos } = await downloaderDataset.listItems();
+  const transcriptDataset = client.dataset(transcriptFetcherRun.defaultDatasetId);
+  const { items: fetchedVideos } = await transcriptDataset.listItems();
 
-  const successfulDownloads = downloadedVideos.filter(v => v.status === 'downloaded');
-  console.log(`✅ ${successfulDownloads.length} videos downloaded successfully`);
+  const successfulFetches = fetchedVideos.filter(v => v.status === 'transcript_fetched');
+  console.log(`✅ ${successfulFetches.length} transcripts fetched successfully`);
 
-  if (successfulDownloads.length === 0) {
-    console.log('⚠️ No videos were downloaded. Exiting pipeline.');
+  if (successfulFetches.length === 0) {
+    console.log('⚠️ No transcripts were fetched. Exiting pipeline.');
     return;
   }
 
-  // Calculate storage costs
-  const totalStorageGB = successfulDownloads.reduce((sum, v) => sum + (v.audioFileSizeMB || 0), 0) / 1024;
-  const storageCost = totalStorageGB * 0.25; // $0.25/GB/month
-  totalCost += storageCost;
-
-  console.log(`💾 Storage: ${totalStorageGB.toFixed(2)} GB (~$${storageCost.toFixed(2)}/month)`);
 
   // ============================================
-  // STAGE 2: Transcription
+  // STAGE 2: AI Enrichment
   // ============================================
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🎙️ STAGE 2: Transcription');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
-  const transcriberInput = {
-    datasetId: downloaderRun.defaultDatasetId,
-    transcriptionService,
-    apiKey: transcriptionApiKey,
-    enableSpeakerDiarization: true,
-    language: 'en',
-    maxConcurrent: 3,
-    skipExisting: true
-  };
-
-  console.log(`🎙️ Starting Actor: ${actorIds.transcriber}`);
-  console.log(`   Service: ${transcriptionService}`);
-  const stage2Start = Date.now();
-
-  const transcriberRun = await client.actor(actorIds.transcriber).call(transcriberInput, {
-    memory: 4096,
-    timeout: 7200
-  });
-
-  const stage2Duration = ((Date.now() - stage2Start) / 1000 / 60).toFixed(1);
-  console.log(`\n✅ Stage 2 complete in ${stage2Duration} minutes`);
-  console.log(`📦 Dataset: ${transcriberRun.defaultDatasetId}`);
-
-  // Get results from Stage 2
-  const transcriberDataset = client.dataset(transcriberRun.defaultDatasetId);
-  const { items: transcribedVideos } = await transcriberDataset.listItems();
-
-  const successfulTranscriptions = transcribedVideos.filter(v => v.status === 'transcribed');
-  console.log(`✅ ${successfulTranscriptions.length} videos transcribed successfully`);
-
-  if (successfulTranscriptions.length === 0) {
-    console.log('⚠️ No videos were transcribed. Exiting pipeline.');
-    return;
-  }
-
-  // Calculate transcription costs
-  const transcriptionCost = successfulTranscriptions.reduce((sum, v) => sum + (v.estimatedCost || 0), 0);
-  totalCost += transcriptionCost;
-
-  console.log(`💰 Transcription cost: $${transcriptionCost.toFixed(2)}`);
-
-  // ============================================
-  // STAGE 3: AI Enrichment
-  // ============================================
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🤖 STAGE 3: AI Enrichment');
+  console.log('🤖 STAGE 2: AI Enrichment');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   const enricherInput = {
-    datasetId: transcriberRun.defaultDatasetId,
+    datasetId: transcriptFetcherRun.defaultDatasetId,
     openaiApiKey,
     openaiModel,
     outputFormat: 'ackindex',
@@ -176,18 +119,18 @@ await Actor.main(async () => {
   console.log(`🤖 Starting Actor: ${actorIds.enricher}`);
   console.log(`   Model: ${openaiModel}`);
   console.log(`   Embeddings: ${enableEmbeddings ? 'Enabled' : 'Disabled'}`);
-  const stage3Start = Date.now();
+  const stage2Start = Date.now();
 
   const enricherRun = await client.actor(actorIds.enricher).call(enricherInput, {
     memory: 4096,
     timeout: 7200
   });
 
-  const stage3Duration = ((Date.now() - stage3Start) / 1000 / 60).toFixed(1);
-  console.log(`\n✅ Stage 3 complete in ${stage3Duration} minutes`);
+  const stage2Duration = ((Date.now() - stage2Start) / 1000 / 60).toFixed(1);
+  console.log(`\n✅ Stage 2 complete in ${stage2Duration} minutes`);
   console.log(`📦 Dataset: ${enricherRun.defaultDatasetId}`);
 
-  // Get results from Stage 3
+  // Get results from Stage 2
   const enricherDataset = client.dataset(enricherRun.defaultDatasetId);
   const { items: enrichedMeetings } = await enricherDataset.listItems();
 
@@ -213,15 +156,13 @@ await Actor.main(async () => {
 
   console.log('📊 SUMMARY:');
   console.log(`   Total runtime: ${pipelineDuration} minutes`);
-  console.log(`   Videos discovered: ${downloadedVideos.length}`);
-  console.log(`   Videos downloaded: ${successfulDownloads.length}`);
-  console.log(`   Videos transcribed: ${successfulTranscriptions.length}`);
+  console.log(`   Videos discovered: ${fetchedVideos.length}`);
+  console.log(`   Transcripts fetched: ${successfulFetches.length}`);
   console.log(`   Meetings enriched: ${successfulEnrichments.length}`);
   console.log('');
 
   console.log('💰 COST BREAKDOWN:');
-  console.log(`   Storage: $${storageCost.toFixed(2)}/month`);
-  console.log(`   Transcription: $${transcriptionCost.toFixed(2)}`);
+  console.log(`   Transcript fetching: $0.00 (free from YouTube)`);
   console.log(`   AI enrichment: $${aiCost.toFixed(2)}`);
   console.log(`   ─────────────────────────`);
   console.log(`   TOTAL: $${totalCost.toFixed(2)}`);
@@ -229,15 +170,13 @@ await Actor.main(async () => {
   console.log('');
 
   console.log('📦 OUTPUT DATASETS:');
-  console.log(`   Stage 1 (Downloads): ${downloaderRun.defaultDatasetId}`);
-  console.log(`   Stage 2 (Transcripts): ${transcriberRun.defaultDatasetId}`);
-  console.log(`   Stage 3 (Enriched): ${enricherRun.defaultDatasetId}`);
+  console.log(`   Stage 1 (Transcripts): ${transcriptFetcherRun.defaultDatasetId}`);
+  console.log(`   Stage 2 (Enriched): ${enricherRun.defaultDatasetId}`);
   console.log('');
 
   console.log('🔗 APIFY CONSOLE LINKS:');
-  console.log(`   Stage 1: https://console.apify.com/actors/runs/${downloaderRun.id}`);
-  console.log(`   Stage 2: https://console.apify.com/actors/runs/${transcriberRun.id}`);
-  console.log(`   Stage 3: https://console.apify.com/actors/runs/${enricherRun.id}`);
+  console.log(`   Stage 1: https://console.apify.com/actors/runs/${transcriptFetcherRun.id}`);
+  console.log(`   Stage 2: https://console.apify.com/actors/runs/${enricherRun.id}`);
   console.log('');
 
   // Save summary to output
@@ -247,31 +186,26 @@ await Actor.main(async () => {
     runtime: {
       total: pipelineDuration,
       stage1: stage1Duration,
-      stage2: stage2Duration,
-      stage3: stage3Duration
+      stage2: stage2Duration
     },
     videos: {
-      discovered: downloadedVideos.length,
-      downloaded: successfulDownloads.length,
-      transcribed: successfulTranscriptions.length,
+      discovered: fetchedVideos.length,
+      transcriptsFetched: successfulFetches.length,
       enriched: successfulEnrichments.length
     },
     costs: {
-      storage: parseFloat(storageCost.toFixed(2)),
-      transcription: parseFloat(transcriptionCost.toFixed(2)),
+      transcription: 0, // Free from YouTube
       ai: parseFloat(aiCost.toFixed(2)),
       total: parseFloat(totalCost.toFixed(2)),
       perVideo: parseFloat((totalCost / successfulEnrichments.length).toFixed(4))
     },
     datasets: {
-      stage1: downloaderRun.defaultDatasetId,
-      stage2: transcriberRun.defaultDatasetId,
-      stage3: enricherRun.defaultDatasetId
+      stage1: transcriptFetcherRun.defaultDatasetId,
+      stage2: enricherRun.defaultDatasetId
     },
     runs: {
-      stage1: downloaderRun.id,
-      stage2: transcriberRun.id,
-      stage3: enricherRun.id
+      stage1: transcriptFetcherRun.id,
+      stage2: enricherRun.id
     },
     completedAt: new Date().toISOString()
   });

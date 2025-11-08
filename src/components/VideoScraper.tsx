@@ -349,6 +349,13 @@ export default function VideoScraper() {
             <span>Content is chunked and embedded for semantic search</span>
           </li>
         </ul>
+
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            ⚠️ <strong>Note:</strong> Videos must be under 2 hours (120 minutes) due to Gladia API limits.
+            Longer videos will be rejected. Contact support for enterprise limits if needed.
+          </p>
+        </div>
       </div>
     </Card>
   );

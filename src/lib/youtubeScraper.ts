@@ -96,21 +96,18 @@ export async function processYouTubeUrl(schedule: {
 
     // Get API keys from environment
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
-    const transcriptionApiKey = process.env.DEEPGRAM_API_KEY;
     const openaiApiKey = process.env.OPENAI_API_KEY;
     const orchestratorActorId = process.env.YOUTUBE_ORCHESTRATOR_ACTOR_ID;
 
-    if (!youtubeApiKey || !transcriptionApiKey || !openaiApiKey || !orchestratorActorId) {
+    if (!youtubeApiKey || !openaiApiKey || !orchestratorActorId) {
       throw new Error('Missing required API keys or orchestrator actor ID');
     }
 
-    // Prepare orchestrator input
+    // Prepare orchestrator input (now uses YouTube transcripts instead of audio transcription)
     const orchestratorInput = {
       youtubeUrls: [schedule.url],
       youtubeApiKey,
-      maxVideos: schedule.scrape_options?.maxVideos || 10,
-      transcriptionService: schedule.scrape_options?.transcriptionService || 'deepgram',
-      transcriptionApiKey,
+      maxVideos: schedule.scrape_options?.maxVideos || 50,
       openaiApiKey,
       openaiModel: schedule.scrape_options?.openaiModel || 'gpt-4o-mini',
       enableEmbeddings: schedule.scrape_options?.enableEmbeddings !== false,

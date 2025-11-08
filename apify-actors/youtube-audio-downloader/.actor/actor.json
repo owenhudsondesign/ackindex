@@ -1,7 +1,7 @@
 {
   "actorSpecification": 1,
-  "name": "youtube-audio-downloader",
-  "version": "1.0",
+  "name": "youtube-transcript-fetcher",
+  "version": "2.0",
   "buildTag": "latest",
   "environmentVariables": {},
   "dockerfile": "./Dockerfile",
@@ -10,7 +10,7 @@
   "storages": {
     "dataset": {
       "actorSpecification": 1,
-      "title": "Downloaded Videos",
+      "title": "Fetched Transcripts",
       "views": {
         "overview": {
           "title": "Overview",
@@ -21,7 +21,7 @@
               "channel",
               "duration",
               "status",
-              "audioFileSizeMB"
+              "transcriptWordCount"
             ]
           }
         }
