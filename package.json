@@ -44,7 +44,8 @@
     "react-dom": "^19.2.0",
     "resend": "^6.3.0",
     "stripe": "^19.1.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "youtubei.js": "^16.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.16",

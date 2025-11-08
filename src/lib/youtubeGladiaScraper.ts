@@ -329,29 +329,44 @@ export async function processYouTubeVideo(
       const durationMinutes = Math.floor(videoInfo.duration / 60);
       const maxMinutes = Math.floor(GLADIA_MAX_DURATION_SECONDS / 60);
 
+      console.log(`\n⚠️  WARNING: Video exceeds Gladia's ${maxMinutes}-minute limit for YouTube URLs`);
+      console.log(`   Video duration: ${durationMinutes} minutes`);
+      console.log(`   Gladia limit: ${maxMinutes} minutes`);
+      console.log(`\n💡 RECOMMENDATION: For videos longer than ${maxMinutes} minutes:`);
+      console.log(`   1. Check if YouTube captions are available (free)`);
+      console.log(`   2. Download video manually and split into segments`);
+      console.log(`   3. Process each segment separately through the PDF upload route`);
+      console.log(`   4. Contact Gladia support about enterprise limits (135 min for direct uploads)`);
+
       logger.warn(
         { videoId, duration: durationMinutes, maxDuration: maxMinutes },
         'Video exceeds Gladia maximum duration for YouTube URLs'
       );
 
-      // Update document with error status
+      // Update document with helpful error status
       await updateDocument(documentId, {
         title: videoInfo.title,
         description: videoInfo.description.slice(0, 200),
         status: 'failed',
       } as any);
 
-      // Store error message in database
+      // Store detailed error message in database
       await supabase
         .from('documents')
         .update({
-          error_message: `Video duration (${durationMinutes} minutes) exceeds Gladia's maximum for YouTube URLs (${maxMinutes} minutes). Please contact support to enable longer video processing or split the video into shorter segments.`,
+          error_message: `Video is ${durationMinutes} minutes long, which exceeds Gladia's ${maxMinutes}-minute limit for YouTube URLs.
+
+Options:
+1. Check if this video has YouTube captions available (free alternative)
+2. For important videos, download manually and process in segments
+3. Contact Gladia support about enterprise tier (supports up to 135 minutes)
+4. Consider using AssemblyAI for videos 2-10 hours (requires audio extraction)`,
         })
         .eq('id', documentId);
 
       throw new Error(
-        `Video too long: ${durationMinutes} minutes (max: ${maxMinutes} minutes). ` +
-        `Gladia limits YouTube URLs to ${maxMinutes} minutes. Contact Gladia support for enterprise limits.`
+        `Video too long: ${durationMinutes} minutes (max: ${maxMinutes} minutes for YouTube URLs). ` +
+        `See document error_message for options. YouTube captions may be available for free.`
       );
     }
 
@@ -361,17 +376,52 @@ export async function processYouTubeVideo(
       description: videoInfo.description.slice(0, 200),
     } as any);
 
-    // Get audio URL for Gladia (YouTube URL works directly)
-    const audioUrl = getAudioUrl(videoId);
+    // Try to get YouTube captions first (free!)
+    let transcriptionResult: {
+      fullText: string;
+      segments: GladiaTranscriptionSegment[];
+      duration: number;
+      languages?: string[];
+      transcriptionId?: string;
+    };
 
-    // Transcribe with Gladia
-    console.log(`\n🎙️  Starting Gladia transcription...`);
-    logger.info({ videoId, audioUrl }, 'Starting Gladia transcription');
-    const transcriptionResult = await transcribeAudio(audioUrl, {
-      language: options.language || 'en',
-      enableCodeSwitching: options.enableCodeSwitching ?? false,
-      timeout: 1800000, // 30 minutes
-    });
+    let usedCaptions = false;
+
+    console.log(`\n📝 Checking for YouTube captions (free alternative)...`);
+    const { extractCaptionsWithYoutubeI } = await import('@/lib/youtubeCaptions');
+    const captionResult = await extractCaptionsWithYoutubeI(videoId);
+
+    if (captionResult.success && captionResult.transcript.length > 100) {
+      console.log(`✅ Found YouTube captions! Using free captions instead of Gladia`);
+      console.log(`   Savings: $${(videoInfo.duration / 3600 * 0.612).toFixed(2)}`);
+
+      usedCaptions = true;
+      transcriptionResult = {
+        fullText: captionResult.transcript,
+        segments: captionResult.segments.map(s => ({
+          text: s.text,
+          start: s.start,
+          end: s.start + s.duration,
+        })),
+        duration: videoInfo.duration,
+        transcriptionId: 'youtube-captions',
+      };
+    } else {
+      console.log(`⚠️  No captions available or extraction failed`);
+      console.log(`   Reason: ${captionResult.error || 'Unknown'}`);
+      console.log(`\n🎙️  Falling back to Gladia transcription...`);
+
+      // Get audio URL for Gladia (YouTube URL works directly)
+      const audioUrl = getAudioUrl(videoId);
+
+      // Transcribe with Gladia
+      logger.info({ videoId, audioUrl }, 'Starting Gladia transcription');
+      transcriptionResult = await transcribeAudio(audioUrl, {
+        language: options.language || 'en',
+        enableCodeSwitching: options.enableCodeSwitching ?? false,
+        timeout: 1800000, // 30 minutes
+      });
+    }
 
     console.log(`\n✅ Gladia transcription completed!`);
     console.log(`   Transcript length: ${transcriptionResult.fullText.length} chars`);
