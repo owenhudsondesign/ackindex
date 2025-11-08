@@ -73,22 +73,49 @@ export async function POST(request: NextRequest) {
       'Video processing request received'
     );
 
-    // Check if video is already being processed
+    // Check if video is already being processed or exists
     const { data: existingDoc } = await supabase
       .from('documents')
       .select('id, status')
       .eq('source_url', url)
       .single();
 
-    if (existingDoc && existingDoc.status === 'processing') {
-      return NextResponse.json(
-        {
-          message: 'Video is already being processed',
-          documentId: existingDoc.id,
-          status: 'processing',
-        },
-        { status: 200 }
-      );
+    if (existingDoc) {
+      if (existingDoc.status === 'processing') {
+        return NextResponse.json(
+          {
+            message: 'Video is already being processed',
+            documentId: existingDoc.id,
+            status: 'processing',
+          },
+          { status: 200 }
+        );
+      }
+
+      // If document exists but is completed or failed, delete it to allow re-processing
+      if (existingDoc.status === 'completed' || existingDoc.status === 'failed') {
+        log.info(
+          { documentId: existingDoc.id, status: existingDoc.status, url },
+          'Deleting existing document for re-processing'
+        );
+
+        // Delete existing chunks first
+        await supabase
+          .from('chunks')
+          .delete()
+          .eq('document_id', existingDoc.id);
+
+        // Delete the document
+        await supabase
+          .from('documents')
+          .delete()
+          .eq('id', existingDoc.id);
+
+        log.info(
+          { documentId: existingDoc.id },
+          'Existing document deleted, will create new one'
+        );
+      }
     }
 
     // Process video (either in queue or immediately)
