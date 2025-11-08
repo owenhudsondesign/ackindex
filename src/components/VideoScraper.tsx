@@ -63,9 +63,9 @@ export default function VideoScraper() {
         videoId: data.videoId,
       });
 
-      // Start polling for status
-      if (data.videoId) {
-        startPolling(data.videoId);
+      // Start polling for status using jobId
+      if (data.jobId) {
+        startPollingByJobId(data.jobId);
       }
 
       // Clear form
@@ -98,23 +98,34 @@ export default function VideoScraper() {
 
   const urlIsValid = url.trim() === '' || isYouTubeUrl(url);
 
-  // Poll for video processing status
-  const startPolling = (videoId: string) => {
+  // Poll for video processing status by job ID
+  const startPollingByJobId = (jobId: string) => {
     setIsPolling(true);
 
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/admin/process-video?videoId=${videoId}`);
+        const response = await fetch(`/api/admin/job-status?jobId=${jobId}`);
+
+        if (!response.ok) {
+          console.error('Polling failed:', response.status);
+          return;
+        }
+
         const data = await response.json();
 
         if (data.status === 'completed') {
           setStatus({
             status: 'completed',
-            message: `✅ Video processed successfully! "${data.title}" is now searchable.`,
+            message: `✅ Video processed successfully! Document is now searchable.`,
             documentId: data.documentId,
           });
           setIsPolling(false);
           if (pollInterval) clearInterval(pollInterval);
+
+          // Refresh the page after a short delay to show the new document
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
         } else if (data.status === 'failed') {
           setStatus({
             status: 'error',
@@ -122,17 +133,22 @@ export default function VideoScraper() {
           });
           setIsPolling(false);
           if (pollInterval) clearInterval(pollInterval);
-        } else {
-          // Still processing
+        } else if (data.status === 'processing') {
           setStatus({
             status: 'processing',
-            message: `⏳ Processing video... Status: ${data.status}`,
+            message: `⏳ Processing video... Progress: ${data.progress || 0}%`,
+          });
+        } else {
+          // Queued or waiting
+          setStatus({
+            status: 'processing',
+            message: `⏳ Video queued for processing...`,
           });
         }
       } catch (error) {
         console.error('Polling error:', error);
       }
-    }, 5000); // Poll every 5 seconds
+    }, 3000); // Poll every 3 seconds
 
     setPollInterval(interval);
   };
