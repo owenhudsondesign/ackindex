@@ -25,10 +25,33 @@ import { createLogger } from '@/lib/logger';
 const workerLogger = createLogger({ component: 'worker' });
 
 // Redis connection for Upstash
+console.log('🔌 Connecting to Redis...');
+console.log(`   URL: ${process.env.REDIS_URL?.substring(0, 20)}...`);
 const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
   tls: process.env.REDIS_URL?.includes('upstash') ? {} : undefined,
+});
+
+// Log Redis connection events
+redisConnection.on('connect', () => {
+  console.log('✅ Redis connected successfully');
+});
+
+redisConnection.on('ready', () => {
+  console.log('✅ Redis ready to accept commands');
+});
+
+redisConnection.on('error', (err) => {
+  console.error('❌ Redis connection error:', err.message);
+});
+
+redisConnection.on('close', () => {
+  console.log('⚠️  Redis connection closed');
+});
+
+redisConnection.on('reconnecting', () => {
+  console.log('🔄 Redis reconnecting...');
 });
 
 // Interface for scraping job data
@@ -360,6 +383,14 @@ async function processYouTubeVideoJob(
   const log = workerLogger.child({ jobId: job.id, url });
 
   try {
+    console.log('='.repeat(60));
+    console.log(`[${new Date().toISOString()}] YOUTUBE VIDEO PROCESSING STARTED`);
+    console.log(`Job ID: ${job.id}`);
+    console.log(`URL: ${url}`);
+    console.log(`Language: ${options.language || 'en'}`);
+    console.log(`Code Switching: ${options.enableCodeSwitching ?? false}`);
+    console.log('='.repeat(60));
+
     log.info({ url }, 'Starting YouTube video processing with Gladia');
     await job.updateProgress(5);
 
@@ -418,8 +449,12 @@ export const scrapingWorker = new Worker<ScrapingJobData>(
   async (job) => {
     const { documentId, url, userId, language, enableCodeSwitching, chunkSize, chunkOverlap } = job.data;
 
+    console.log(`\n🎬 [WORKER] Received job: ${job.name} (ID: ${job.id})`);
+    console.log(`📋 Job data:`, JSON.stringify(job.data, null, 2));
+
     // Check job name to determine which processor to use
     if (job.name === 'process-youtube-video') {
+      console.log(`✅ [WORKER] Job identified as YouTube video processing`);
       workerLogger.info({ jobId: job.id, url }, 'Starting YouTube video processing job');
 
       const resultDocumentId = await processYouTubeVideoJob(
@@ -428,6 +463,7 @@ export const scrapingWorker = new Worker<ScrapingJobData>(
         job
       );
 
+      console.log(`✅ [WORKER] YouTube job completed. Document ID: ${resultDocumentId}`);
       return { success: true, documentId: resultDocumentId, url };
     } else {
       // Regular URL scraping
@@ -528,10 +564,13 @@ export const pdfProcessingWorker = new Worker<PDFProcessingJobData>(
 
 // Event handlers for scraping worker
 scrapingWorker.on('completed', (job) => {
+  console.log(`\n✅ [WORKER] Job ${job.id} completed successfully`);
   workerLogger.info({ jobId: job.id }, 'Scraping job completed successfully');
 });
 
 scrapingWorker.on('failed', (job, err) => {
+  console.error(`\n❌ [WORKER] Job ${job?.id} FAILED: ${err.message}`);
+  console.error(`Stack trace:`, err.stack);
   workerLogger.error({ jobId: job?.id, error: err.message }, 'Scraping job failed');
 
   // Send to Sentry
@@ -549,6 +588,8 @@ scrapingWorker.on('failed', (job, err) => {
 });
 
 scrapingWorker.on('error', (err) => {
+  console.error(`\n💥 [WORKER ERROR] Scraping worker encountered an error:`);
+  console.error(err);
   workerLogger.error({ err }, 'Scraping worker error');
 
   // Send to Sentry
@@ -558,6 +599,15 @@ scrapingWorker.on('error', (err) => {
       type: 'worker-error',
     },
   });
+});
+
+// Add active/waiting event handlers for debugging
+scrapingWorker.on('active', (job) => {
+  console.log(`\n⚡ [WORKER] Job ${job.id} is now ACTIVE (processing started)`);
+});
+
+scrapingWorker.on('waiting', (jobId) => {
+  console.log(`\n⏳ [WORKER] Job ${jobId} is WAITING in queue`);
 });
 
 // Event handlers for embedding worker

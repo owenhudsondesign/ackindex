@@ -86,16 +86,28 @@ async function startWorkers() {
   // Validate environment first
   validateEnvVars();
 
-  // Import workers after environment is loaded
-  const { scrapingWorker, embeddingWorker, pdfProcessingWorker } = await import('./src/lib/workers');
-
   console.log('==============================================');
   console.log('🚀 AckIndex BullMQ Workers Starting...');
   console.log('==============================================');
   console.log(`Time: ${new Date().toISOString()}`);
   console.log(`Node Version: ${process.version}`);
-  console.log(`Redis URL: ${process.env.REDIS_URL ? 'Connected' : 'Not configured'}`);
-  console.log(`Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Connected' : 'Not configured'}`);
+  console.log(`Platform: ${process.platform}`);
+  console.log(`Architecture: ${process.arch}`);
+  console.log('----------------------------------------------');
+  console.log('📋 Environment Variables Check:');
+  console.log(`  REDIS_URL: ${process.env.REDIS_URL ? '✅ Set' : '❌ Missing'}`);
+  console.log(`  SUPABASE_URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Set' : '❌ Missing'}`);
+  console.log(`  SUPABASE_SERVICE_ROLE_KEY: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Set' : '❌ Missing'}`);
+  console.log(`  OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✅ Set' : '❌ Missing'}`);
+  console.log(`  GLADIA_API_KEY: ${process.env.GLADIA_API_KEY ? '✅ Set' : '❌ Missing'}`);
+  console.log(`  YOUTUBE_API_KEY: ${process.env.YOUTUBE_API_KEY ? '✅ Set' : '❌ Missing'}`);
+  console.log(`  APIFY_API_TOKEN: ${process.env.APIFY_API_TOKEN ? '✅ Set' : '❌ Missing'}`);
+  console.log('----------------------------------------------');
+
+  // Import workers after environment is loaded
+  console.log('📦 Loading worker modules...');
+  const { scrapingWorker, embeddingWorker, pdfProcessingWorker } = await import('./src/lib/workers');
+  console.log('✅ Worker modules loaded successfully');
   console.log('----------------------------------------------');
 
   // Log worker status
@@ -103,6 +115,14 @@ async function startWorkers() {
   console.log(`  Scraping Worker: ${scrapingWorker.isRunning() ? '✅ Running' : '❌ Stopped'}`);
   console.log(`  Embedding Worker: ${embeddingWorker.isRunning() ? '✅ Running' : '❌ Stopped'}`);
   console.log(`  PDF Processing Worker: ${pdfProcessingWorker.isRunning() ? '✅ Running' : '❌ Stopped'}`);
+  console.log('==============================================');
+  console.log('');
+  console.log('🎯 Workers are now listening for jobs...');
+  console.log('   - Scraping queue: "scraping"');
+  console.log('   - Embedding queue: "embedding"');
+  console.log('   - PDF Processing queue: "pdf-processing"');
+  console.log('');
+  console.log('💡 Tip: Jobs should appear below when added to the queue');
   console.log('==============================================\n');
 
   // Start HTTP server for Railway health checks

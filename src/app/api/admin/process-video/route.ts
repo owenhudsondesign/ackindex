@@ -93,6 +93,14 @@ export async function POST(request: NextRequest) {
 
     // Process video (either in queue or immediately)
     if (useQueue) {
+      console.log('\n' + '='.repeat(80));
+      console.log(`[API] ADDING JOB TO QUEUE`);
+      console.log(`Time: ${new Date().toISOString()}`);
+      console.log(`URL: ${url}`);
+      console.log(`Video ID: ${videoId}`);
+      console.log(`User ID: ${userId}`);
+      console.log('='.repeat(80));
+
       // Add to BullMQ queue for background processing
       const job = await scrapingQueue.add(
         'process-youtube-video',
@@ -118,6 +126,12 @@ export async function POST(request: NextRequest) {
           },
         }
       );
+
+      console.log(`✅ [API] Job added to queue successfully!`);
+      console.log(`   Job ID: ${job.id}`);
+      console.log(`   Job Name: ${job.name}`);
+      console.log(`   Queue: scraping`);
+      console.log('='.repeat(80) + '\n');
 
       log.info(
         { jobId: job.id, url, videoId },

@@ -60,6 +60,11 @@ export async function startGladiaTranscription(
   }
 
   try {
+    console.log(`\n🎙️  [GLADIA] Starting transcription`);
+    console.log(`   Audio URL: ${options.audioUrl}`);
+    console.log(`   Language: ${options.language || 'auto-detect'}`);
+    console.log(`   Code Switching: ${options.enableCodeSwitching ?? false}`);
+
     logger.info({ audioUrl: options.audioUrl }, 'Starting Gladia transcription');
 
     const requestBody: Record<string, any> = {
@@ -96,6 +101,10 @@ export async function startGladiaTranscription(
     }
 
     const result = await response.json();
+
+    console.log(`✅ [GLADIA] Transcription job initiated`);
+    console.log(`   Transcription ID: ${result.id}`);
+    console.log(`   Result URL: ${result.result_url || `https://api.gladia.io/v2/pre-recorded/${result.id}`}`);
 
     logger.info(
       { transcriptionId: result.id },
@@ -185,6 +194,7 @@ export async function waitForGladiaTranscription(
 
     // Check if done
     if (result.status === 'done') {
+      console.log(`✅ [GLADIA] Transcription completed (ID: ${transcriptionId})`);
       logger.info({ transcriptionId }, 'Gladia transcription completed');
       return result;
     }
@@ -193,10 +203,12 @@ export async function waitForGladiaTranscription(
     if (result.status === 'error') {
       const errorMessage =
         result.error?.message || 'Unknown transcription error';
+      console.error(`❌ [GLADIA] Transcription failed: ${errorMessage}`);
       throw new Error(`Gladia transcription failed: ${errorMessage}`);
     }
 
     // Log status and wait
+    console.log(`⏳ [GLADIA] Status: ${result.status} (polling in ${pollInterval}ms)`);
     logger.info(
       { transcriptionId, status: result.status },
       'Gladia transcription in progress'

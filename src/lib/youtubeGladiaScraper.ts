@@ -269,6 +269,13 @@ export async function processYouTubeVideo(
   } = {}
 ): Promise<string> {
   try {
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`[${new Date().toISOString()}] PROCESS YOUTUBE VIDEO`);
+    console.log(`URL: ${url}`);
+    console.log(`Schedule ID: ${scheduleId || 'N/A'}`);
+    console.log(`Options:`, JSON.stringify(options, null, 2));
+    console.log('='.repeat(80));
+
     logger.info({ url }, 'Starting YouTube video processing with Gladia');
 
     // Extract video ID
@@ -276,6 +283,7 @@ export async function processYouTubeVideo(
     if (!videoId) {
       throw new Error('Invalid YouTube URL');
     }
+    console.log(`✅ Extracted video ID: ${videoId}`);
 
     // Get or create document
     let documentId: string;
@@ -310,8 +318,10 @@ export async function processYouTubeVideo(
     }
 
     // Get video metadata from YouTube API
+    console.log(`\n📹 Fetching video metadata from YouTube API...`);
     logger.info({ videoId }, 'Fetching video metadata');
     const videoInfo = await getVideoMetadata(videoId);
+    console.log(`✅ Got metadata: "${videoInfo.title}" (${Math.floor(videoInfo.duration / 60)}m ${videoInfo.duration % 60}s)`);
 
     // Check if video exceeds Gladia's limit (135 minutes for regular, 120 for YouTube URLs)
     const GLADIA_MAX_DURATION_SECONDS = 120 * 60; // 120 minutes for YouTube URLs
@@ -355,12 +365,17 @@ export async function processYouTubeVideo(
     const audioUrl = getAudioUrl(videoId);
 
     // Transcribe with Gladia
+    console.log(`\n🎙️  Starting Gladia transcription...`);
     logger.info({ videoId, audioUrl }, 'Starting Gladia transcription');
     const transcriptionResult = await transcribeAudio(audioUrl, {
       language: options.language || 'en',
       enableCodeSwitching: options.enableCodeSwitching ?? false,
       timeout: 1800000, // 30 minutes
     });
+
+    console.log(`\n✅ Gladia transcription completed!`);
+    console.log(`   Transcript length: ${transcriptionResult.fullText.length} chars`);
+    console.log(`   Segments: ${transcriptionResult.segments.length}`);
 
     logger.info(
       {
@@ -372,11 +387,13 @@ export async function processYouTubeVideo(
     );
 
     // Enrich transcript with OpenAI
+    console.log(`\n🤖 Enriching transcript with OpenAI...`);
     logger.info({ videoId }, 'Enriching transcript with OpenAI');
     const enrichedData = await enrichTranscriptWithAI(
       videoInfo,
       transcriptionResult.fullText
     );
+    console.log(`✅ Enrichment complete`);
 
     // Build enriched meeting data
     const enrichedMeeting: EnrichedMeetingData = {
@@ -435,13 +452,16 @@ export async function processYouTubeVideo(
     });
 
     // Store chunks in database
+    console.log(`\n💾 Storing ${chunksWithMetadata.length} chunks in database...`);
     await storeChunks(documentId, chunksWithMetadata);
+    console.log(`✅ Chunks stored`);
 
     // Mark document as completed
     const totalTokens = chunksWithMetadata.reduce(
       (sum, chunk) => sum + chunk.tokens,
       0
     );
+    console.log(`\n✅ Marking document as completed (${totalTokens} tokens)...`);
     await markDocumentCompleted(documentId, chunksWithMetadata.length, totalTokens);
 
     // Reset error count if this was a scheduled scrape
