@@ -6,11 +6,9 @@
   },
   "deploy": {
     "startCommand": "tsx worker.ts",
-    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyType": "ALWAYS",
     "environmentVariables": {
       "NODE_VERSION": "20"
-    },
-    "healthcheckPath": "/health",
-    "healthcheckTimeout": 300
+    }
   }
 }
