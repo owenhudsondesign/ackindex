@@ -127,7 +127,9 @@ async function startWorkers() {
 
   // Start HTTP server for Railway health checks
   const http = require('http');
-  const PORT = process.env.PORT || 3001;
+  const PORT = process.env.PORT || 8080;
+
+  console.log(`🌐 Starting health check server on port ${PORT}...`);
 
   const server = http.createServer((req: any, res: any) => {
     if (req.url === '/health' || req.url === '/') {
