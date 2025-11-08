@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Card from '@/components/Card';
 
 interface VideoProcessingStatus {
@@ -19,6 +19,8 @@ export default function VideoScraper() {
     status: 'idle',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,12 +57,16 @@ export default function VideoScraper() {
       }
 
       setStatus({
-        status: 'completed',
-        message:
-          'Video processing started! Check the Documents list below for progress.',
+        status: 'processing',
+        message: 'Video processing started! Checking status...',
         jobId: data.jobId,
         videoId: data.videoId,
       });
+
+      // Start polling for status
+      if (data.videoId) {
+        startPolling(data.videoId);
+      }
 
       // Clear form
       setUrl('');
@@ -91,6 +97,52 @@ export default function VideoScraper() {
   };
 
   const urlIsValid = url.trim() === '' || isYouTubeUrl(url);
+
+  // Poll for video processing status
+  const startPolling = (videoId: string) => {
+    setIsPolling(true);
+
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/admin/process-video?videoId=${videoId}`);
+        const data = await response.json();
+
+        if (data.status === 'completed') {
+          setStatus({
+            status: 'completed',
+            message: `✅ Video processed successfully! "${data.title}" is now searchable.`,
+            documentId: data.documentId,
+          });
+          setIsPolling(false);
+          if (pollInterval) clearInterval(pollInterval);
+        } else if (data.status === 'failed') {
+          setStatus({
+            status: 'error',
+            message: `❌ Processing failed: ${data.error || 'Unknown error'}`,
+          });
+          setIsPolling(false);
+          if (pollInterval) clearInterval(pollInterval);
+        } else {
+          // Still processing
+          setStatus({
+            status: 'processing',
+            message: `⏳ Processing video... Status: ${data.status}`,
+          });
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    setPollInterval(interval);
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [pollInterval]);
 
   return (
     <Card className="p-6">
