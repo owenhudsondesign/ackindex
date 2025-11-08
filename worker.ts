@@ -125,34 +125,14 @@ async function startWorkers() {
   console.log('💡 Tip: Jobs should appear below when added to the queue');
   console.log('==============================================\n');
 
-  // Start HTTP server for Railway health checks
-  const http = require('http');
-  const PORT = process.env.PORT || 8080;
-
-  console.log(`🌐 Starting health check server on port ${PORT}...`);
-
-  const server = http.createServer((req: any, res: any) => {
-    if (req.url === '/health' || req.url === '/') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'healthy',
-        workers: {
-          scraping: scrapingWorker.isRunning(),
-          embedding: embeddingWorker.isRunning(),
-          pdfProcessing: pdfProcessingWorker.isRunning()
-        },
-        timestamp: new Date().toISOString()
-      }));
-    } else {
-      res.writeHead(404);
-      res.end('Not Found');
-    }
-  });
-
-  server.listen(PORT, () => {
-    console.log(`🏥 Health check server listening on port ${PORT}`);
-    console.log('');
-  });
+  // Keep the process alive - log status every minute
+  setInterval(() => {
+    const timestamp = new Date().toISOString();
+    console.log(`⏰ [${timestamp}] Workers still running...`);
+    console.log(`   Scraping: ${scrapingWorker.isRunning() ? '✅' : '❌'}`);
+    console.log(`   Embedding: ${embeddingWorker.isRunning() ? '✅' : '❌'}`);
+    console.log(`   PDF Processing: ${pdfProcessingWorker.isRunning() ? '✅' : '❌'}`);
+  }, 60000); // Every 60 seconds
 
   // Keep the process alive
   process.on('SIGTERM', async () => {
