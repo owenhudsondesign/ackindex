@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import {
   processYouTubeVideo,
   isYouTubeUrl,
@@ -21,28 +20,17 @@ export const maxDuration = 300; // 5 minutes for API route (actual processing ha
  * Triggers YouTube video processing with Gladia transcription
  */
 export async function POST(request: NextRequest) {
+  const log = logger.child({ endpoint: '/api/admin/process-video' });
+
   try {
-    // Authenticate user
-    const supabase = createRouteHandlerClient({ cookies });
+    // Check authentication and admin authorization
+    const supabase = await createAdminSupabaseClient();
     const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
 
     // Parse request body
     const body = await request.json();
@@ -78,8 +66,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.info(
-      { url, videoId, userId: user.id },
+    const userId = session?.user?.id;
+
+    log.info(
+      { url, videoId, userId },
       'Video processing request received'
     );
 
@@ -112,7 +102,7 @@ export async function POST(request: NextRequest) {
           enableCodeSwitching,
           chunkSize,
           chunkOverlap,
-          userId: user.id,
+          userId,
         },
         {
           attempts: 3,
@@ -129,7 +119,7 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      logger.info(
+      log.info(
         { jobId: job.id, url, videoId },
         'Video processing job queued'
       );
@@ -152,7 +142,7 @@ export async function POST(request: NextRequest) {
         chunkOverlap,
       });
 
-      logger.info(
+      log.info(
         { documentId, url, videoId },
         'Video processing completed'
       );
@@ -168,7 +158,7 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    logger.error({ error }, 'Video processing endpoint error');
+    log.error({ error }, 'Video processing endpoint error');
 
     return NextResponse.json(
       {
@@ -185,17 +175,17 @@ export async function POST(request: NextRequest) {
  * Check the status of a video processing job
  */
 export async function GET(request: NextRequest) {
-  try {
-    // Authenticate user
-    const supabase = createRouteHandlerClient({ cookies });
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+  const log = logger.child({ endpoint: '/api/admin/process-video/GET' });
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  try {
+    // Check authentication and admin authorization
+    const supabase = await createAdminSupabaseClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
 
     // Get video ID or document ID from query params
     const { searchParams } = new URL(request.url);
@@ -243,7 +233,7 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    logger.error({ error }, 'Video status check error');
+    log.error({ error }, 'Video status check error');
 
     return NextResponse.json(
       {
