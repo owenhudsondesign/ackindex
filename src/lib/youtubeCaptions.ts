@@ -104,7 +104,7 @@ export async function extractCaptionsWithYoutubeI(videoId: string): Promise<{
     const info = await youtube.getInfo(videoId);
     const transcriptData = await info.getTranscript();
 
-    if (!transcriptData || !transcriptData.content) {
+    if (!transcriptData) {
       return {
         success: false,
         transcript: '',
@@ -113,14 +113,47 @@ export async function extractCaptionsWithYoutubeI(videoId: string): Promise<{
       };
     }
 
-    // Convert to our format
-    const segments: CaptionSegment[] = transcriptData.content.body.initial_segments.map((segment: any) => ({
-      text: segment.snippet.text,
-      start: segment.start_ms / 1000, // Convert ms to seconds
-      duration: (segment.end_ms - segment.start_ms) / 1000,
-    }));
+    // Convert to our format - youtubei.js structure varies by version
+    // Try to extract segments from the transcript data
+    let segments: CaptionSegment[] = [];
+    let fullTranscript = '';
 
-    const fullTranscript = segments.map(s => s.text).join(' ');
+    // The transcript data structure can vary, so we handle it flexibly
+    if (Array.isArray(transcriptData)) {
+      // If it's already an array of segments
+      segments = transcriptData.map((segment: any) => ({
+        text: segment.text || segment.snippet?.text || '',
+        start: (segment.start_ms || segment.start || 0) / 1000,
+        duration: ((segment.end_ms || segment.end || 0) - (segment.start_ms || segment.start || 0)) / 1000,
+      }));
+    } else if (typeof transcriptData === 'object' && 'actions' in transcriptData) {
+      // YouTube's transcript format with actions
+      const actions = (transcriptData as any).actions || [];
+      segments = actions
+        .filter((action: any) => action?.updateEngagementPanelAction)
+        .flatMap((action: any) => {
+          const content = action.updateEngagementPanelAction?.content;
+          if (content?.transcriptRenderer?.body?.transcriptBodyRenderer?.cueGroups) {
+            return content.transcriptRenderer.body.transcriptBodyRenderer.cueGroups.map((cue: any) => ({
+              text: cue.transcriptCueGroupRenderer?.cues?.[0]?.transcriptCueRenderer?.cue?.simpleText || '',
+              start: parseInt(cue.transcriptCueGroupRenderer?.cues?.[0]?.transcriptCueRenderer?.startOffsetMs || '0') / 1000,
+              duration: parseInt(cue.transcriptCueGroupRenderer?.cues?.[0]?.transcriptCueRenderer?.durationMs || '0') / 1000,
+            }));
+          }
+          return [];
+        });
+    }
+
+    fullTranscript = segments.map(s => s.text).join(' ').trim();
+
+    if (!fullTranscript || segments.length === 0) {
+      return {
+        success: false,
+        transcript: '',
+        segments: [],
+        error: 'Transcript data structure not recognized or empty',
+      };
+    }
 
     console.log(`✅ Successfully extracted captions`);
     console.log(`   Segments: ${segments.length}`);
