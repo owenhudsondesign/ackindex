@@ -474,8 +474,8 @@ Options:
       content: chunk.content,
       index: allChunks.length + index,
       tokens: chunk.tokens,
-      chunkType: 'summary' as const,
       metadata: {
+        ...chunk.metadata, // Include start_char, end_char, etc.
         video_id: videoId,
         video_title: videoInfo.title,
         channel: videoInfo.channel,
@@ -502,8 +502,8 @@ Options:
       content: chunk.content,
       index: allChunks.length + index,
       tokens: chunk.tokens,
-      chunkType: 'transcript' as const,
       metadata: {
+        ...chunk.metadata, // Include start_char, end_char, etc.
         video_id: videoId,
         video_title: videoInfo.title,
         channel: videoInfo.channel,
