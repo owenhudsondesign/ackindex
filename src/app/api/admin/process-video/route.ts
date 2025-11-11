@@ -7,8 +7,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import {
   processYouTubeVideo,
+  processYouTubePlaylist,
   isYouTubeUrl,
   extractVideoId,
+  extractPlaylistId,
+  isPlaylistUrl,
 } from '@/lib/youtubeGladiaScraper';
 import logger from '@/lib/logger';
 import { scrapingQueue } from '@/lib/queues';
@@ -41,6 +44,9 @@ export async function POST(request: NextRequest) {
       chunkSize = 500,
       chunkOverlap = 50,
       useQueue = true, // Process in background by default
+      maxVideos, // For playlists: limit number of videos to process
+      skipExisting = false, // For playlists: skip already-processed videos
+      delayBetweenVideos = 2000, // For playlists: delay between videos (ms)
     } = body;
 
     // Validate URL
@@ -58,10 +64,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const videoId = extractVideoId(url);
-    if (!videoId) {
+    // Check if it's a playlist or single video
+    const isPlaylist = isPlaylistUrl(url);
+    const playlistId = isPlaylist ? extractPlaylistId(url) : null;
+    const videoId = !isPlaylist ? extractVideoId(url) : null;
+
+    if (!isPlaylist && !videoId) {
       return NextResponse.json(
         { error: 'Could not extract video ID from URL' },
+        { status: 400 }
+      );
+    }
+
+    if (isPlaylist && !playlistId) {
+      return NextResponse.json(
+        { error: 'Could not extract playlist ID from URL' },
         { status: 400 }
       );
     }
@@ -69,68 +86,72 @@ export async function POST(request: NextRequest) {
     const userId = session?.user?.id;
 
     log.info(
-      { url, videoId, userId },
-      'Video processing request received'
+      { url, videoId, playlistId, isPlaylist, userId },
+      isPlaylist ? 'Playlist processing request received' : 'Video processing request received'
     );
 
-    // Check if video is already being processed or exists
-    const { data: existingDoc } = await supabase
-      .from('documents')
-      .select('id, status')
-      .eq('source_url', url)
-      .single();
+    // For single videos: check if already being processed or exists
+    if (!isPlaylist) {
+      const { data: existingDoc } = await supabase
+        .from('documents')
+        .select('id, status')
+        .eq('source_url', url)
+        .single();
 
-    if (existingDoc) {
-      if (existingDoc.status === 'processing') {
-        return NextResponse.json(
-          {
-            message: 'Video is already being processed',
-            documentId: existingDoc.id,
-            status: 'processing',
-          },
-          { status: 200 }
-        );
-      }
+      if (existingDoc) {
+        if (existingDoc.status === 'processing') {
+          return NextResponse.json(
+            {
+              message: 'Video is already being processed',
+              documentId: existingDoc.id,
+              status: 'processing',
+            },
+            { status: 200 }
+          );
+        }
 
-      // If document exists but is completed or failed, delete it to allow re-processing
-      if (existingDoc.status === 'completed' || existingDoc.status === 'failed') {
-        log.info(
-          { documentId: existingDoc.id, status: existingDoc.status, url },
-          'Deleting existing document for re-processing'
-        );
+        // If document exists but is completed or failed, delete it to allow re-processing
+        if (existingDoc.status === 'completed' || existingDoc.status === 'failed') {
+          log.info(
+            { documentId: existingDoc.id, status: existingDoc.status, url },
+            'Deleting existing document for re-processing'
+          );
 
-        // Delete existing chunks first
-        await supabase
-          .from('chunks')
-          .delete()
-          .eq('document_id', existingDoc.id);
+          // Delete existing chunks first
+          await supabase
+            .from('chunks')
+            .delete()
+            .eq('document_id', existingDoc.id);
 
-        // Delete the document
-        await supabase
-          .from('documents')
-          .delete()
-          .eq('id', existingDoc.id);
+          // Delete the document
+          await supabase
+            .from('documents')
+            .delete()
+            .eq('id', existingDoc.id);
 
-        log.info(
-          { documentId: existingDoc.id },
-          'Existing document deleted, will create new one'
-        );
+          log.info(
+            { documentId: existingDoc.id },
+            'Existing document deleted, will create new one'
+          );
+        }
       }
     }
 
-    // Process video (either in queue or immediately)
+    // Process video or playlist (either in queue or immediately)
     if (useQueue) {
       console.log('\n' + '='.repeat(80));
       console.log(`[API] ADDING JOB TO QUEUE`);
       console.log(`Time: ${new Date().toISOString()}`);
       console.log(`URL: ${url}`);
-      console.log(`Video ID: ${videoId}`);
+      console.log(`Type: ${isPlaylist ? 'PLAYLIST' : 'VIDEO'}`);
+      console.log(`${isPlaylist ? 'Playlist ID' : 'Video ID'}: ${isPlaylist ? playlistId : videoId}`);
       console.log(`User ID: ${userId}`);
       console.log('='.repeat(80));
 
       // Add to BullMQ queue for background processing
+      const jobName = isPlaylist ? 'process-youtube-playlist' : 'process-youtube-video';
       const job = await scrapingQueue.add(
-        'process-youtube-video',
+        jobName,
         {
           url,
           language,
@@ -138,9 +159,14 @@ export async function POST(request: NextRequest) {
           chunkSize,
           chunkOverlap,
           userId,
+          ...(isPlaylist && {
+            maxVideos,
+            skipExisting,
+            delayBetweenVideos,
+          }),
         },
         {
-          attempts: 3,
+          attempts: isPlaylist ? 1 : 3, // Don't retry playlists (too long)
           backoff: {
             type: 'exponential',
             delay: 60000, // 1 minute
@@ -161,42 +187,72 @@ export async function POST(request: NextRequest) {
       console.log('='.repeat(80) + '\n');
 
       log.info(
-        { jobId: job.id, url, videoId },
-        'Video processing job queued'
+        { jobId: job.id, url, videoId, playlistId, isPlaylist },
+        isPlaylist ? 'Playlist processing job queued' : 'Video processing job queued'
       );
 
       return NextResponse.json(
         {
-          message: 'Video processing started',
+          message: isPlaylist ? 'Playlist processing started' : 'Video processing started',
           jobId: job.id,
-          videoId,
+          type: isPlaylist ? 'playlist' : 'video',
+          ...(isPlaylist ? { playlistId } : { videoId }),
           status: 'queued',
         },
         { status: 202 }
       );
     } else {
-      // Process immediately (not recommended for long videos)
-      const documentId = await processYouTubeVideo(url, undefined, {
-        language,
-        enableCodeSwitching,
-        chunkSize,
-        chunkOverlap,
-      });
+      // Process immediately (not recommended for playlists or long videos)
+      if (isPlaylist) {
+        const result = await processYouTubePlaylist(url, undefined, {
+          language,
+          enableCodeSwitching,
+          chunkSize,
+          chunkOverlap,
+          maxVideos,
+          skipExisting,
+          delayBetweenVideos,
+        });
 
-      log.info(
-        { documentId, url, videoId },
-        'Video processing completed'
-      );
+        log.info(
+          { playlistId, result },
+          'Playlist processing completed'
+        );
 
-      return NextResponse.json(
-        {
-          message: 'Video processed successfully',
-          documentId,
-          videoId,
-          status: 'completed',
-        },
-        { status: 200 }
-      );
+        return NextResponse.json(
+          {
+            message: 'Playlist processed successfully',
+            type: 'playlist',
+            playlistId,
+            ...result,
+            status: 'completed',
+          },
+          { status: 200 }
+        );
+      } else {
+        const documentId = await processYouTubeVideo(url, undefined, {
+          language,
+          enableCodeSwitching,
+          chunkSize,
+          chunkOverlap,
+        });
+
+        log.info(
+          { documentId, url, videoId },
+          'Video processing completed'
+        );
+
+        return NextResponse.json(
+          {
+            message: 'Video processed successfully',
+            type: 'video',
+            documentId,
+            videoId,
+            status: 'completed',
+          },
+          { status: 200 }
+        );
+      }
     }
   } catch (error) {
     log.error({ error }, 'Video processing endpoint error');

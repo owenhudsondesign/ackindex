@@ -122,6 +122,108 @@ export function extractVideoId(url: string): string | null {
 }
 
 /**
+ * Extract playlist ID from YouTube URL
+ */
+export function extractPlaylistId(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+
+    // Handle youtube.com/playlist?list=PLAYLIST_ID
+    if (urlObj.hostname.includes('youtube.com')) {
+      const playlistId = urlObj.searchParams.get('list');
+      if (playlistId) return playlistId;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if URL is a playlist
+ */
+export function isPlaylistUrl(url: string): boolean {
+  return extractPlaylistId(url) !== null;
+}
+
+/**
+ * Get all video IDs from a YouTube playlist
+ */
+export async function getPlaylistVideos(
+  playlistId: string,
+  maxVideos?: number
+): Promise<string[]> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('YOUTUBE_API_KEY is not set');
+  }
+
+  console.log(`\n📋 Fetching videos from playlist: ${playlistId}`);
+  logger.info({ playlistId }, 'Fetching playlist videos');
+
+  const videoIds: string[] = [];
+  let nextPageToken: string | undefined;
+  let pageCount = 0;
+
+  // YouTube API returns max 50 items per request
+  do {
+    pageCount++;
+    console.log(`   Fetching page ${pageCount}...`);
+
+    const url = new URL('https://www.googleapis.com/youtube/v3/playlistItems');
+    url.searchParams.set('part', 'contentDetails');
+    url.searchParams.set('playlistId', playlistId);
+    url.searchParams.set('maxResults', '50');
+    url.searchParams.set('key', apiKey);
+    if (nextPageToken) {
+      url.searchParams.set('pageToken', nextPageToken);
+    }
+
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`YouTube API error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    // Extract video IDs
+    for (const item of data.items || []) {
+      const videoId = item.contentDetails?.videoId;
+      if (videoId) {
+        videoIds.push(videoId);
+      }
+    }
+
+    console.log(`   Found ${videoIds.length} videos so far...`);
+
+    nextPageToken = data.nextPageToken;
+
+    // Check if we've hit the max videos limit
+    if (maxVideos && videoIds.length >= maxVideos) {
+      console.log(`   Reached maxVideos limit (${maxVideos})`);
+      break;
+    }
+  } while (nextPageToken);
+
+  const finalCount = maxVideos ? Math.min(videoIds.length, maxVideos) : videoIds.length;
+  console.log(`✅ Total videos found: ${videoIds.length}`);
+  if (maxVideos) {
+    console.log(`   Will process: ${finalCount} videos (limited by maxVideos)`);
+  }
+
+  logger.info(
+    { playlistId, totalVideos: videoIds.length, maxVideos },
+    'Playlist videos fetched'
+  );
+
+  return maxVideos ? videoIds.slice(0, maxVideos) : videoIds;
+}
+
+/**
  * Get YouTube video metadata using YouTube Data API
  */
 async function getVideoMetadata(videoId: string): Promise<YouTubeVideoInfo> {
@@ -679,4 +781,169 @@ function buildMeetingContent(meeting: EnrichedMeetingData): string {
   // The full transcript is still stored in the database for reference.
 
   return sections.join('\n');
+}
+
+/**
+ * Process an entire YouTube playlist: fetch all videos, then process each one
+ */
+export async function processYouTubePlaylist(
+  playlistUrl: string,
+  scheduleId?: string,
+  options: {
+    maxVideos?: number;
+    chunkSize?: number;
+    chunkOverlap?: number;
+    language?: string;
+    enableCodeSwitching?: boolean;
+    skipExisting?: boolean; // Skip videos that are already processed
+    delayBetweenVideos?: number; // Milliseconds to wait between videos (default: 2000)
+  } = {}
+): Promise<{
+  playlistId: string;
+  totalVideos: number;
+  processedVideos: number;
+  skippedVideos: number;
+  failedVideos: number;
+  documentIds: string[];
+  errors: Array<{ videoId: string; error: string }>;
+}> {
+  try {
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`[${new Date().toISOString()}] PROCESS YOUTUBE PLAYLIST`);
+    console.log(`URL: ${playlistUrl}`);
+    console.log(`Schedule ID: ${scheduleId || 'N/A'}`);
+    console.log(`Options:`, JSON.stringify(options, null, 2));
+    console.log('='.repeat(80));
+
+    logger.info({ playlistUrl, options }, 'Starting YouTube playlist processing');
+
+    // Extract playlist ID
+    const playlistId = extractPlaylistId(playlistUrl);
+    if (!playlistId) {
+      throw new Error('Invalid YouTube playlist URL');
+    }
+    console.log(`✅ Extracted playlist ID: ${playlistId}`);
+
+    // Fetch all video IDs from playlist
+    const videoIds = await getPlaylistVideos(playlistId, options.maxVideos);
+
+    if (videoIds.length === 0) {
+      console.log(`⚠️  No videos found in playlist`);
+      return {
+        playlistId,
+        totalVideos: 0,
+        processedVideos: 0,
+        skippedVideos: 0,
+        failedVideos: 0,
+        documentIds: [],
+        errors: [],
+      };
+    }
+
+    console.log(`\n📹 Processing ${videoIds.length} videos from playlist...`);
+
+    const documentIds: string[] = [];
+    const errors: Array<{ videoId: string; error: string }> = [];
+    let processedCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+
+    for (let i = 0; i < videoIds.length; i++) {
+      const videoId = videoIds[i];
+      const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+      console.log(`\n${'─'.repeat(80)}`);
+      console.log(`[${i + 1}/${videoIds.length}] Processing video: ${videoId}`);
+      console.log(`URL: ${videoUrl}`);
+      console.log('─'.repeat(80));
+
+      try {
+        // Check if video already exists and is completed
+        if (options.skipExisting) {
+          const { data: existingDoc } = await supabase
+            .from('documents')
+            .select('id, status')
+            .eq('source_url', videoUrl)
+            .single();
+
+          if (existingDoc && existingDoc.status === 'completed') {
+            console.log(`⏭️  Video already processed (${existingDoc.id}), skipping...`);
+            documentIds.push(existingDoc.id);
+            skippedCount++;
+            continue;
+          }
+        }
+
+        // Process video
+        const documentId = await processYouTubeVideo(videoUrl, scheduleId, {
+          chunkSize: options.chunkSize,
+          chunkOverlap: options.chunkOverlap,
+          language: options.language,
+          enableCodeSwitching: options.enableCodeSwitching,
+        });
+
+        documentIds.push(documentId);
+        processedCount++;
+        console.log(`✅ [${i + 1}/${videoIds.length}] Completed: ${documentId}`);
+      } catch (error) {
+        failedCount++;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`❌ [${i + 1}/${videoIds.length}] Failed to process ${videoId}:`, errorMessage);
+
+        errors.push({
+          videoId,
+          error: errorMessage,
+        });
+
+        logger.error(
+          { videoId, error, playlistId },
+          'Failed to process video in playlist'
+        );
+
+        // Continue with next video instead of failing entire playlist
+      }
+
+      // Add delay between videos to avoid rate limits
+      if (i < videoIds.length - 1) {
+        const delay = options.delayBetweenVideos ?? 2000;
+        console.log(`\n⏸️  Waiting ${delay}ms before next video...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`PLAYLIST PROCESSING COMPLETE`);
+    console.log(`Playlist ID: ${playlistId}`);
+    console.log(`Total videos: ${videoIds.length}`);
+    console.log(`Processed: ${processedCount}`);
+    console.log(`Skipped: ${skippedCount}`);
+    console.log(`Failed: ${failedCount}`);
+    console.log(`Success rate: ${((processedCount + skippedCount) / videoIds.length * 100).toFixed(1)}%`);
+    console.log('='.repeat(80) + '\n');
+
+    logger.info(
+      {
+        playlistId,
+        totalVideos: videoIds.length,
+        processedVideos: processedCount,
+        skippedVideos: skippedCount,
+        failedVideos: failedCount,
+        documentIds,
+      },
+      'Completed YouTube playlist processing'
+    );
+
+    return {
+      playlistId,
+      totalVideos: videoIds.length,
+      processedVideos: processedCount,
+      skippedVideos: skippedCount,
+      failedVideos: failedCount,
+      documentIds,
+      errors,
+    };
+  } catch (error) {
+    logger.error({ error, playlistUrl }, 'YouTube playlist processing failed');
+    throw error;
+  }
 }

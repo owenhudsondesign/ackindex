@@ -16,6 +16,10 @@ import {
   markDocumentFailed,
   updateChunkEmbedding,
 } from '@/lib/database';
+import {
+  processYouTubeVideo,
+  processYouTubePlaylist,
+} from '@/lib/youtubeGladiaScraper';
 import { parsePDF } from '@/lib/pdfParser';
 import { chunkText } from '@/lib/chunking';
 import { generateEmbeddingsBatch } from '@/lib/embeddings';
@@ -63,6 +67,10 @@ interface ScrapingJobData {
   enableCodeSwitching?: boolean;
   chunkSize?: number;
   chunkOverlap?: number;
+  // Playlist-specific options
+  maxVideos?: number;
+  skipExisting?: boolean;
+  delayBetweenVideos?: number;
 }
 
 // Interface for embedding job data
@@ -441,6 +449,94 @@ async function processYouTubeVideoJob(
 }
 
 /**
+ * Process YouTube playlist with Gladia transcription
+ */
+async function processYouTubePlaylistJob(
+  url: string,
+  options: {
+    language?: string;
+    enableCodeSwitching?: boolean;
+    chunkSize?: number;
+    chunkOverlap?: number;
+    maxVideos?: number;
+    skipExisting?: boolean;
+    delayBetweenVideos?: number;
+  },
+  job: Job
+): Promise<{ documentIds: string[]; totalVideos: number; processedVideos: number }> {
+  const log = workerLogger.child({ jobId: job.id, url });
+
+  try {
+    console.log('='.repeat(60));
+    console.log(`[${new Date().toISOString()}] YOUTUBE PLAYLIST PROCESSING STARTED`);
+    console.log(`Job ID: ${job.id}`);
+    console.log(`URL: ${url}`);
+    console.log(`Max Videos: ${options.maxVideos || 'unlimited'}`);
+    console.log(`Skip Existing: ${options.skipExisting ?? false}`);
+    console.log('='.repeat(60));
+
+    log.info({ url, options }, 'Starting YouTube playlist processing with Gladia');
+    await job.updateProgress(5);
+
+    // Process playlist (this handles everything: fetching videos, processing each one)
+    const result = await processYouTubePlaylist(url, undefined, {
+      language: options.language || 'en',
+      enableCodeSwitching: options.enableCodeSwitching ?? false,
+      chunkSize: options.chunkSize ?? 500,
+      chunkOverlap: options.chunkOverlap ?? 50,
+      maxVideos: options.maxVideos,
+      skipExisting: options.skipExisting ?? false,
+      delayBetweenVideos: options.delayBetweenVideos ?? 2000,
+    });
+
+    await job.updateProgress(90);
+
+    // Queue embedding generation for all processed documents
+    const { embeddingQueue } = await import('./queues');
+    const { createClient } = require('@supabase/supabase-js');
+    const supabaseClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    for (const documentId of result.documentIds) {
+      const { data: chunks } = await supabaseClient
+        .from('document_chunks')
+        .select('id, content')
+        .eq('document_id', documentId)
+        .is('embedding', null)
+        .limit(100);
+
+      if (chunks && chunks.length > 0) {
+        await embeddingQueue.add('generate-embeddings', { chunks });
+        log.info({ documentId, chunkCount: chunks.length }, 'Queued embedding generation');
+      }
+    }
+
+    await job.updateProgress(100);
+
+    log.info(
+      {
+        playlistId: result.playlistId,
+        totalVideos: result.totalVideos,
+        processedVideos: result.processedVideos,
+        failedVideos: result.failedVideos,
+      },
+      'Completed YouTube playlist processing'
+    );
+
+    return {
+      documentIds: result.documentIds,
+      totalVideos: result.totalVideos,
+      processedVideos: result.processedVideos,
+    };
+  } catch (error) {
+    log.error({ err: error, url }, 'YouTube playlist processing failed');
+    throw error;
+  }
+}
+
+/**
  * Scraping Worker
  * Processes web scraping jobs and YouTube video processing
  */
@@ -465,6 +561,28 @@ export const scrapingWorker = new Worker<ScrapingJobData>(
 
       console.log(`✅ [WORKER] YouTube job completed. Document ID: ${resultDocumentId}`);
       return { success: true, documentId: resultDocumentId, url };
+    } else if (job.name === 'process-youtube-playlist') {
+      console.log(`✅ [WORKER] Job identified as YouTube playlist processing`);
+      workerLogger.info({ jobId: job.id, url }, 'Starting YouTube playlist processing job');
+
+      const { maxVideos, skipExisting, delayBetweenVideos } = job.data;
+
+      const result = await processYouTubePlaylistJob(
+        url,
+        {
+          language,
+          enableCodeSwitching,
+          chunkSize,
+          chunkOverlap,
+          maxVideos,
+          skipExisting,
+          delayBetweenVideos,
+        },
+        job
+      );
+
+      console.log(`✅ [WORKER] YouTube playlist job completed. Processed ${result.processedVideos}/${result.totalVideos} videos`);
+      return { success: true, ...result, url };
     } else {
       // Regular URL scraping
       workerLogger.info({ jobId: job.id, url }, 'Starting scraping job');

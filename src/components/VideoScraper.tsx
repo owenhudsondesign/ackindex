@@ -190,7 +190,7 @@ export default function VideoScraper() {
             htmlFor="video-url"
             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
-            YouTube URL
+            YouTube Video URL
           </label>
           <input
             id="video-url"
@@ -402,7 +402,7 @@ export default function VideoScraper() {
         <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
           <li className="flex items-start gap-2">
             <span className="text-blue-600 dark:text-blue-400 mt-0.5">1.</span>
-            <span>Enter a YouTube video URL (supports meetings, councils, hearings)</span>
+            <span>Enter a YouTube video URL (meetings, councils, hearings)</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-blue-600 dark:text-blue-400 mt-0.5">2.</span>
@@ -410,18 +410,17 @@ export default function VideoScraper() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-blue-600 dark:text-blue-400 mt-0.5">3.</span>
-            <span>Transcript is enriched with OpenAI (extract decisions, action items, topics)</span>
+            <span>Transcript enriched with AI (decisions, action items, topics)</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-blue-600 dark:text-blue-400 mt-0.5">4.</span>
-            <span>Content is chunked and embedded for semantic search</span>
+            <span>Content chunked and embedded for semantic search</span>
           </li>
         </ul>
 
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            ⚠️ <strong>Note:</strong> Videos must be under 2 hours (120 minutes) due to Gladia API limits.
-            Longer videos will be rejected. Contact support for enterprise limits if needed.
+            ⚠️ <strong>Note:</strong> Videos under 120 minutes are processed automatically. Longer videos require manual processing using the Audio Upload section below.
           </p>
         </div>
       </div>

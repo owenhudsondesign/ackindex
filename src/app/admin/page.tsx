@@ -6,15 +6,14 @@ import { getCurrentUser } from '@/lib/auth';
 import { getAdminUser } from '@/lib/adminAuth';
 import PageLayout from '@/components/PageLayout';
 import Container from '@/components/Container';
-import PDFUpload from '@/components/PDFUpload';
 import SignOutButton from '@/components/SignOutButton';
 import ActivityFeed from '@/components/ActivityFeed';
-import ScheduledScrapesManager from '@/components/ScheduledScrapesManager';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
 import DocumentsList from '@/components/DocumentsList';
 import Loading from '@/components/Loading';
 import Card from '@/components/Card';
 import VideoScraper from '@/components/VideoScraper';
+import AudioUploader from '@/components/AudioUploader';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -117,10 +116,10 @@ export default function AdminPage() {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                Admin Panel
+                Video & Audio Processing Dashboard
               </h1>
               <p className="text-gray-700 dark:text-gray-300">
-                Manage content and data sources • Signed in as {user.email}
+                Process YouTube videos and audio files • Signed in as {user.email}
               </p>
             </div>
             <SignOutButton />
@@ -144,11 +143,11 @@ export default function AdminPage() {
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  Automated Content Management
+                  Meeting Transcription Pipeline
                 </h3>
                 <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
                   <p>
-                    Schedule URLs for automatic scraping • Upload PDFs directly • Monitor scraping activity
+                    Process YouTube videos (<120 min) • Upload audio files for long videos (>120 min) • Track analytics & activity
                   </p>
                 </div>
               </div>
@@ -225,28 +224,20 @@ export default function AdminPage() {
             </Card>
           </div>
 
-          {/* Video Scraper - NEW */}
-          <div className="mb-8">
+          {/* Processing Section */}
+          <div className="space-y-8 mb-8">
+            {/* YouTube Video/Playlist Processor */}
             <VideoScraper />
+
+            {/* Audio File Upload for Long Videos */}
+            <AudioUploader />
           </div>
 
-          {/* Documents List */}
-          <div className="mb-8">
+          {/* Recent Activity & Documents */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <ActivityFeed />
             <DocumentsList />
           </div>
-
-          {/* Scheduled Scrapes Manager */}
-          <div className="mb-8">
-            <ScheduledScrapesManager />
-          </div>
-
-          {/* PDF Upload */}
-          <div className="mb-8">
-            <PDFUpload onUploadSuccess={() => console.log('PDF upload success')} />
-          </div>
-
-          {/* Activity Feed */}
-          <ActivityFeed />
         </div>
       </Container>
     </PageLayout>
