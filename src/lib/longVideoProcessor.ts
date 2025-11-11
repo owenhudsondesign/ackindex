@@ -239,7 +239,7 @@ export function mergeChunkTranscripts(chunks: ChunkTranscript[]): {
  */
 export async function storeLongVideoTranscript(
   documentId: string,
-  videoId: string,
+  videoId: string | null,
   mergedTranscript: {
     fullText: string;
     segments: GladiaTranscriptionSegment[];

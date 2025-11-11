@@ -16,6 +16,7 @@ import {
   markDocumentFailed,
   updateChunkEmbedding,
 } from '@/lib/database';
+import { supabaseAdmin } from '@/lib/supabase';
 import {
   processYouTubeVideo,
   processYouTubePlaylist,
@@ -552,45 +553,36 @@ async function processLongVideoJob(
   data: ScrapingJobData,
   job: Job
 ) {
-  const { documentId, videoId, transcriptId, fileName } = data;
+  const { documentId, transcriptId, fileName } = data;
 
-  if (!documentId || !videoId || !transcriptId) {
+  if (!documentId || !transcriptId) {
     throw new Error('Missing required fields for long video processing');
   }
-  const log = workerLogger.child({ jobId: job.id, documentId, videoId, transcriptId });
+  const log = workerLogger.child({ jobId: job.id, documentId, transcriptId });
 
   try {
     log.info('Starting long video processing - polling AssemblyAI for transcript');
     await job.updateProgress(10);
 
-    // 1. Fetch video metadata from YouTube API
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-      throw new Error('YOUTUBE_API_KEY not configured');
+    // 1. Get document info from database
+    const { data: doc } = await supabaseAdmin
+      .from('documents')
+      .select('title, created_at')
+      .eq('id', documentId)
+      .single();
+
+    if (!doc) {
+      throw new Error('Document not found');
     }
 
-    const response = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${apiKey}`
-    );
-
-    if (!response.ok) {
-      throw new Error(`YouTube API error: ${response.status}`);
-    }
-
-    const videoData = await response.json();
-    if (!videoData.items || videoData.items.length === 0) {
-      throw new Error('Video not found on YouTube');
-    }
-
-    const video = videoData.items[0];
     const videoInfo = {
-      title: video.snippet.title,
-      channel: video.snippet.channelTitle,
-      publishedAt: video.snippet.publishedAt,
-      description: video.snippet.description,
+      title: doc.title || 'Untitled Audio',
+      channel: 'Uploaded Audio',
+      publishedAt: doc.created_at,
+      description: '',
     };
 
-    log.info({ videoInfo }, 'Video metadata fetched');
+    log.info({ videoInfo }, 'Document metadata fetched');
     await job.updateProgress(20);
 
     // 2. Poll AssemblyAI for transcript completion
@@ -664,7 +656,7 @@ async function processLongVideoJob(
     log.info('Storing transcript in database');
     await storeLongVideoTranscript(
       documentId,
-      videoId,
+      null, // No videoId for uploaded audio
       {
         fullText: transcription.fullText,
         segments: transcription.segments,
@@ -679,7 +671,6 @@ async function processLongVideoJob(
 
     return {
       documentId,
-      videoId,
       duration: transcription.duration,
       segmentCount: transcription.segments.length,
     };

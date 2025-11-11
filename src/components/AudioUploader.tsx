@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Card from '@/components/Card';
 
 export default function AudioUploader() {
-  const [videoId, setVideoId] = useState('');
+  const [title, setTitle] = useState('');
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState<{
@@ -40,10 +40,10 @@ export default function AudioUploader() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!videoId.trim()) {
+    if (!title.trim()) {
       setStatus({
         type: 'error',
-        message: 'Please enter a YouTube video ID',
+        message: 'Please enter a title for this audio',
       });
       return;
     }
@@ -148,7 +148,7 @@ export default function AudioUploader() {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          videoId,
+          title: title.trim(),
           transcriptId,
           fileName: audioFile.name,
         }),
@@ -173,7 +173,7 @@ export default function AudioUploader() {
       });
 
       // Clear form
-      setVideoId('');
+      setTitle('');
       setAudioFile(null);
       const fileInput = document.getElementById('audio-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
@@ -224,22 +224,22 @@ export default function AudioUploader() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label
-            htmlFor="video-id"
+            htmlFor="title"
             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
-            YouTube Video ID
+            Title
           </label>
           <input
-            id="video-id"
+            id="title"
             type="text"
-            value={videoId}
-            onChange={(e) => setVideoId(e.target.value)}
-            placeholder="abc123xyz (from youtube.com/watch?v=abc123xyz)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Meeting title or description"
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100"
             disabled={isUploading}
           />
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Extract the video ID from the YouTube URL (the part after "v=")
+            Enter a descriptive title for this audio recording
           </p>
         </div>
 
@@ -301,7 +301,7 @@ export default function AudioUploader() {
 
         <button
           type="submit"
-          disabled={isUploading || !videoId.trim() || !audioFile}
+          disabled={isUploading || !title.trim() || !audioFile}
           className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 font-medium flex items-center justify-center gap-2"
         >
           {isUploading ? (
@@ -431,11 +431,11 @@ export default function AudioUploader() {
         <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">1.</span>
-            <span>Download audio from ytmp3.nu or similar service</span>
+            <span>Enter a title for your audio recording</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">2.</span>
-            <span>Upload here with YouTube video ID (files up to 2GB)</span>
+            <span>Upload audio file (MP3, WAV, M4A - up to 2GB)</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">3.</span>
@@ -443,15 +443,15 @@ export default function AudioUploader() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">4.</span>
-            <span>Transcription job starts automatically</span>
+            <span>Transcription starts automatically (takes a few minutes)</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">5.</span>
-            <span>Processing runs in background (15-30 minutes)</span>
+            <span>Worker processes transcript and generates embeddings</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">6.</span>
-            <span>Video appears in documents list when complete</span>
+            <span>Document appears in list when complete</span>
           </li>
         </ul>
 
