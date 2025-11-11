@@ -50,66 +50,52 @@ export default function AudioUploader() {
     }
 
     setIsUploading(true);
-    setStatus({ type: 'processing', message: 'Step 1/3: Getting API credentials...' });
+    setStatus({
+      type: 'processing',
+      message: `Step 1/2: Uploading ${(audioFile.size / 1024 / 1024).toFixed(1)}MB to AssemblyAI...`
+    });
 
     try {
-      // Step 1: Get AssemblyAI API key
-      const tokenResponse = await fetch('/api/admin/get-assemblyai-token');
-      if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to get API credentials (${tokenResponse.status})`);
-      }
-      const { apiKey } = await tokenResponse.json();
-
-      if (!apiKey) {
-        throw new Error('No API key returned from server');
-      }
-
-      // Step 2: Upload directly to AssemblyAI
-      setStatus({
-        type: 'processing',
-        message: `Step 2/3: Uploading ${(audioFile.size / 1024 / 1024).toFixed(1)}MB to AssemblyAI...`
-      });
-
+      // Step 1: Upload directly to AssemblyAI (no auth required for upload endpoint)
       const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
         method: 'POST',
-        headers: {
-          'authorization': apiKey,
-        },
         body: audioFile,
       });
 
       if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('AssemblyAI upload error:', errorText);
         throw new Error(`AssemblyAI upload failed: ${uploadResponse.status}`);
       }
 
       const uploadData = await uploadResponse.json();
       const audioUrl = uploadData.upload_url;
 
-      // Step 3: Start transcription
-      setStatus({ type: 'processing', message: 'Step 3/3: Starting transcription...' });
+      // Step 2: Start transcription via our backend (which has the API key)
+      setStatus({ type: 'processing', message: 'Step 2/2: Starting transcription and registering job...' });
 
-      const transcriptResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
+      const startTranscriptResponse = await fetch('/api/admin/start-transcription', {
         method: 'POST',
         headers: {
-          'authorization': apiKey,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({
-          audio_url: audioUrl,
-          speaker_labels: true,
-          language_code: 'en_us',
-        }),
+        body: JSON.stringify({ audioUrl }),
       });
 
-      if (!transcriptResponse.ok) {
-        throw new Error(`AssemblyAI transcription request failed: ${transcriptResponse.status}`);
+      if (!startTranscriptResponse.ok) {
+        let errorMessage = 'Failed to start transcription';
+        try {
+          const data = await startTranscriptResponse.json();
+          errorMessage = data.error || errorMessage;
+        } catch {
+          errorMessage = `${startTranscriptResponse.status}: ${startTranscriptResponse.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const transcriptData = await transcriptResponse.json();
-      const transcriptId = transcriptData.id;
+      const { transcriptId } = await startTranscriptResponse.json();
 
-      // Step 4: Register with our backend
+      // Step 3: Register with our backend
       const registerResponse = await fetch('/api/admin/register-long-video', {
         method: 'POST',
         headers: {
@@ -409,14 +395,18 @@ export default function AudioUploader() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">3.</span>
-            <span>File uploads directly to AssemblyAI (bypasses server limits)</span>
+            <span>File uploads directly to AssemblyAI (no server size limits)</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">4.</span>
-            <span>Processing runs in background (15-30 minutes)</span>
+            <span>Server starts transcription job securely</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">5.</span>
+            <span>Processing runs in background (15-30 minutes)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-purple-600 dark:text-purple-400 mt-0.5">6.</span>
             <span>Video appears in documents list when complete</span>
           </li>
         </ul>
