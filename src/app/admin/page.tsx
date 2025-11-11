@@ -13,7 +13,7 @@ import DocumentsList from '@/components/DocumentsList';
 import Loading from '@/components/Loading';
 import Card from '@/components/Card';
 import VideoScraper from '@/components/VideoScraper';
-import LongVideoInstructions from '@/components/LongVideoInstructions';
+import AudioUploader from '@/components/AudioUploader';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -229,8 +229,8 @@ export default function AdminPage() {
             {/* YouTube Video/Playlist Processor */}
             <VideoScraper />
 
-            {/* Long Video Processing Instructions */}
-            <LongVideoInstructions />
+            {/* Audio Upload for Long Videos */}
+            <AudioUploader />
           </div>
 
           {/* Recent Activity & Documents */}

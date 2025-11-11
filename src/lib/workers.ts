@@ -20,6 +20,11 @@ import {
   processYouTubeVideo,
   processYouTubePlaylist,
 } from '@/lib/youtubeGladiaScraper';
+import { transcribeWithAssemblyAI } from '@/lib/assemblyAITranscriber';
+import { storeLongVideoTranscript } from '@/lib/longVideoProcessor';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { parsePDF } from '@/lib/pdfParser';
 import { chunkText } from '@/lib/chunking';
 import { generateEmbeddingsBatch } from '@/lib/embeddings';
@@ -61,8 +66,8 @@ redisConnection.on('reconnecting', () => {
 // Interface for scraping job data
 interface ScrapingJobData {
   documentId?: string;
-  url: string;
-  userId: string;
+  url?: string; // Optional for long video processing
+  userId?: string; // Optional for long video processing
   language?: string;
   enableCodeSwitching?: boolean;
   chunkSize?: number;
@@ -71,6 +76,11 @@ interface ScrapingJobData {
   maxVideos?: number;
   skipExisting?: boolean;
   delayBetweenVideos?: number;
+  // Long video processing options
+  videoId?: string;
+  audioFileBase64?: string;
+  fileName?: string;
+  fileSize?: number;
 }
 
 // Interface for embedding job data
@@ -95,7 +105,7 @@ interface PDFProcessingJobData {
 async function processUrlScraping(
   documentId: string,
   url: string,
-  userId: string,
+  userId: string | undefined,
   job: Job
 ): Promise<void> {
   const log = workerLogger.child({ jobId: job.id, documentId, userId, url });
@@ -537,6 +547,131 @@ async function processYouTubePlaylistJob(
 }
 
 /**
+ * Process long video job handler
+ */
+async function processLongVideoJob(
+  data: ScrapingJobData,
+  job: Job
+) {
+  const { documentId, videoId, audioFileBase64, fileName } = data;
+
+  if (!documentId || !videoId || !audioFileBase64) {
+    throw new Error('Missing required fields for long video processing');
+  }
+  const log = workerLogger.child({ jobId: job.id, documentId, videoId });
+
+  try {
+    log.info('Starting long video processing with AssemblyAI');
+    await job.updateProgress(10);
+
+    // 1. Decode base64 audio and save to temp file
+    const tempDir = os.tmpdir();
+    const tempFilePath = path.join(tempDir, `${videoId}-${Date.now()}.mp3`);
+
+    const audioBuffer = Buffer.from(audioFileBase64, 'base64');
+    fs.writeFileSync(tempFilePath, audioBuffer);
+
+    log.info({ tempFilePath, fileSize: audioBuffer.length }, 'Audio file saved to temp');
+    await job.updateProgress(20);
+
+    // 2. Fetch video metadata from YouTube API
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    if (!apiKey) {
+      throw new Error('YOUTUBE_API_KEY not configured');
+    }
+
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${apiKey}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`YouTube API error: ${response.status}`);
+    }
+
+    const videoData = await response.json();
+    if (!videoData.items || videoData.items.length === 0) {
+      throw new Error('Video not found on YouTube');
+    }
+
+    const video = videoData.items[0];
+    const videoInfo = {
+      title: video.snippet.title,
+      channel: video.snippet.channelTitle,
+      publishedAt: video.snippet.publishedAt,
+      description: video.snippet.description,
+    };
+
+    log.info({ videoInfo }, 'Video metadata fetched');
+    await job.updateProgress(30);
+
+    // 3. Transcribe with AssemblyAI
+    log.info('Starting AssemblyAI transcription');
+    const transcription = await transcribeWithAssemblyAI(tempFilePath, {
+      speaker_labels: true,
+      language_code: 'en_us',
+    });
+
+    log.info(
+      {
+        transcriptLength: transcription.fullText.length,
+        duration: transcription.duration,
+        segments: transcription.segments.length,
+      },
+      'Transcription completed'
+    );
+    await job.updateProgress(70);
+
+    // 4. Store in database
+    log.info('Storing transcript in database');
+    await storeLongVideoTranscript(
+      documentId,
+      videoId,
+      {
+        fullText: transcription.fullText,
+        segments: transcription.segments,
+        totalDuration: transcription.duration,
+      },
+      videoInfo
+    );
+
+    await job.updateProgress(90);
+
+    // 5. Clean up temp file
+    try {
+      fs.unlinkSync(tempFilePath);
+      log.info('Temp file cleaned up');
+    } catch (e) {
+      log.warn({ error: e }, 'Failed to delete temp file');
+    }
+
+    await job.updateProgress(100);
+
+    log.info('Long video processing completed successfully');
+
+    return {
+      documentId,
+      videoId,
+      duration: transcription.duration,
+      segmentCount: transcription.segments.length,
+    };
+  } catch (error) {
+    log.error({ err: error }, 'Long video processing failed');
+
+    // Mark document as failed
+    try {
+      await markDocumentFailed(
+        documentId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    } catch (updateError) {
+      log.error({ err: updateError }, 'Failed to mark document as failed');
+    }
+
+    throw error;
+  }
+}
+
+/**
  * Scraping Worker
  * Processes web scraping jobs and YouTube video processing
  */
@@ -551,6 +686,11 @@ export const scrapingWorker = new Worker<ScrapingJobData>(
     // Check job name to determine which processor to use
     if (job.name === 'process-youtube-video') {
       console.log(`✅ [WORKER] Job identified as YouTube video processing`);
+
+      if (!url) {
+        throw new Error('URL is required for YouTube video processing');
+      }
+
       workerLogger.info({ jobId: job.id, url }, 'Starting YouTube video processing job');
 
       const resultDocumentId = await processYouTubeVideoJob(
@@ -563,6 +703,11 @@ export const scrapingWorker = new Worker<ScrapingJobData>(
       return { success: true, documentId: resultDocumentId, url };
     } else if (job.name === 'process-youtube-playlist') {
       console.log(`✅ [WORKER] Job identified as YouTube playlist processing`);
+
+      if (!url) {
+        throw new Error('URL is required for YouTube playlist processing');
+      }
+
       workerLogger.info({ jobId: job.id, url }, 'Starting YouTube playlist processing job');
 
       const { maxVideos, skipExisting, delayBetweenVideos } = job.data;
@@ -583,13 +728,25 @@ export const scrapingWorker = new Worker<ScrapingJobData>(
 
       console.log(`✅ [WORKER] YouTube playlist job completed. Processed ${result.processedVideos}/${result.totalVideos} videos`);
       return { success: true, ...result, url };
+    } else if (job.name === 'process-long-video') {
+      console.log(`✅ [WORKER] Job identified as long video processing (AssemblyAI)`);
+      workerLogger.info({ jobId: job.id, documentId: job.data.documentId }, 'Starting long video processing job');
+
+      const result = await processLongVideoJob(job.data, job);
+
+      console.log(`✅ [WORKER] Long video job completed. Document ID: ${result.documentId}`);
+      return { success: true, ...result };
     } else {
       // Regular URL scraping
-      workerLogger.info({ jobId: job.id, url }, 'Starting scraping job');
+      if (!url) {
+        throw new Error('URL is required for scraping jobs');
+      }
 
       if (!documentId) {
         throw new Error('documentId is required for regular scraping jobs');
       }
+
+      workerLogger.info({ jobId: job.id, url }, 'Starting scraping job');
 
       await processUrlScraping(documentId, url, userId, job);
 
