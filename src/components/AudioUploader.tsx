@@ -169,7 +169,7 @@ export default function AudioUploader() {
 
       setStatus({
         type: 'success',
-        message: `✅ ${data.message}`,
+        message: `✅ ${data.message} Document ID: ${data.documentId}`,
       });
 
       // Clear form
@@ -178,10 +178,8 @@ export default function AudioUploader() {
       const fileInput = document.getElementById('audio-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
-      // Refresh page after delay to show new document
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
+      // Note: Not auto-refreshing to avoid re-triggering video metadata fetch
+      // User can manually refresh to see the document in the list
     } catch (error) {
       console.error('Audio upload error:', error);
       setStatus({
