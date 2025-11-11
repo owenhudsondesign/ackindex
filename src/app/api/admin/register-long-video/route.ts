@@ -41,26 +41,83 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if document exists for this video
+    // Check if document exists for this video, if not create it
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const { data: document, error: docError } = await supabase
+    let { data: document, error: docError } = await supabase
       .from('documents')
       .select('id, title, status')
       .eq('source_url', videoUrl)
       .single();
 
     if (docError || !document) {
-      return NextResponse.json(
-        { error: `Document not found for video ID: ${videoId}. Please submit the video URL through the YouTube processor first.` },
-        { status: 404 }
+      // Document doesn't exist, fetch video metadata and create it
+      const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+      if (!youtubeApiKey) {
+        return NextResponse.json(
+          { error: 'YouTube API key not configured' },
+          { status: 500 }
+        );
+      }
+
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${youtubeApiKey}`
       );
+
+      if (!response.ok) {
+        return NextResponse.json(
+          { error: 'Failed to fetch video metadata from YouTube' },
+          { status: 500 }
+        );
+      }
+
+      const data = await response.json();
+      if (!data.items || data.items.length === 0) {
+        return NextResponse.json(
+          { error: `Video not found on YouTube: ${videoId}` },
+          { status: 404 }
+        );
+      }
+
+      const video = data.items[0];
+      const title = video.snippet.title;
+      const description = video.snippet.description || '';
+      const channelTitle = video.snippet.channelTitle || '';
+
+      // Create document
+      const { data: newDocument, error: createError } = await supabase
+        .from('documents')
+        .insert({
+          title,
+          source_url: videoUrl,
+          status: 'processing',
+          metadata: {
+            channel: channelTitle,
+            description: description.substring(0, 500),
+            videoId,
+            uploadedViaAudio: true,
+          },
+        })
+        .select('id, title, status')
+        .single();
+
+      if (createError || !newDocument) {
+        console.error('Failed to create document:', createError);
+        return NextResponse.json(
+          { error: 'Failed to create document record' },
+          { status: 500 }
+        );
+      }
+
+      document = newDocument;
     }
 
-    // Update status to processing
-    await supabase
-      .from('documents')
-      .update({ status: 'processing' })
-      .eq('id', document.id);
+    // Update status to processing (if not already set during creation)
+    if (document.status !== 'processing') {
+      await supabase
+        .from('documents')
+        .update({ status: 'processing' })
+        .eq('id', document.id);
+    }
 
     // Queue a job to poll for completion
     const job = await scrapingQueue.add('process-long-video', {
