@@ -60,6 +60,12 @@ export default function AudioUploader() {
       // This is acceptable for admin-only features where security is controlled by admin access
       const ASSEMBLYAI_API_KEY = '331bb53212714dde951bb8a2828183a5';
 
+      console.log('Uploading file:', {
+        name: audioFile.name,
+        size: audioFile.size,
+        type: audioFile.type,
+      });
+
       const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
         method: 'POST',
         headers: {
@@ -68,9 +74,12 @@ export default function AudioUploader() {
         body: audioFile,
       });
 
+      console.log('Upload response status:', uploadResponse.status);
+
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text().catch(() => 'Unknown error');
         console.error('AssemblyAI upload error:', errorText);
+        console.error('Full response:', uploadResponse);
         throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
       }
 
