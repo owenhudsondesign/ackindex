@@ -665,6 +665,26 @@ async function processLongVideoJob(
       videoInfo
     );
 
+    await job.updateProgress(90);
+
+    // 4. Queue embedding generation for all chunks
+    log.info('Queuing embedding generation');
+    const { embeddingQueue } = await import('./queues');
+
+    const { data: chunks } = await supabaseAdmin
+      .from('document_chunks')
+      .select('id, content')
+      .eq('document_id', documentId)
+      .is('embedding', null)
+      .limit(1000); // Process up to 1000 chunks at a time
+
+    if (chunks && chunks.length > 0) {
+      await embeddingQueue.add('generate-embeddings', { chunks });
+      log.info({ chunkCount: chunks.length }, 'Queued embedding generation');
+    } else {
+      log.warn('No chunks found for embedding generation');
+    }
+
     await job.updateProgress(100);
 
     log.info('Long video processing completed successfully');
