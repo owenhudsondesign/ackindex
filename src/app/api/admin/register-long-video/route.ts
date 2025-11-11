@@ -3,11 +3,17 @@ import { createClient } from '@supabase/supabase-js';
 import { getAdminUser } from '@/lib/adminAuth';
 import { scrapingQueue } from '@/lib/queues';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+/**
+ * Register a long video transcript that was uploaded directly to AssemblyAI by the client
+ */
 export async function POST(req: NextRequest) {
   try {
     // Check admin authentication
@@ -19,10 +25,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse multipart form data
-    const formData = await req.formData();
-    const videoId = formData.get('videoId') as string;
-    const audioFile = formData.get('audioFile') as File;
+    const { videoId, transcriptId, fileName } = await req.json();
 
     if (!videoId) {
       return NextResponse.json(
@@ -31,29 +34,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!audioFile) {
+    if (!transcriptId) {
       return NextResponse.json(
-        { error: 'Audio file is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate file type
-    const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/x-m4a'];
-    const isValidType = validTypes.includes(audioFile.type) || audioFile.name.match(/\.(mp3|wav|m4a)$/i);
-
-    if (!isValidType) {
-      return NextResponse.json(
-        { error: 'Invalid audio file type. Please upload MP3, WAV, or M4A' },
-        { status: 400 }
-      );
-    }
-
-    // Validate file size (max 500MB)
-    const maxSize = 500 * 1024 * 1024; // 500MB
-    if (audioFile.size > maxSize) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 500MB' },
+        { error: 'Transcript ID is required' },
         { status: 400 }
       );
     }
@@ -73,37 +56,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert audio file to base64 for storage in job queue
-    const arrayBuffer = await audioFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64Audio = buffer.toString('base64');
-
-    // Update document status to queued
+    // Update status to processing
     await supabase
       .from('documents')
       .update({ status: 'processing' })
       .eq('id', document.id);
 
-    // Queue the job for background processing
+    // Queue a job to poll for completion
     const job = await scrapingQueue.add('process-long-video', {
       documentId: document.id,
       videoId,
-      audioFileBase64: base64Audio,
-      fileName: audioFile.name,
-      fileSize: audioFile.size,
+      transcriptId,
+      fileName: fileName || 'audio.mp3',
     });
 
     return NextResponse.json({
       success: true,
       documentId: document.id,
       jobId: job.id,
-      message: 'Audio file uploaded successfully. Processing will begin shortly and may take 15-30 minutes.',
+      transcriptId,
+      message: 'Transcript registered successfully. Processing in background (15-30 minutes).',
     });
   } catch (error) {
-    console.error('Audio processing error:', error);
+    console.error('Registration error:', error);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Failed to process audio file',
+        error: error instanceof Error ? error.message : 'Failed to register transcript',
       },
       { status: 500 }
     );

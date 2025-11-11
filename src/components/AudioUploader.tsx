@@ -50,27 +50,89 @@ export default function AudioUploader() {
     }
 
     setIsUploading(true);
-    setStatus({ type: 'processing', message: 'Uploading and queuing for processing...' });
+    setStatus({ type: 'processing', message: 'Step 1/3: Getting API credentials...' });
 
     try {
-      const formData = new FormData();
-      formData.append('videoId', videoId);
-      formData.append('audioFile', audioFile);
+      // Step 1: Get AssemblyAI API key
+      const tokenResponse = await fetch('/api/admin/get-assemblyai-token');
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get API credentials');
+      }
+      const { apiKey } = await tokenResponse.json();
 
-      const response = await fetch('/api/admin/process-long-video', {
-        method: 'POST',
-        body: formData,
+      // Step 2: Upload directly to AssemblyAI
+      setStatus({
+        type: 'processing',
+        message: `Step 2/3: Uploading ${(audioFile.size / 1024 / 1024).toFixed(1)}MB to AssemblyAI...`
       });
 
-      const data = await response.json();
+      const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
+        method: 'POST',
+        headers: {
+          'authorization': apiKey,
+        },
+        body: audioFile,
+      });
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process audio file');
+      if (!uploadResponse.ok) {
+        throw new Error(`AssemblyAI upload failed: ${uploadResponse.status}`);
       }
+
+      const uploadData = await uploadResponse.json();
+      const audioUrl = uploadData.upload_url;
+
+      // Step 3: Start transcription
+      setStatus({ type: 'processing', message: 'Step 3/3: Starting transcription...' });
+
+      const transcriptResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
+        method: 'POST',
+        headers: {
+          'authorization': apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          audio_url: audioUrl,
+          speaker_labels: true,
+          language_code: 'en_us',
+        }),
+      });
+
+      if (!transcriptResponse.ok) {
+        throw new Error(`AssemblyAI transcription request failed: ${transcriptResponse.status}`);
+      }
+
+      const transcriptData = await transcriptResponse.json();
+      const transcriptId = transcriptData.id;
+
+      // Step 4: Register with our backend
+      const registerResponse = await fetch('/api/admin/register-long-video', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          videoId,
+          transcriptId,
+          fileName: audioFile.name,
+        }),
+      });
+
+      if (!registerResponse.ok) {
+        let errorMessage = 'Failed to register transcript';
+        try {
+          const data = await registerResponse.json();
+          errorMessage = data.error || errorMessage;
+        } catch {
+          errorMessage = `${registerResponse.status}: ${registerResponse.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await registerResponse.json();
 
       setStatus({
         type: 'success',
-        message: `✅ ${data.message} Processing in background...`,
+        message: `✅ ${data.message}`,
       });
 
       // Clear form
@@ -186,7 +248,7 @@ export default function AudioUploader() {
                     Click to upload or drag and drop
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    MP3, WAV, or M4A (max 500 MB)
+                    MP3, WAV, or M4A (up to 2GB for 8-hour videos)
                   </p>
                 </div>
               )}
@@ -338,14 +400,18 @@ export default function AudioUploader() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">2.</span>
-            <span>Upload here with YouTube video ID</span>
+            <span>Upload here with YouTube video ID (files up to 2GB)</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">3.</span>
-            <span>Processing runs in background (15-30 minutes)</span>
+            <span>File uploads directly to AssemblyAI (bypasses server limits)</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">4.</span>
+            <span>Processing runs in background (15-30 minutes)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-purple-600 dark:text-purple-400 mt-0.5">5.</span>
             <span>Video appears in documents list when complete</span>
           </li>
         </ul>

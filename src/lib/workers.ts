@@ -78,9 +78,8 @@ interface ScrapingJobData {
   delayBetweenVideos?: number;
   // Long video processing options
   videoId?: string;
-  audioFileBase64?: string;
+  transcriptId?: string; // AssemblyAI transcript ID to poll
   fileName?: string;
-  fileSize?: number;
 }
 
 // Interface for embedding job data
@@ -553,28 +552,18 @@ async function processLongVideoJob(
   data: ScrapingJobData,
   job: Job
 ) {
-  const { documentId, videoId, audioFileBase64, fileName } = data;
+  const { documentId, videoId, transcriptId, fileName } = data;
 
-  if (!documentId || !videoId || !audioFileBase64) {
+  if (!documentId || !videoId || !transcriptId) {
     throw new Error('Missing required fields for long video processing');
   }
-  const log = workerLogger.child({ jobId: job.id, documentId, videoId });
+  const log = workerLogger.child({ jobId: job.id, documentId, videoId, transcriptId });
 
   try {
-    log.info('Starting long video processing with AssemblyAI');
+    log.info('Starting long video processing - polling AssemblyAI for transcript');
     await job.updateProgress(10);
 
-    // 1. Decode base64 audio and save to temp file
-    const tempDir = os.tmpdir();
-    const tempFilePath = path.join(tempDir, `${videoId}-${Date.now()}.mp3`);
-
-    const audioBuffer = Buffer.from(audioFileBase64, 'base64');
-    fs.writeFileSync(tempFilePath, audioBuffer);
-
-    log.info({ tempFilePath, fileSize: audioBuffer.length }, 'Audio file saved to temp');
-    await job.updateProgress(20);
-
-    // 2. Fetch video metadata from YouTube API
+    // 1. Fetch video metadata from YouTube API
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
       throw new Error('YOUTUBE_API_KEY not configured');
@@ -602,14 +591,64 @@ async function processLongVideoJob(
     };
 
     log.info({ videoInfo }, 'Video metadata fetched');
-    await job.updateProgress(30);
+    await job.updateProgress(20);
 
-    // 3. Transcribe with AssemblyAI
-    log.info('Starting AssemblyAI transcription');
-    const transcription = await transcribeWithAssemblyAI(tempFilePath, {
-      speaker_labels: true,
-      language_code: 'en_us',
-    });
+    // 2. Poll AssemblyAI for transcript completion
+    log.info('Polling AssemblyAI for transcript completion');
+    const assemblyAIKey = process.env.ASSEMBLYAI_API_KEY;
+    if (!assemblyAIKey) {
+      throw new Error('ASSEMBLYAI_API_KEY not configured');
+    }
+
+    let transcriptData: any = null;
+    let attempts = 0;
+    const maxAttempts = 360; // 30 minutes at 5 second intervals
+
+    while (attempts < maxAttempts) {
+      const response = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
+        headers: {
+          'authorization': assemblyAIKey,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`AssemblyAI API error: ${response.status}`);
+      }
+
+      transcriptData = await response.json();
+
+      if (transcriptData.status === 'completed') {
+        log.info('Transcript completed');
+        break;
+      } else if (transcriptData.status === 'error') {
+        throw new Error(`AssemblyAI transcription failed: ${transcriptData.error}`);
+      }
+
+      // Update progress based on polling attempts
+      const progress = Math.min(20 + (attempts / maxAttempts) * 50, 70);
+      await job.updateProgress(progress);
+
+      // Wait 5 seconds before next poll
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      attempts++;
+    }
+
+    if (!transcriptData || transcriptData.status !== 'completed') {
+      throw new Error('Transcription timed out');
+    }
+
+    // Convert AssemblyAI response to our format
+    const transcription = {
+      fullText: transcriptData.text || '',
+      segments: (transcriptData.utterances || []).map((utterance: any) => ({
+        text: utterance.text,
+        start: utterance.start / 1000, // Convert ms to seconds
+        end: utterance.end / 1000,
+        speaker: parseInt(utterance.speaker.replace('Speaker ', '')) || undefined,
+        confidence: utterance.confidence,
+      })),
+      duration: (transcriptData.audio_duration || 0) / 1000, // Convert ms to seconds
+    };
 
     log.info(
       {
@@ -619,9 +658,9 @@ async function processLongVideoJob(
       },
       'Transcription completed'
     );
-    await job.updateProgress(70);
+    await job.updateProgress(75);
 
-    // 4. Store in database
+    // 3. Store in database
     log.info('Storing transcript in database');
     await storeLongVideoTranscript(
       documentId,
@@ -633,16 +672,6 @@ async function processLongVideoJob(
       },
       videoInfo
     );
-
-    await job.updateProgress(90);
-
-    // 5. Clean up temp file
-    try {
-      fs.unlinkSync(tempFilePath);
-      log.info('Temp file cleaned up');
-    } catch (e) {
-      log.warn({ error: e }, 'Failed to delete temp file');
-    }
 
     await job.updateProgress(100);
 
