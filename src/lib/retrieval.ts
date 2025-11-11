@@ -295,18 +295,39 @@ function applyRecencyBoost(results: RetrievalResult[]): RetrievalResult[] {
 /**
  * Build context from retrieved chunks
  * Combines multiple chunks into a single context string for the LLM
+ * IMPORTANT: Source numbering must match extractCitations to avoid referencing non-existent sources
  */
 export function buildContext(results: RetrievalResult[]): string {
   if (results.length === 0) {
     return 'No relevant information found.';
   }
 
-  return results
-    .map((result, index) => {
-      const source = result.document?.title || result.document?.filename || 'Unknown source';
-      return `[Source ${index + 1}: ${source}]\n${result.content}\n`;
-    })
-    .join('\n');
+  // Deduplicate by document ID and assign source numbers
+  // This ensures source numbers in context match what's shown to the user
+  const docToSourceNum = new Map<string, number>();
+  let sourceCounter = 1;
+
+  const contextParts = results.map((result) => {
+    const docId = result.document?.id;
+    if (!docId) return null;
+
+    // Get or assign source number for this document
+    let sourceNum = docToSourceNum.get(docId);
+    if (!sourceNum) {
+      sourceNum = sourceCounter++;
+      docToSourceNum.set(docId, sourceNum);
+    }
+
+    // Only include top 3 unique sources (matching extractCitations limit)
+    if (sourceNum > 3) {
+      return null;
+    }
+
+    const source = result.document?.title || result.document?.filename || 'Unknown source';
+    return `[Source ${sourceNum}: ${source}]\n${result.content}\n`;
+  }).filter(Boolean); // Remove null entries
+
+  return contextParts.join('\n');
 }
 
 /**
