@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
           source_url: videoUrl,
           source_type: 'url',
           status: 'processing',
-          chunk_count: 0,
+          total_chunks: 0,
         })
         .select('id, title, status')
         .single();
