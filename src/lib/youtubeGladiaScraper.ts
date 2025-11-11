@@ -290,7 +290,7 @@ function getAudioUrl(videoId: string): string {
 /**
  * Enrich transcript with OpenAI to extract meeting information
  */
-async function enrichTranscriptWithAI(
+export async function enrichTranscriptWithAI(
   videoInfo: YouTubeVideoInfo,
   transcript: string
 ): Promise<Partial<EnrichedMeetingData>> {
@@ -682,7 +682,7 @@ Options:
 /**
  * Build searchable content from enriched meeting data
  */
-function buildMeetingContent(meeting: EnrichedMeetingData): string {
+export function buildMeetingContent(meeting: EnrichedMeetingData): string {
   const sections: string[] = [];
 
   // Title and metadata

@@ -77,7 +77,7 @@ export async function transcribeWithAssemblyAI(
     }
 
     console.log(`✅ [ASSEMBLYAI] Transcription completed`);
-    console.log(`   Transcript length: ${transcript.text.length} characters`);
+    console.log(`   Transcript length: ${transcript.text?.length || 0} characters`);
     console.log(`   Duration: ${Math.floor((transcript.audio_duration || 0) / 60)} minutes`);
 
     // Convert to Gladia-compatible segment format
@@ -144,7 +144,7 @@ export async function transcribeWithAssemblyAI(
     );
 
     return {
-      fullText: transcript.text,
+      fullText: transcript.text || '',
       segments,
       duration: (transcript.audio_duration || 0) / 1000, // Convert ms to seconds
       transcriptionId: transcript.id,

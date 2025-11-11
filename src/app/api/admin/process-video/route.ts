@@ -223,7 +223,6 @@ export async function POST(request: NextRequest) {
           {
             message: 'Playlist processed successfully',
             type: 'playlist',
-            playlistId,
             ...result,
             status: 'completed',
           },

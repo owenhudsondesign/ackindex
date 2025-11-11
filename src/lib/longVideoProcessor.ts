@@ -11,9 +11,6 @@ import { chunkText } from '@/lib/chunking';
 import { storeChunks, markDocumentCompleted } from '@/lib/database';
 import { enrichTranscriptWithAI, buildMeetingContent } from './youtubeGladiaScraper';
 import type { GladiaTranscriptionSegment } from './gladiaTranscriber';
-import FormData from 'form-data';
-import fs from 'fs';
-import path from 'path';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,7 +33,9 @@ export interface ChunkTranscript {
 /**
  * Upload an audio file directly to Gladia API
  * Used for manual chunking of long videos
+ * NOTE: Currently unused - using AssemblyAI instead
  */
+/* DISABLED - Using AssemblyAI instead
 export async function uploadAudioFileToGladia(
   filePath: string,
   options: {
@@ -111,9 +110,13 @@ export async function uploadAudioFileToGladia(
   }
 }
 
+*/
+
 /**
  * Wait for Gladia transcription to complete and return results
+ * NOTE: Currently unused - using AssemblyAI instead
  */
+/* DISABLED - Using AssemblyAI instead
 export async function waitForGladiaFileTranscription(
   transcriptionId: string,
   pollInterval: number = 5000,
@@ -193,6 +196,7 @@ export async function waitForGladiaFileTranscription(
     await new Promise((resolve) => setTimeout(resolve, pollInterval));
   }
 }
+*/
 
 /**
  * Merge multiple chunk transcripts into a single transcript with adjusted timestamps

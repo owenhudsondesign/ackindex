@@ -147,7 +147,7 @@ export default function AdminPage() {
                 </h3>
                 <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
                   <p>
-                    Process YouTube videos (<120 min) • Upload audio files for long videos (>120 min) • Track analytics & activity
+                    Process YouTube videos (&lt;120 min) • Upload audio files for long videos (&gt;120 min) • Track analytics & activity
                   </p>
                 </div>
               </div>
