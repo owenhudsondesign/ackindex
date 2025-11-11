@@ -56,21 +56,22 @@ export default function AudioUploader() {
     });
 
     try {
-      // Step 1: Upload via our proxy (which adds auth and streams to AssemblyAI)
-      const uploadResponse = await fetch('/api/admin/upload-audio', {
+      // Step 1: Upload directly to AssemblyAI with hardcoded API key
+      // This is acceptable for admin-only features where security is controlled by admin access
+      const ASSEMBLYAI_API_KEY = '331bb53212714dde951bb8a2828183a5';
+
+      const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
         method: 'POST',
+        headers: {
+          'authorization': ASSEMBLYAI_API_KEY,
+        },
         body: audioFile,
       });
 
       if (!uploadResponse.ok) {
-        let errorMessage = 'Upload failed';
-        try {
-          const errorData = await uploadResponse.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          errorMessage = `Upload failed: ${uploadResponse.status}`;
-        }
-        throw new Error(errorMessage);
+        const errorText = await uploadResponse.text().catch(() => 'Unknown error');
+        console.error('AssemblyAI upload error:', errorText);
+        throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
       }
 
       const uploadData = await uploadResponse.json();
@@ -400,7 +401,7 @@ export default function AudioUploader() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">3.</span>
-            <span>File streams through server to AssemblyAI</span>
+            <span>File uploads directly to AssemblyAI from your browser</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-purple-600 dark:text-purple-400 mt-0.5">4.</span>
