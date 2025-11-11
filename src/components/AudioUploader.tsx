@@ -15,15 +15,22 @@ export default function AudioUploader() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/x-m4a'];
-      if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a)$/i)) {
+      // Validate file extension (browsers don't always set MIME type correctly)
+      const extension = file.name.toLowerCase().match(/\.(mp3|wav|m4a)$/i);
+      if (!extension) {
         setStatus({
           type: 'error',
           message: 'Please upload a valid audio file (MP3, WAV, or M4A)',
         });
         return;
       }
+
+      console.log('File selected:', {
+        name: file.name,
+        size: file.size,
+        type: file.type || 'unknown',
+        extension: extension[1],
+      });
 
       setAudioFile(file);
       setStatus({ type: 'idle' });
@@ -66,12 +73,31 @@ export default function AudioUploader() {
         type: audioFile.type,
       });
 
+      // Determine MIME type from file extension if not set
+      let mimeType = audioFile.type;
+      if (!mimeType) {
+        const extension = audioFile.name.toLowerCase().match(/\.(mp3|wav|m4a)$/i);
+        if (extension) {
+          const mimeTypes: { [key: string]: string } = {
+            'mp3': 'audio/mpeg',
+            'wav': 'audio/wav',
+            'm4a': 'audio/m4a',
+          };
+          mimeType = mimeTypes[extension[1]];
+        }
+      }
+
+      console.log('Using MIME type:', mimeType || 'application/octet-stream');
+
+      // Create a new Blob with explicit MIME type
+      const audioBlob = new Blob([audioFile], { type: mimeType || 'application/octet-stream' });
+
       const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
         method: 'POST',
         headers: {
           'authorization': ASSEMBLYAI_API_KEY,
         },
-        body: audioFile,
+        body: audioBlob,
       });
 
       console.log('Upload response status:', uploadResponse.status);
