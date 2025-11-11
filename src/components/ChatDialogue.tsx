@@ -31,31 +31,10 @@ export default function ChatDialogue({ messages, isVisible, onSubmit, isLoading 
   return (
     <div className="mt-8 animate-in fade-in slide-in-from-top-4 duration-300">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-ack-blue to-blue-600 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-white dark:bg-gray-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-ack-blue dark:text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-white font-semibold text-sm">AckIndex Assistant</h3>
-                <p className="text-blue-100 dark:text-blue-200 text-xs">Searching civic documents</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-400 dark:bg-green-300 rounded-full animate-pulse" />
-              <span className="text-white text-xs font-medium">Active</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Messages Container */}
+        {/* Messages Container - Expanded, no blue header */}
         <div
           ref={messagesContainerRef}
-          className="px-6 py-6 max-h-[500px] overflow-y-auto bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 scroll-smooth"
+          className="px-6 py-6 max-h-[70vh] overflow-y-auto bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 scroll-smooth"
         >
           {messages.map((message) => (
             <ChatMessage

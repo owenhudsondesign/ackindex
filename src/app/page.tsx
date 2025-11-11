@@ -279,28 +279,30 @@ export default function Home() {
     }
   };
 
-  return (
-    <PageLayout>
-      <div className="flex min-h-screen">
-        {/* Conversation Sidebar - Always visible (shows upgrade for non-premium) */}
-        {isSidebarOpen && (
-          <div className="hidden lg:block transition-all duration-300">
-            <ConversationSidebar
-              currentConversationId={currentConversationId}
-              onSelectConversation={handleSelectConversation}
-              onNewConversation={handleNewConversation}
-              isPremium={isPremium}
-              refreshTrigger={refreshTrigger}
-            />
-          </div>
-        )}
+  // Chat content (without PageLayout wrapper when messages exist)
+  const chatContent = (
+    <div className="flex min-h-screen">
+      {/* Conversation Sidebar - Always visible (shows upgrade for non-premium) */}
+      {isSidebarOpen && (
+        <div className="hidden lg:block transition-all duration-300">
+          <ConversationSidebar
+            currentConversationId={currentConversationId}
+            onSelectConversation={handleSelectConversation}
+            onNewConversation={handleNewConversation}
+            isPremium={isPremium}
+            refreshTrigger={refreshTrigger}
+          />
+        </div>
+      )}
 
-        {/* Main Chat Area */}
-        <div className={`flex-1 flex flex-col items-center py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center min-h-screen' : 'justify-start'}`}>
+      {/* Main Chat Area */}
+      <div className={`flex-1 flex flex-col items-center py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center min-h-screen' : 'justify-start'}`}>
         {/* Sidebar Toggle Button - Always visible on desktop */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className={`hidden lg:flex fixed top-20 z-50 items-center justify-center w-10 h-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 ${
+          className={`hidden lg:flex fixed z-50 items-center justify-center w-10 h-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 ${
+            hasMessages ? 'top-4' : 'top-20'
+          } ${
             isSidebarOpen ? 'left-[272px]' : 'left-4'
           }`}
           title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
@@ -503,9 +505,11 @@ export default function Home() {
             <EmptyState onQuestionClick={handleSubmit} />
           )}
         </div>
-        </div> {/* End Main Chat Area */}
-      </div> {/* End Flex Container */}
-    </PageLayout>
+      </div> {/* End Main Chat Area */}
+    </div> {/* End Flex Container */}
   );
+
+  // Conditionally wrap with PageLayout (header/footer) only when no messages
+  return hasMessages ? chatContent : <PageLayout>{chatContent}</PageLayout>;
 }
 
