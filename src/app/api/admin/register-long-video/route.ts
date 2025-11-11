@@ -16,6 +16,8 @@ const supabase = createClient(
  */
 export async function POST(req: NextRequest) {
   try {
+    console.log('[register-long-video] Request received');
+
     // Check authentication and admin authorization
     const supabaseClient = await createAdminSupabaseClient();
     const {
@@ -23,9 +25,15 @@ export async function POST(req: NextRequest) {
     } = await supabaseClient.auth.getSession();
 
     const adminOrError = await requireAdminApi(session);
-    if (adminOrError instanceof NextResponse) return adminOrError;
+    if (adminOrError instanceof NextResponse) {
+      console.log('[register-long-video] Auth failed');
+      return adminOrError;
+    }
+
+    console.log('[register-long-video] Auth successful');
 
     const { videoId, transcriptId, fileName } = await req.json();
+    console.log('[register-long-video] Params:', { videoId, transcriptId, fileName });
 
     if (!videoId) {
       return NextResponse.json(
@@ -51,27 +59,36 @@ export async function POST(req: NextRequest) {
 
     if (docError || !document) {
       // Document doesn't exist, fetch video metadata and create it
+      console.log('Document not found, creating new document for video:', videoId);
+
       const youtubeApiKey = process.env.YOUTUBE_API_KEY;
       if (!youtubeApiKey) {
+        console.error('YouTube API key not configured');
         return NextResponse.json(
           { error: 'YouTube API key not configured' },
           { status: 500 }
         );
       }
 
+      console.log('Fetching video metadata from YouTube API...');
       const response = await fetch(
         `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${youtubeApiKey}`
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('YouTube API error:', response.status, errorText);
         return NextResponse.json(
-          { error: 'Failed to fetch video metadata from YouTube' },
+          { error: `Failed to fetch video metadata from YouTube: ${response.status}` },
           { status: 500 }
         );
       }
 
       const data = await response.json();
+      console.log('YouTube API response:', JSON.stringify(data, null, 2));
+
       if (!data.items || data.items.length === 0) {
+        console.error('Video not found on YouTube:', videoId);
         return NextResponse.json(
           { error: `Video not found on YouTube: ${videoId}` },
           { status: 404 }
@@ -84,6 +101,7 @@ export async function POST(req: NextRequest) {
       const channelTitle = video.snippet.channelTitle || '';
 
       // Create document
+      console.log('Creating document with title:', title);
       const { data: newDocument, error: createError } = await supabase
         .from('documents')
         .insert({
@@ -103,11 +121,12 @@ export async function POST(req: NextRequest) {
       if (createError || !newDocument) {
         console.error('Failed to create document:', createError);
         return NextResponse.json(
-          { error: 'Failed to create document record' },
+          { error: `Failed to create document record: ${createError?.message || 'Unknown error'}` },
           { status: 500 }
         );
       }
 
+      console.log('Document created successfully:', newDocument.id);
       document = newDocument;
     }
 
