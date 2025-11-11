@@ -54,16 +54,16 @@ export default function Home() {
       let subscriptionTier = 'free';
 
       // Determine role and tier based on email
-      let tokenLimit = 3500;
+      let tokenLimit = 15000;
 
       if (currentUser.email === 'owenhudsondesign@gmail.com') {
         role = 'admin';
         subscriptionTier = 'premium';
-        tokenLimit = 50000;
+        tokenLimit = 500000;
       } else if (currentUser.email === 'hudsonowenr@gmail.com') {
         role = 'user';
         subscriptionTier = 'free';
-        tokenLimit = 3500;
+        tokenLimit = 15000;
       }
 
       // Check if profile already exists
@@ -84,7 +84,7 @@ export default function Home() {
             .update({
               subscription_tier: 'premium',
               subscription_status: 'active',
-              monthly_token_limit: 50000,
+              monthly_token_limit: 500000,
               role: 'admin'
             })
             .eq('id', currentUser.id);

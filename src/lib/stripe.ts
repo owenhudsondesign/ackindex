@@ -21,26 +21,26 @@ export const PRICING = {
     price: 0,
     priceId: null, // No Stripe price ID for free tier
     features: [
-      '3,500 tokens per month',
-      '~25-30 questions per month',
+      '15,000 tokens per month',
+      '~9 questions per month',
       'Full chatbot access',
       'Search all documents',
       'Weekly email updates',
       'Community support',
     ],
-    tokenLimit: 3500,
+    tokenLimit: 15000,
   },
   PREMIUM: {
     name: 'Premium',
     price: 999, // $9.99 in cents
     priceId: process.env.STRIPE_PREMIUM_PRICE_ID || '', // Set in env
     features: [
-      '50,000 tokens per month',
-      '~350-400 questions per month',
+      '500,000 tokens per month',
+      '~293 questions per month',
       'Priority support',
       'Everything in Free, plus...',
     ],
-    tokenLimit: 50000,
+    tokenLimit: 500000,
   },
 } as const;
 
