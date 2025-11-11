@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getAdminUser } from '@/lib/adminAuth';
+import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { scrapingQueue } from '@/lib/queues';
 
 export const runtime = 'nodejs';
@@ -16,14 +16,14 @@ const supabase = createClient(
  */
 export async function POST(req: NextRequest) {
   try {
-    // Check admin authentication
-    const admin = await getAdminUser();
-    if (!admin) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 401 }
-      );
-    }
+    // Check authentication and admin authorization
+    const supabaseClient = await createAdminSupabaseClient();
+    const {
+      data: { session },
+    } = await supabaseClient.auth.getSession();
+
+    const adminOrError = await requireAdminApi(session);
+    if (adminOrError instanceof NextResponse) return adminOrError;
 
     const { videoId, transcriptId, fileName } = await req.json();
 

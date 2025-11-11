@@ -112,29 +112,34 @@ export default function AudioUploader() {
       const uploadData = await uploadResponse.json();
       const audioUrl = uploadData.upload_url;
 
-      // Step 2: Start transcription via our backend (which has the API key)
+      console.log('Upload successful, audio URL:', audioUrl);
+
+      // Step 2: Start transcription directly with AssemblyAI
       setStatus({ type: 'processing', message: 'Step 2/2: Starting transcription and registering job...' });
 
-      const startTranscriptResponse = await fetch('/api/admin/start-transcription', {
+      const transcriptResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
         method: 'POST',
         headers: {
+          'authorization': ASSEMBLYAI_API_KEY,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ audioUrl }),
+        body: JSON.stringify({
+          audio_url: audioUrl,
+          speaker_labels: true,
+          language_code: 'en_us',
+        }),
       });
 
-      if (!startTranscriptResponse.ok) {
-        let errorMessage = 'Failed to start transcription';
-        try {
-          const data = await startTranscriptResponse.json();
-          errorMessage = data.error || errorMessage;
-        } catch {
-          errorMessage = `${startTranscriptResponse.status}: ${startTranscriptResponse.statusText}`;
-        }
-        throw new Error(errorMessage);
+      if (!transcriptResponse.ok) {
+        const errorText = await transcriptResponse.text().catch(() => 'Unknown error');
+        console.error('AssemblyAI transcription error:', errorText);
+        throw new Error(`Failed to start transcription: ${transcriptResponse.status}`);
       }
 
-      const { transcriptId } = await startTranscriptResponse.json();
+      const transcriptData = await transcriptResponse.json();
+      const transcriptId = transcriptData.id;
+
+      console.log('Transcription started, ID:', transcriptId);
 
       // Step 3: Register with our backend
       const registerResponse = await fetch('/api/admin/register-long-video', {
