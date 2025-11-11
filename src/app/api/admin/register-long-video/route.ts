@@ -108,12 +108,7 @@ export async function POST(req: NextRequest) {
           title,
           source_url: videoUrl,
           status: 'processing',
-          metadata: {
-            channel: channelTitle,
-            description: description.substring(0, 500),
-            videoId,
-            uploadedViaAudio: true,
-          },
+          // Note: metadata column doesn't exist, store basic info only
         })
         .select('id, title, status')
         .single();
