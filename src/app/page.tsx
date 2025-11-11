@@ -300,9 +300,7 @@ export default function Home() {
         {/* Sidebar Toggle Button - Always visible on desktop */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className={`hidden lg:flex fixed z-50 items-center justify-center w-10 h-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 ${
-            hasMessages ? 'top-4' : 'top-20'
-          } ${
+          className={`hidden lg:flex fixed top-20 z-50 items-center justify-center w-10 h-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 ${
             isSidebarOpen ? 'left-[272px]' : 'left-4'
           }`}
           title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
@@ -505,11 +503,11 @@ export default function Home() {
             <EmptyState onQuestionClick={handleSubmit} />
           )}
         </div>
-      </div> {/* End Main Chat Area */}
-    </div> {/* End Flex Container */}
+      </div>
+    </div>
   );
 
-  // Conditionally wrap with PageLayout (header/footer) only when no messages
-  return hasMessages ? chatContent : <PageLayout>{chatContent}</PageLayout>;
+  // Always wrap with PageLayout to keep nav bar visible
+  return <PageLayout>{chatContent}</PageLayout>;
 }
 
