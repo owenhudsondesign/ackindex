@@ -349,119 +349,131 @@ export default function Home() {
           }}
         />
         <div className="w-full max-w-3xl px-4 relative z-10">
-          {/* Badge */}
-          <div className="flex justify-center mb-8">
-            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200">
-              For transparent government data
-            </span>
-          </div>
+          {/* Badge - only show when no messages */}
+          {!hasMessages && (
+            <div className="flex justify-center mb-8">
+              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200">
+                For transparent government data
+              </span>
+            </div>
+          )}
 
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            {/* Light mode logo */}
-            <Image
-              src="/logo.svg"
-              alt="AckIndex"
-              width={200}
-              height={53}
-              priority
-              className="h-12 w-auto block dark:hidden"
-            />
-            {/* Dark mode logo */}
-            <Image
-              src="/logo-white.svg"
-              alt="AckIndex"
-              width={200}
-              height={53}
-              priority
-              className="h-12 w-auto hidden dark:block"
-            />
-          </div>
-
-          {/* Heading */}
-          <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
-            {/* Mobile version - Civic on second line */}
-            <span className="inline md:hidden">
-              <span className="text-gray-900 dark:text-white">Nantucket</span>
-              <br />
-              <span className="text-gray-900 dark:text-white">Civic Data </span>
-              <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
-            </span>
-            {/* Desktop version - Civic Data on first line */}
-            <span className="hidden md:inline">
-              <span className="text-gray-900 dark:text-white">Nantucket Civic Data</span>
-              <br />
-              <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
-            </span>
-          </h1>
-
-          {/* Subheading */}
-          <p className="text-center text-gray-700 dark:text-gray-300 mb-8 max-w-lg mx-auto">
-            Want to know what&apos;s going on in Town? Have a question about zoning permits? AckIndex is here to help.
-          </p>
-
-          {/* Authentication Status */}
-          {authLoading ? (
+          {/* Logo - only show when no messages */}
+          {!hasMessages && (
             <div className="flex justify-center mb-6">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-                <span>Checking authentication...</span>
-              </div>
+              {/* Light mode logo */}
+              <Image
+                src="/logo.svg"
+                alt="AckIndex"
+                width={200}
+                height={53}
+                priority
+                className="h-12 w-auto block dark:hidden"
+              />
+              {/* Dark mode logo */}
+              <Image
+                src="/logo-white.svg"
+                alt="AckIndex"
+                width={200}
+                height={53}
+                priority
+                className="h-12 w-auto hidden dark:block"
+              />
             </div>
-          ) : user ? (
-            <div className="flex justify-center mb-6 px-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
-                  <span className="text-sm text-green-800 dark:text-green-100 font-medium">
-                    Logged in as {user.email}
-                  </span>
+          )}
+
+          {/* Heading - only show when no messages */}
+          {!hasMessages && (
+            <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
+              {/* Mobile version - Civic on second line */}
+              <span className="inline md:hidden">
+                <span className="text-gray-900 dark:text-white">Nantucket</span>
+                <br />
+                <span className="text-gray-900 dark:text-white">Civic Data </span>
+                <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
+              </span>
+              {/* Desktop version - Civic Data on first line */}
+              <span className="hidden md:inline">
+                <span className="text-gray-900 dark:text-white">Nantucket Civic Data</span>
+                <br />
+                <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
+              </span>
+            </h1>
+          )}
+
+          {/* Subheading - only show when no messages */}
+          {!hasMessages && (
+            <p className="text-center text-gray-700 dark:text-gray-300 mb-8 max-w-lg mx-auto">
+              Want to know what&apos;s going on in Town? Have a question about zoning permits? AckIndex is here to help.
+            </p>
+          )}
+
+          {/* Authentication Status - only show when no messages */}
+          {!hasMessages && (
+            <>
+              {authLoading ? (
+                <div className="flex justify-center mb-6">
+                  <div className="flex items-center space-x-2 text-sm text-gray-500">
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                    <span>Checking authentication...</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-center gap-2">
-                  <Link
-                    href="/account"
-                    className="text-sm text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline"
-                  >
-                    View Account
-                  </Link>
-                  <span className="text-green-300 dark:text-green-600">•</span>
-                  <button
-                    onClick={checkAuth}
-                    className="text-sm text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline"
-                    title="Refresh authentication status"
-                  >
-                    Refresh
-                  </button>
+              ) : user ? (
+                <div className="flex justify-center mb-6 px-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-center sm:text-left">
+                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                      <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
+                      <span className="text-sm text-green-800 dark:text-green-100 font-medium">
+                        Logged in as {user.email}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <Link
+                        href="/account"
+                        className="text-sm text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline"
+                      >
+                        View Account
+                      </Link>
+                      <span className="text-green-300 dark:text-green-600">•</span>
+                      <button
+                        onClick={checkAuth}
+                        className="text-sm text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline"
+                        title="Refresh authentication status"
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-center mb-6 px-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <div className="w-2 h-2 bg-yellow-500 dark:bg-yellow-400 rounded-full"></div>
-                  <span className="text-sm text-yellow-800 dark:text-yellow-100 font-medium">
-                    Not logged in
-                  </span>
+              ) : (
+                <div className="flex justify-center mb-6 px-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg text-center sm:text-left">
+                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                      <div className="w-2 h-2 bg-yellow-500 dark:bg-yellow-400 rounded-full"></div>
+                      <span className="text-sm text-yellow-800 dark:text-yellow-100 font-medium">
+                        Not logged in
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
+                      <Link
+                        href="/signup"
+                        className="text-sm text-yellow-600 dark:text-yellow-300 hover:text-yellow-800 dark:hover:text-yellow-200 underline font-medium"
+                      >
+                        Sign up
+                      </Link>
+                      <span>or</span>
+                      <Link
+                        href="/login"
+                        className="text-sm text-yellow-600 dark:text-yellow-300 hover:text-yellow-800 dark:hover:text-yellow-200 underline font-medium"
+                      >
+                        log in
+                      </Link>
+                      <span>to use the chatbot</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
-                  <Link
-                    href="/signup"
-                    className="text-sm text-yellow-600 dark:text-yellow-300 hover:text-yellow-800 dark:hover:text-yellow-200 underline font-medium"
-                  >
-                    Sign up
-                  </Link>
-                  <span>or</span>
-                  <Link
-                    href="/login"
-                    className="text-sm text-yellow-600 dark:text-yellow-300 hover:text-yellow-800 dark:hover:text-yellow-200 underline font-medium"
-                  >
-                    log in
-                  </Link>
-                  <span>to use the chatbot</span>
-                </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
 
           {/* Chat Input - only show when no messages */}
