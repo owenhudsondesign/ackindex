@@ -56,9 +56,14 @@ export default function AudioUploader() {
       // Step 1: Get AssemblyAI API key
       const tokenResponse = await fetch('/api/admin/get-assemblyai-token');
       if (!tokenResponse.ok) {
-        throw new Error('Failed to get API credentials');
+        const errorData = await tokenResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to get API credentials (${tokenResponse.status})`);
       }
       const { apiKey } = await tokenResponse.json();
+
+      if (!apiKey) {
+        throw new Error('No API key returned from server');
+      }
 
       // Step 2: Upload directly to AssemblyAI
       setStatus({
