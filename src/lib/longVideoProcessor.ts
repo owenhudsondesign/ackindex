@@ -7,7 +7,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'crypto';
 import logger from '@/lib/logger';
-import { chunkText } from '@/lib/chunking';
+import { chunkText, estimateTokens } from '@/lib/chunking';
 import { storeChunks, markDocumentCompleted } from '@/lib/database';
 import { enrichTranscriptWithAI, buildMeetingContent } from './youtubeGladiaScraper';
 import type { GladiaTranscriptionSegment } from './gladiaTranscriber';
@@ -28,6 +28,87 @@ export interface ChunkTranscript {
   segments: GladiaTranscriptionSegment[];
   duration: number;
   offsetSeconds: number; // Time offset for this chunk
+}
+
+/**
+ * Format seconds as MM:SS timestamp
+ */
+function formatTimestamp(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Create chunks from transcript segments while preserving speaker and timestamp info
+ */
+function createTimestampedChunks(
+  segments: GladiaTranscriptionSegment[],
+  options: { maxTokens: number; overlap: number }
+): Array<{ content: string; tokens: number; metadata: any }> {
+  const chunks = [];
+  let currentChunk: string[] = [];
+  let currentTokens = 0;
+  let chunkStartTime: number | null = null;
+  let chunkEndTime = 0;
+  const chunkSpeakers = new Set<string>();
+
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    const speakerLabel = segment.speaker ? `Speaker ${segment.speaker}` : 'Unknown Speaker';
+    const timestamp = formatTimestamp(segment.start);
+
+    // Format: [MM:SS] Speaker Name: text
+    const formattedText = `[${timestamp}] ${speakerLabel}: ${segment.text}`;
+    const segmentTokens = estimateTokens(formattedText);
+
+    // Check if adding this segment would exceed max tokens
+    if (currentTokens + segmentTokens > options.maxTokens && currentChunk.length > 0) {
+      // Save current chunk
+      const chunkContent = currentChunk.join('\n');
+      chunks.push({
+        content: chunkContent,
+        tokens: currentTokens,
+        metadata: {
+          start_time: chunkStartTime || 0,
+          end_time: chunkEndTime,
+          speakers: Array.from(chunkSpeakers),
+        },
+      });
+
+      // Start new chunk with overlap (include last segment for context)
+      currentChunk = [formattedText];
+      currentTokens = segmentTokens;
+      chunkStartTime = segment.start;
+      chunkEndTime = segment.end;
+      chunkSpeakers.clear();
+      chunkSpeakers.add(speakerLabel);
+    } else {
+      // Add segment to current chunk
+      if (chunkStartTime === null) {
+        chunkStartTime = segment.start;
+      }
+      chunkEndTime = segment.end;
+      chunkSpeakers.add(speakerLabel);
+      currentChunk.push(formattedText);
+      currentTokens += segmentTokens;
+    }
+  }
+
+  // Don't forget the last chunk
+  if (currentChunk.length > 0) {
+    chunks.push({
+      content: currentChunk.join('\n'),
+      tokens: currentTokens,
+      metadata: {
+        start_time: chunkStartTime || 0,
+        end_time: chunkEndTime,
+        speakers: Array.from(chunkSpeakers),
+      },
+    });
+  }
+
+  return chunks;
 }
 
 /**
@@ -363,8 +444,8 @@ ${enrichedData.topics.map((t: string) => `- ${t}`).join('\n')}
     },
   })));
 
-  // Transcript chunks
-  const transcriptChunks = chunkText(mergedTranscript.fullText, {
+  // Transcript chunks - with speaker and timestamp preservation
+  const transcriptChunks = createTimestampedChunks(mergedTranscript.segments, {
     maxTokens: 500,
     overlap: 50,
   });
@@ -385,6 +466,9 @@ ${enrichedData.topics.map((t: string) => `- ${t}`).join('\n')}
       topics: enrichedData.topics,
       category: enrichedData.category,
       chunk_type: 'transcript',
+      start_time: chunk.metadata.start_time, // Preserve start timestamp
+      end_time: chunk.metadata.end_time, // Preserve end timestamp
+      speakers: chunk.metadata.speakers, // List of speakers in this chunk
     },
   })));
 

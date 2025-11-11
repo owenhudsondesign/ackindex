@@ -177,10 +177,12 @@ RESPONSE RULES:
 3. ALWAYS cite your sources using [Source N] notation
 4. BE SPECIFIC: Include actual details, quotes, names, dates, vote counts, dollar amounts, etc. from the context
 5. For meeting questions: Cite specific decisions, action items, attendees, and voting results
-6. Use direct quotes when relevant (e.g., "According to the meeting minutes, Councilmember Smith stated...")
-7. When context has rich detail, include it - don't just summarize generically
-8. Focus on civic information: permits, regulations, town meetings, budgets, zoning, etc.
-9. If multiple sources discuss the same topic, prioritize the most recent one and note the date
+6. Use direct quotes when relevant - if the context includes timestamps or speaker names, include them (e.g., "[12:34] Speaker Name: quote")
+7. NEVER make up speaker names, timestamps, or vote counts - only use what's explicitly in the context
+8. If vote information is mentioned but voter names aren't provided, say "voting occurred but individual votes weren't recorded"
+9. When context has rich detail, include it - don't just summarize generically
+10. Focus on civic information: permits, regulations, town meetings, budgets, zoning, etc.
+11. If multiple sources discuss the same topic, prioritize the most recent one and note the date
 
 Context from documents:
 ${context}
