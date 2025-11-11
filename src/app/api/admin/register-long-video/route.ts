@@ -107,8 +107,9 @@ export async function POST(req: NextRequest) {
         .insert({
           title,
           source_url: videoUrl,
+          source_type: 'url',
           status: 'processing',
-          // Note: metadata column doesn't exist, store basic info only
+          chunk_count: 0,
         })
         .select('id, title, status')
         .single();
@@ -134,12 +135,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Queue a job to poll for completion
+    console.log('[register-long-video] Queueing job with:', {
+      documentId: document.id,
+      videoId,
+      transcriptId,
+      fileName,
+    });
+
     const job = await scrapingQueue.add('process-long-video', {
       documentId: document.id,
       videoId,
       transcriptId,
       fileName: fileName || 'audio.mp3',
     });
+
+    console.log('[register-long-video] Job queued successfully:', job.id);
+    console.log('[register-long-video] Document created with ID:', document.id);
 
     return NextResponse.json({
       success: true,
