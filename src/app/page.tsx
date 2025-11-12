@@ -389,13 +389,13 @@ export default function Home() {
               <span className="inline md:hidden">
                 <span className="text-gray-900 dark:text-white">Search Every</span>
                 <br />
-                <span className="text-gray-900 dark:text-white">Town Meeting</span>
+                <span className="text-gray-900 dark:text-white">Nantucket Town Meeting</span>
                 <br />
                 <span className="text-ack-blue dark:text-blue-300">Instantly</span>
               </span>
               {/* Desktop version */}
               <span className="hidden md:inline">
-                <span className="text-gray-900 dark:text-white">Search Every Town Meeting</span>
+                <span className="text-gray-900 dark:text-white">Search Every Nantucket Town Meeting</span>
                 <br />
                 <span className="text-ack-blue dark:text-blue-300">Instantly</span>
               </span>
