@@ -264,51 +264,85 @@ export async function createSocialMediaPostsForDocument(
 }
 
 /**
- * Save social media posts to a file for the admin to review/post
- * (We're not auto-posting to actual social media accounts)
+ * Save social media posts to database for admin review and publishing
  */
 export async function saveSocialMediaPostsForDocument(
   documentId: string
-): Promise<string | null> {
+): Promise<{ instagramPostId: string; facebookPostId: string } | null> {
   const postsData = await createSocialMediaPostsForDocument(documentId);
 
   if (!postsData) {
     return null;
   }
 
-  // Store in database as JSON for admin to access later
+  // Get document details for image URL and blog post ID
   const { data: document } = await supabaseAdmin
     .from('documents')
-    .select('title')
+    .select('id, thumbnail_url')
     .eq('id', documentId)
     .single();
 
-  const { data, error } = await supabaseAdmin
-    .from('documents')
-    .update({
-      metadata: {
-        social_media_posts: {
-          instagram: {
-            content: postsData.instagramPost.content,
-            hashtags: postsData.instagramPost.hashtags,
-          },
-          facebook: {
-            content: postsData.facebookPost.content,
-            hashtags: postsData.facebookPost.hashtags,
-          },
-          generated_at: new Date().toISOString(),
-        },
-      },
-    } as any)
-    .eq('id', documentId)
-    .select()
+  const { data: blogPost } = await supabaseAdmin
+    .from('blog_posts')
+    .select('id')
+    .eq('document_id', documentId)
     .single();
 
-  if (error) {
-    log.error({ error, documentId }, 'Failed to save social media posts');
+  const imageUrl = document?.thumbnail_url || null;
+  const blogPostId = blogPost?.id || null;
+
+  try {
+    // Insert Instagram post
+    const { data: igPost, error: igError } = await supabaseAdmin
+      .from('social_media_posts')
+      .insert({
+        document_id: documentId,
+        blog_post_id: blogPostId,
+        platform: 'instagram',
+        content: postsData.instagramPost.content,
+        hashtags: postsData.instagramPost.hashtags,
+        image_url: imageUrl,
+        status: 'pending_review', // Ready for admin approval
+      })
+      .select('id')
+      .single();
+
+    if (igError) {
+      log.error({ error: igError, documentId }, 'Failed to save Instagram post');
+      throw igError;
+    }
+
+    // Insert Facebook post
+    const { data: fbPost, error: fbError } = await supabaseAdmin
+      .from('social_media_posts')
+      .insert({
+        document_id: documentId,
+        blog_post_id: blogPostId,
+        platform: 'facebook',
+        content: postsData.facebookPost.content,
+        hashtags: postsData.facebookPost.hashtags,
+        image_url: imageUrl,
+        status: 'pending_review', // Ready for admin approval
+      })
+      .select('id')
+      .single();
+
+    if (fbError) {
+      log.error({ error: fbError, documentId }, 'Failed to save Facebook post');
+      throw fbError;
+    }
+
+    log.info(
+      { documentId, instagramPostId: igPost.id, facebookPostId: fbPost.id },
+      'Social media posts saved and ready for review'
+    );
+
+    return {
+      instagramPostId: igPost.id,
+      facebookPostId: fbPost.id,
+    };
+  } catch (error) {
+    log.error({ error, documentId }, 'Failed to save social media posts to database');
     return null;
   }
-
-  log.info({ documentId }, 'Social media posts saved to document metadata');
-  return documentId;
 }
