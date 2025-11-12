@@ -79,7 +79,7 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Choose the plan that works for you. Start free, upgrade anytime.
+            Search Nantucket town meetings with AI. Start free, upgrade for unlimited access.
           </p>
         </div>
 
@@ -112,10 +112,10 @@ export default function PricingPage() {
                   />
                 </svg>
                 <span className="text-gray-700 dark:text-gray-300">
-                  <strong>3,500 tokens per month</strong>
+                  <strong>15,000 tokens per month</strong>
                   <br />
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    Approximately 25-30 questions
+                    Approximately 9 questions
                   </span>
                 </span>
               </li>
@@ -133,7 +133,7 @@ export default function PricingPage() {
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                <span className="text-gray-700 dark:text-gray-300">Full chatbot access</span>
+                <span className="text-gray-700 dark:text-gray-300">Search all town meetings</span>
               </li>
               <li className="flex items-start">
                 <svg
@@ -149,7 +149,7 @@ export default function PricingPage() {
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                <span className="text-gray-700 dark:text-gray-300">Search all documents</span>
+                <span className="text-gray-700 dark:text-gray-300">Timestamped quotes</span>
               </li>
               <li className="flex items-start">
                 <svg
@@ -212,7 +212,7 @@ export default function PricingPage() {
               </p>
               <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>50,000 tokens per month</strong> - Perfect for real estate agents, journalists, lawyers, and researchers who need frequent access to town documents and regulations.
+                  <strong>500,000 tokens per month</strong> - Perfect for real estate agents, journalists, lawyers, and researchers who need unlimited access to meeting transcripts.
                 </p>
               </div>
             </div>
@@ -233,10 +233,10 @@ export default function PricingPage() {
                   />
                 </svg>
                 <span className="text-gray-700 dark:text-gray-300">
-                  <strong>50,000 tokens per month</strong>
+                  <strong>500,000 tokens per month</strong>
                   <br />
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    Approximately 350-400 questions
+                    Approximately 293 questions
                   </span>
                 </span>
               </li>
@@ -318,7 +318,7 @@ export default function PricingPage() {
                 Need More Tokens?
               </h3>
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                For organizations or users who need more than 50,000 tokens per month, 
+                For organizations or users who need more than 500,000 tokens per month,
                 we offer custom enterprise pricing with volume discounts.
               </p>
               <Link href="/contact">
@@ -343,8 +343,8 @@ export default function PricingPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
                 Tokens are units of text used by the AI. On average, one question and
-                answer uses about 300-400 tokens. Free users get 3,500 tokens (~25-30 questions), 
-                while Premium users get 50,000 tokens (~350-400 questions) per month.
+                answer uses about 1,700 tokens. Free users get 15,000 tokens (~9 questions),
+                while Premium users get 500,000 tokens (~293 questions) per month.
               </p>
             </Card>
 
@@ -365,8 +365,8 @@ export default function PricingPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
                 You'll be notified when you're close to your limit. Once you reach
-                3,500 tokens, you won't be able to ask more questions until next month,
-                unless you upgrade to Premium (50,000 tokens) or contact us for enterprise pricing.
+                15,000 tokens, you won't be able to ask more questions until next month,
+                unless you upgrade to Premium (500,000 tokens) or contact us for enterprise pricing.
               </p>
             </Card>
 
@@ -386,9 +386,9 @@ export default function PricingPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
                 Premium is ideal for real estate professionals, journalists, researchers,
-                lawyers, and anyone who frequently needs information about Nantucket town
-                documents and regulations. With 50,000 tokens per month, professionals can 
-                ask hundreds of questions without worrying about limits.
+                lawyers, and anyone who frequently searches Nantucket town meeting transcripts.
+                With 500,000 tokens per month, professionals can ask hundreds of questions
+                without worrying about limits.
               </p>
             </Card>
           </div>

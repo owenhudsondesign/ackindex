@@ -12,7 +12,7 @@ export default function AboutPage() {
             About AckIndex
           </h1>
           <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
-            Making Nantucket&apos;s civic data accessible and understandable through AI-powered analysis.
+            AI-powered transcription and search for Nantucket town meetings. Making local government transparent and accessible.
           </p>
         </div>
 
@@ -32,31 +32,43 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto prose prose-lg dark:prose-invert">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Our Mission</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-8 leading-relaxed">
-            AckIndex is an independent civic technology project dedicated to making Nantucket&apos;s 
-            government data more accessible to residents. We believe that informed citizens make 
-            better decisions, and transparency is the foundation of good governance.
+            AckIndex makes Nantucket town meetings searchable. We transcribe every meeting with AI,
+            then let you ask questions in plain English. No more scrolling through hours of video
+            or reading hundred-page PDFs. Get the information you need in seconds.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">How It Works</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+            <strong>1. Transcription:</strong> We automatically transcribe town meeting videos and audio
+            using state-of-the-art speech recognition. Every word is captured with timestamps for easy reference.
+          </p>
+          <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+            <strong>2. AI Indexing:</strong> Our AI analyzes transcripts to understand context, identify
+            key decisions, track votes, and extract action items. Everything is semantically indexed for instant search.
+          </p>
           <p className="text-gray-700 dark:text-gray-300 mb-8 leading-relaxed">
-            Our platform uses artificial intelligence to analyze and index public documents from 
-            town meetings, planning boards, and other civic sources. When you ask a question, 
-            AckIndex searches through this indexed data and provides answers with direct citations 
-            to the source documents.
+            <strong>3. Smart Search:</strong> Ask questions in plain English. Get exact quotes with timestamps
+            and links to the source video. You can verify every answer yourself.
+          </p>
+
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">What You Can Search</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-8 leading-relaxed">
+            Currently indexing: Select Board meetings, Town Council meetings, Planning Board meetings,
+            Public Hearings, and Special Town Meetings. We&apos;re continuously adding more meetings
+            going back several years.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Transparency & Accuracy</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-8 leading-relaxed">
-            We&apos;re committed to accuracy and transparency. Every answer includes citations to 
-            the original source documents, so you can verify the information yourself. If we 
-            don&apos;t have enough information to answer your question, we&apos;ll tell you that too.
+            Every answer includes timestamped citations. Click any quote to jump to that exact moment
+            in the source video. Our AI never makes up information—if we don&apos;t have the answer
+            in our database, we&apos;ll tell you. All transcripts are from official public meetings.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Get Involved</h2>
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            AckIndex is a community project. If you have suggestions for improvement, additional 
-            data sources we should include, or would like to contribute to the project, please 
-            reach out via our contact page.
+            Have a meeting you&apos;d like us to index? Notice an error in a transcript? Want to help
+            improve the project? Reach out via our contact page. AckIndex is built for the community.
           </p>
         </div>
       </Container>

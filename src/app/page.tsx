@@ -353,7 +353,7 @@ export default function Home() {
           {!hasMessages && (
             <div className="flex justify-center mb-8">
               <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200">
-                For transparent government data
+                AI-Powered Meeting Search for Local Government
               </span>
             </div>
           )}
@@ -385,18 +385,19 @@ export default function Home() {
           {/* Heading - only show when no messages */}
           {!hasMessages && (
             <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
-              {/* Mobile version - Civic on second line */}
+              {/* Mobile version */}
               <span className="inline md:hidden">
-                <span className="text-gray-900 dark:text-white">Nantucket</span>
+                <span className="text-gray-900 dark:text-white">Search Every</span>
                 <br />
-                <span className="text-gray-900 dark:text-white">Civic Data </span>
-                <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
+                <span className="text-gray-900 dark:text-white">Town Meeting</span>
+                <br />
+                <span className="text-ack-blue dark:text-blue-300">Instantly</span>
               </span>
-              {/* Desktop version - Civic Data on first line */}
+              {/* Desktop version */}
               <span className="hidden md:inline">
-                <span className="text-gray-900 dark:text-white">Nantucket Civic Data</span>
+                <span className="text-gray-900 dark:text-white">Search Every Town Meeting</span>
                 <br />
-                <span className="text-ack-blue dark:text-blue-300">Made Accessible</span>
+                <span className="text-ack-blue dark:text-blue-300">Instantly with AI</span>
               </span>
             </h1>
           )}
@@ -404,7 +405,7 @@ export default function Home() {
           {/* Subheading - only show when no messages */}
           {!hasMessages && (
             <p className="text-center text-gray-700 dark:text-gray-300 mb-8 max-w-lg mx-auto">
-              Want to know what&apos;s going on in Town? Have a question about zoning permits? AckIndex is here to help.
+              AI-powered transcription and search for Nantucket town meetings. Find decisions, votes, and discussions in seconds—not hours.
             </p>
           )}
 
@@ -486,7 +487,7 @@ export default function Home() {
 
               {/* Helper text */}
               <p className="text-center text-xs text-gray-600 dark:text-gray-400 mt-4">
-                AckIndex searches through town meeting minutes, planning board documents, and public records.
+                Ask questions about any Nantucket town meeting. Get timestamped quotes you can verify in the source video.
               </p>
             </>
           )}
