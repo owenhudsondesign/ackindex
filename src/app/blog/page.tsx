@@ -165,7 +165,7 @@ export default function BlogIndexPage() {
 
         <div className="relative z-10">
           {/* Header */}
-          <header className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+          <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
               <div className="text-center">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3">
@@ -179,7 +179,7 @@ export default function BlogIndexPage() {
           </header>
 
           {/* Search and Filters */}
-          <section className="sticky top-16 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-lg z-40">
+          <section className="sticky top-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm z-40">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
               {/* Search Bar */}
               <div className="mb-4">
