@@ -259,7 +259,7 @@ export async function createBlogPostForDocument(documentId: string): Promise<str
       meetingDate
     );
 
-    // 6. Insert blog post into database
+    // 6. Insert blog post into database as DRAFT for admin review
     const { data: blogPost, error: insertError } = await supabaseAdmin
       .from('blog_posts')
       .insert({
@@ -273,8 +273,8 @@ export async function createBlogPostForDocument(documentId: string): Promise<str
         keywords: blogData.keywords,
         thumbnail_url: (document as any).thumbnail_url || null,
         og_image_url: (document as any).thumbnail_url || null,
-        status: 'published', // Auto-publish (can change to 'draft' for review)
-        published_at: new Date().toISOString(),
+        status: 'draft', // Create as draft for admin review
+        published_at: null, // Will be set when admin publishes
       })
       .select('id')
       .single();
