@@ -9,6 +9,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import PageLayout from '@/components/PageLayout';
 
 interface BlogPost {
   id: string;
@@ -131,280 +132,299 @@ export default function BlogIndexPage() {
   const hasActiveFilters = searchQuery || selectedMeetingType !== 'all' || selectedYear !== 'all';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="text-center">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3">
-              Town Meeting Blog
-            </h1>
-            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Summaries and highlights from Nantucket Select Board, Town Council, and Planning Board meetings
-            </p>
-          </div>
-        </div>
-      </header>
+    <PageLayout>
+      <div className="min-h-screen bg-gray-900 relative">
+        {/* Grid Background */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%)
+            `,
+            backgroundSize: '40px 40px, 40px 40px, 100% 100%',
+            backgroundPosition: '0 0, 0 0, center',
+            zIndex: 0
+          }}
+        />
 
-      {/* Search and Filters */}
-      <section className="sticky top-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm z-40">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          {/* Search Bar */}
-          <div className="mb-4">
-            <div className="relative max-w-2xl mx-auto">
-              <input
-                type="text"
-                placeholder="Search by keyword..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-11 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-400 focus:border-transparent transition-shadow"
-              />
-              <svg
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+        <div className="relative z-10">
+          {/* Header */}
+          <header className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+              <div className="text-center">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3">
+                  Town Meeting Blog
+                </h1>
+                <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
+                  Summaries and highlights from Nantucket Select Board, Town Council, and Planning Board meetings
+                </p>
+              </div>
             </div>
-          </div>
+          </header>
 
-          {/* Filter Controls */}
-          <div className="flex flex-wrap gap-3 items-center justify-center">
-            {/* Meeting Type Filter */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
-                Board:
-              </label>
-              <select
-                value={selectedMeetingType}
-                onChange={(e) => setSelectedMeetingType(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-400 focus:border-transparent transition-shadow"
-              >
-                <option value="all">All Boards</option>
-                {meetingTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Year Filter */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
-                Year:
-              </label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-400 focus:border-transparent transition-shadow"
-              >
-                <option value="all">All Years</option>
-                {years.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort By */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
-                Sort:
-              </label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'meeting-date')}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-400 focus:border-transparent transition-shadow"
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="meeting-date">By Meeting Date</option>
-              </select>
-            </div>
-
-            {/* Reset Filters */}
-            {hasActiveFilters && (
-              <button
-                onClick={resetFilters}
-                className="px-3 py-2 text-sm text-ack-blue dark:text-blue-400 hover:underline font-medium"
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
-
-          {/* Results Count */}
-          <div className="text-center mt-3 text-sm text-gray-600 dark:text-gray-400">
-            {loading ? (
-              'Loading...'
-            ) : (
-              <>
-                {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'}
-                {hasActiveFilters && posts.length > 0 && ` of ${posts.length} total`}
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Blog Posts */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {loading ? (
-          <div className="text-center py-16">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ack-blue dark:border-blue-400"></div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg mt-4">
-              Loading blog posts...
-            </p>
-          </div>
-        ) : filteredPosts.length === 0 ? (
-          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <p className="text-gray-600 dark:text-gray-400 text-lg mb-2 mt-4">
-              {posts.length === 0
-                ? 'No blog posts yet'
-                : 'No posts match your filters'}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
-              {posts.length === 0
-                ? 'Check back soon for summaries of Nantucket town meetings'
-                : 'Try adjusting your search or filters'}
-            </p>
-            {hasActiveFilters && (
-              <button
-                onClick={resetFilters}
-                className="text-ack-blue dark:text-blue-400 hover:underline font-medium"
-              >
-                Clear all filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {filteredPosts.map((post) => {
-              const meetingDate = post.meeting_date
-                ? new Date(post.meeting_date).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })
-                : null;
-
-              return (
-                <article
-                  key={post.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 hover:shadow-lg hover:border-ack-blue dark:hover:border-blue-400 transition-all"
-                >
-                  {/* Meeting Type & Date */}
-                  {(post.meeting_type || meetingDate) && (
-                    <div className="flex items-center gap-3 mb-4">
-                      {post.meeting_type && (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-ack-blue/10 dark:bg-blue-900/30 text-ack-blue dark:text-blue-300">
-                          {post.meeting_type}
-                        </span>
-                      )}
-                      {meetingDate && (
-                        <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                          {meetingDate}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Title */}
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3 leading-snug">
-                    <Link
-                      href={`/blog/${post.slug}`}
-                      className="hover:text-ack-blue dark:hover:text-blue-400 transition-colors"
-                    >
-                      {post.title}
-                    </Link>
-                  </h2>
-
-                  {/* Excerpt */}
-                  <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
-                    {post.excerpt}
-                  </p>
-
-                  {/* Read More Link */}
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    className="inline-flex items-center text-ack-blue dark:text-blue-400 hover:underline font-semibold group"
+          {/* Search and Filters */}
+          <section className="sticky top-16 bg-gray-800/80 backdrop-blur-md border-b border-gray-700 shadow-lg z-40">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+              {/* Search Bar */}
+              <div className="mb-4">
+                <div className="relative max-w-2xl mx-auto">
+                  <input
+                    type="text"
+                    placeholder="Search by keyword..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-3 pl-11 border border-gray-600 rounded-lg bg-gray-900 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-shadow"
+                  />
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    Read full summary
-                    <svg
-                      className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 7l5 5m0 0l-5 5m5-5H6"
-                      />
-                    </svg>
-                  </Link>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </main>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
 
-      {/* Footer CTA */}
-      {!loading && filteredPosts.length > 0 && (
-        <section className="bg-gradient-to-br from-ack-blue/5 to-blue-100/10 dark:from-blue-900/10 dark:to-gray-800/50 border-t border-gray-200 dark:border-gray-700 mt-16">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-              Search Full Meeting Transcripts
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
-              Dive deeper into any meeting with our AI-powered search. Find specific topics, quotes, and decisions with timestamped results.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center px-6 py-3 bg-ack-blue hover:bg-ack-blue-dark dark:hover:bg-blue-600 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
-            >
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              Search Meetings
-            </Link>
-          </div>
-        </section>
-      )}
-    </div>
+              {/* Filter Controls */}
+              <div className="flex flex-wrap gap-3 items-center justify-center">
+                {/* Meeting Type Filter */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-300 hidden sm:inline">
+                    Board:
+                  </label>
+                  <select
+                    value={selectedMeetingType}
+                    onChange={(e) => setSelectedMeetingType(e.target.value)}
+                    className="px-3 py-2 border border-gray-600 rounded-lg bg-gray-900 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-shadow"
+                  >
+                    <option value="all">All Boards</option>
+                    {meetingTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Year Filter */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-300 hidden sm:inline">
+                    Year:
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="px-3 py-2 border border-gray-600 rounded-lg bg-gray-900 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-shadow"
+                  >
+                    <option value="all">All Years</option>
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Sort By */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-300 hidden sm:inline">
+                    Sort:
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'meeting-date')}
+                    className="px-3 py-2 border border-gray-600 rounded-lg bg-gray-900 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-shadow"
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="meeting-date">By Meeting Date</option>
+                  </select>
+                </div>
+
+                {/* Reset Filters */}
+                {hasActiveFilters && (
+                  <button
+                    onClick={resetFilters}
+                    className="px-3 py-2 text-sm text-blue-400 hover:text-blue-300 hover:underline font-medium"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+
+              {/* Results Count */}
+              <div className="text-center mt-3 text-sm text-gray-400">
+                {loading ? (
+                  'Loading...'
+                ) : (
+                  <>
+                    {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'}
+                    {hasActiveFilters && posts.length > 0 && ` of ${posts.length} total`}
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Blog Posts */}
+          <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            {loading ? (
+              <div className="text-center py-16">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+                <p className="text-gray-400 text-lg mt-4">
+                  Loading blog posts...
+                </p>
+              </div>
+            ) : filteredPosts.length === 0 ? (
+              <div className="text-center py-16 bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-gray-400 text-lg mb-2 mt-4">
+                  {posts.length === 0
+                    ? 'No blog posts yet'
+                    : 'No posts match your filters'}
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  {posts.length === 0
+                    ? 'Check back soon for summaries of Nantucket town meetings'
+                    : 'Try adjusting your search or filters'}
+                </p>
+                {hasActiveFilters && (
+                  <button
+                    onClick={resetFilters}
+                    className="text-blue-400 hover:text-blue-300 hover:underline font-medium"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {filteredPosts.map((post) => {
+                  const meetingDate = post.meeting_date
+                    ? new Date(post.meeting_date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : null;
+
+                  return (
+                    <article
+                      key={post.id}
+                      className="bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700 p-6 sm:p-8 hover:bg-gray-800/70 hover:shadow-xl hover:border-blue-500/50 transition-all"
+                    >
+                      {/* Meeting Type & Date */}
+                      {(post.meeting_type || meetingDate) && (
+                        <div className="flex items-center gap-3 mb-4">
+                          {post.meeting_type && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300">
+                              {post.meeting_type}
+                            </span>
+                          )}
+                          {meetingDate && (
+                            <span className="text-sm text-gray-400 font-medium">
+                              {meetingDate}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Title */}
+                      <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 leading-snug">
+                        <Link
+                          href={`/blog/${post.slug}`}
+                          className="hover:text-blue-400 transition-colors"
+                        >
+                          {post.title}
+                        </Link>
+                      </h2>
+
+                      {/* Excerpt */}
+                      <p className="text-gray-300 mb-4 leading-relaxed">
+                        {post.excerpt}
+                      </p>
+
+                      {/* Read More Link */}
+                      <Link
+                        href={`/blog/${post.slug}`}
+                        className="inline-flex items-center text-blue-400 hover:text-blue-300 hover:underline font-semibold group"
+                      >
+                        Read full summary
+                        <svg
+                          className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 7l5 5m0 0l-5 5m5-5H6"
+                          />
+                        </svg>
+                      </Link>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </main>
+
+          {/* Footer CTA */}
+          {!loading && filteredPosts.length > 0 && (
+            <section className="bg-gradient-to-br from-blue-900/20 to-gray-800/50 border-t border-gray-700 mt-16">
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 text-center">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                  Search Full Meeting Transcripts
+                </h2>
+                <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
+                  Dive deeper into any meeting with our AI-powered search. Find specific topics, quotes, and decisions with timestamped results.
+                </p>
+                <Link
+                  href="/"
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                >
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  Search Meetings
+                </Link>
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+    </PageLayout>
   );
 }
