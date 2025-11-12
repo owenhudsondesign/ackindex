@@ -176,3 +176,86 @@ export async function getQueryVolumeByDay(daysBack: number = 30) {
     return [];
   }
 }
+
+/**
+ * Get peak usage times by hour of day
+ */
+export async function getPeakUsageTimes(daysBack: number = 30) {
+  try {
+    const { data, error } = await supabaseAdmin.rpc('get_peak_usage_times', {
+      days_back: daysBack,
+    });
+
+    if (error) {
+      logger.error({ err: error }, 'Failed to fetch peak usage times');
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    logger.error({ err: error }, 'Exception while fetching peak usage times');
+    return [];
+  }
+}
+
+/**
+ * Get most viewed documents/meetings
+ */
+export async function getMostViewedDocuments(limitCount: number = 20, daysBack: number = 30) {
+  try {
+    const { data, error } = await supabaseAdmin.rpc('get_most_viewed_documents', {
+      limit_count: limitCount,
+      days_back: daysBack,
+    });
+
+    if (error) {
+      logger.error({ err: error }, 'Failed to fetch most viewed documents');
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    logger.error({ err: error }, 'Exception while fetching most viewed documents');
+    return [];
+  }
+}
+
+/**
+ * Get usage patterns by day of week
+ */
+export async function getUsageByDayOfWeek(daysBack: number = 30) {
+  try {
+    const { data, error } = await supabaseAdmin.rpc('get_usage_by_day_of_week', {
+      days_back: daysBack,
+    });
+
+    if (error) {
+      logger.error({ err: error }, 'Failed to fetch usage by day of week');
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    logger.error({ err: error }, 'Exception while fetching usage by day of week');
+    return [];
+  }
+}
+
+/**
+ * Get search effectiveness metrics
+ */
+export async function getSearchEffectivenessMetrics() {
+  try {
+    const { data, error } = await supabaseAdmin.rpc('get_search_effectiveness_metrics');
+
+    if (error) {
+      logger.error({ err: error }, 'Failed to fetch search effectiveness metrics');
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    logger.error({ err: error }, 'Exception while fetching search effectiveness metrics');
+    return [];
+  }
+}

@@ -6,6 +6,10 @@ import {
   getTrendingTopics,
   getUserAnalytics,
   getQueryVolumeByDay,
+  getPeakUsageTimes,
+  getMostViewedDocuments,
+  getUsageByDayOfWeek,
+  getSearchEffectivenessMetrics,
 } from '@/lib/analytics';
 import logger from '@/lib/logger';
 
@@ -52,6 +56,22 @@ export async function GET(request: NextRequest) {
 
       case 'volume':
         data = await getQueryVolumeByDay(days);
+        break;
+
+      case 'peak-times':
+        data = await getPeakUsageTimes(days);
+        break;
+
+      case 'most-viewed':
+        data = await getMostViewedDocuments(limit, days);
+        break;
+
+      case 'day-of-week':
+        data = await getUsageByDayOfWeek(days);
+        break;
+
+      case 'effectiveness':
+        data = await getSearchEffectivenessMetrics();
         break;
 
       default:
