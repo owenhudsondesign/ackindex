@@ -166,23 +166,19 @@ export default function BlogIndexPage() {
         />
 
         <div className="relative z-10">
-          {/* Header */}
-          <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-              <div className="text-center">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-3">
+          {/* Header with Search */}
+          <section className="sticky top-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm z-40">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              {/* Title */}
+              <div className="text-center mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                   Town Meeting Blog
                 </h1>
-                <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                  Summaries and highlights from Nantucket Select Board, Town Council, and Planning Board meetings
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+                  Summaries from Nantucket town meetings
                 </p>
               </div>
-            </div>
-          </header>
 
-          {/* Search and Filters */}
-          <section className="sticky top-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm z-40">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
               {/* Search Bar */}
               <div className="mb-4">
                 <div className="relative max-w-2xl mx-auto">
@@ -334,7 +330,7 @@ export default function BlogIndexPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredPosts.map((post) => {
                   const meetingDate = post.meeting_date
                     ? new Date(post.meeting_date).toLocaleDateString('en-US', {
@@ -349,80 +345,78 @@ export default function BlogIndexPage() {
                   return (
                     <article
                       key={post.id}
-                      className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-white/70 dark:hover:bg-gray-800/70 hover:shadow-xl hover:border-ack-blue dark:hover:border-blue-500/50 transition-all overflow-hidden"
+                      className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-white/70 dark:hover:bg-gray-800/70 hover:shadow-xl hover:border-ack-blue dark:hover:border-blue-500/50 transition-all overflow-hidden flex flex-col"
                     >
-                      <div className="flex flex-col sm:flex-row">
-                        {/* Thumbnail */}
-                        {thumbnailUrl && (
-                          <Link
-                            href={`/blog/${post.slug}`}
-                            className="flex-shrink-0 w-full sm:w-64 h-48 sm:h-auto"
-                          >
-                            <img
-                              src={thumbnailUrl}
-                              alt={post.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          </Link>
+                      {/* Thumbnail */}
+                      {thumbnailUrl && (
+                        <Link
+                          href={`/blog/${post.slug}`}
+                          className="block w-full h-48 overflow-hidden"
+                        >
+                          <img
+                            src={thumbnailUrl}
+                            alt={post.title}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </Link>
+                      )}
+
+                      {/* Content */}
+                      <div className="p-6 flex-1 flex flex-col">
+                        {/* Meeting Type & Date */}
+                        {(post.meeting_type || meetingDate) && (
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
+                            {post.meeting_type && (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-ack-blue/10 dark:bg-blue-500/20 text-ack-blue dark:text-blue-300">
+                                {post.meeting_type}
+                              </span>
+                            )}
+                            {meetingDate && (
+                              <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                                {meetingDate}
+                              </span>
+                            )}
+                          </div>
                         )}
 
-                        {/* Content */}
-                        <div className="p-6 sm:p-8 flex-1">
-                          {/* Meeting Type & Date */}
-                          {(post.meeting_type || meetingDate) && (
-                            <div className="flex items-center gap-3 mb-4">
-                              {post.meeting_type && (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-ack-blue/10 dark:bg-blue-500/20 text-ack-blue dark:text-blue-300">
-                                  {post.meeting_type}
-                                </span>
-                              )}
-                              {meetingDate && (
-                                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                                  {meetingDate}
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Title */}
-                          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3 leading-snug">
-                            <Link
-                              href={`/blog/${post.slug}`}
-                              className="hover:text-ack-blue dark:hover:text-blue-400 transition-colors"
-                            >
-                              {post.title}
-                            </Link>
-                          </h2>
-
-                          {/* Excerpt */}
-                          <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
-                            {post.excerpt}
-                          </p>
-
-                          {/* Read More Link */}
+                        {/* Title */}
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-snug line-clamp-2">
                           <Link
                             href={`/blog/${post.slug}`}
-                            className="inline-flex items-center text-ack-blue dark:text-blue-400 hover:text-ack-blue-dark dark:hover:text-blue-300 hover:underline font-semibold group"
+                            className="hover:text-ack-blue dark:hover:text-blue-400 transition-colors"
                           >
-                            Read full summary
-                            <svg
-                              className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M13 7l5 5m0 0l-5 5m5-5H6"
-                              />
-                            </svg>
+                            {post.title}
                           </Link>
-                        </div>
+                        </h2>
+
+                        {/* Excerpt */}
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed line-clamp-3 flex-1">
+                          {post.excerpt}
+                        </p>
+
+                        {/* Read More Link */}
+                        <Link
+                          href={`/blog/${post.slug}`}
+                          className="inline-flex items-center text-sm text-ack-blue dark:text-blue-400 hover:text-ack-blue-dark dark:hover:text-blue-300 hover:underline font-semibold group mt-auto"
+                        >
+                          Read full summary
+                          <svg
+                            className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 7l5 5m0 0l-5 5m5-5H6"
+                            />
+                          </svg>
+                        </Link>
                       </div>
                     </article>
                   );
