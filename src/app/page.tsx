@@ -397,7 +397,7 @@ export default function Home() {
               <span className="hidden md:inline">
                 <span className="text-gray-900 dark:text-white">Search Every Town Meeting</span>
                 <br />
-                <span className="text-ack-blue dark:text-blue-300">Instantly with AI</span>
+                <span className="text-ack-blue dark:text-blue-300">Instantly</span>
               </span>
             </h1>
           )}
