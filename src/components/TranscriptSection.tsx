@@ -10,6 +10,7 @@ interface TranscriptChunk {
   start_time: number | null;
   end_time: number | null;
   speakers: string[] | null;
+  chunk_type: string | null;
 }
 
 interface TranscriptSectionProps {
