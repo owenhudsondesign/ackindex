@@ -148,8 +148,16 @@ export async function storeChunks(
     .insert(chunkRecords);
 
   if (error) {
-    logger.error({ error, documentId, chunkCount: chunks.length }, 'Failed to store chunks');
-    throw new Error('Failed to store document chunks');
+    logger.error({
+      error,
+      errorCode: error.code,
+      errorMessage: error.message,
+      errorDetails: error.details,
+      documentId,
+      chunkCount: chunks.length,
+      firstChunkSample: chunkRecords[0]
+    }, 'Failed to store chunks');
+    throw new Error(`Failed to store document chunks: ${error.message}`);
   }
 
   logger.info({ documentId, chunkCount: chunks.length }, 'Stored chunks for document');
