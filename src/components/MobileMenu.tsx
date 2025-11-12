@@ -64,6 +64,13 @@ export default function MobileMenu() {
         <div className="md:hidden absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg">
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link
+              href="/blog"
+              onClick={() => setIsOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 dark:text-gray-100 hover:text-ack-blue dark:hover:text-blue-300 hover:bg-ack-light-gray dark:hover:bg-gray-800 transition-colors"
+            >
+              Blog
+            </Link>
+            <Link
               href="/about"
               onClick={() => setIsOpen(false)}
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 dark:text-gray-100 hover:text-ack-blue dark:hover:text-blue-300 hover:bg-ack-light-gray dark:hover:bg-gray-800 transition-colors"

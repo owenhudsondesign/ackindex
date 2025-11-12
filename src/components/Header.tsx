@@ -54,6 +54,12 @@ export default function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
             <Link
+              href="/blog"
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-ack-blue dark:hover:text-blue-300 transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
+            >
+              Blog
+            </Link>
+            <Link
               href="/about"
               className="px-3 sm:px-4 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-ack-blue dark:hover:text-blue-300 transition-colors rounded-md hover:bg-ack-light-gray dark:hover:bg-gray-800"
             >
