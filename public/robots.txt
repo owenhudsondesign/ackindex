@@ -1,0 +1,12 @@
+# Allow all search engines
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://ackindex.com/sitemap.xml
+
+# Block admin routes from search engines
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /account/

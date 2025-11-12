@@ -4,9 +4,45 @@ import SentryInit from "@/components/SentryInit";
 import ThemeProvider from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "AckIndex - Nantucket Civic Data Made Accessible",
-  description: "Making Nantucket's civic data accessible and understandable through AI-powered analysis.",
-  keywords: ["Nantucket", "civic data", "government", "transparency"],
+  title: "AckIndex - Search Nantucket Town Meetings | Select Board, Planning Board & More",
+  description: "Search every Nantucket town meeting instantly. Find decisions, votes, and discussions from Select Board meetings, Town Council, Planning Board, and public hearings with timestamped transcripts.",
+  keywords: [
+    "Nantucket town meetings",
+    "Nantucket Select Board",
+    "Nantucket Town Council",
+    "Nantucket Planning Board",
+    "town meeting minutes Nantucket",
+    "Nantucket public hearings",
+    "Nantucket government",
+    "Nantucket civic meetings",
+    "search town meetings",
+    "Nantucket meeting transcripts",
+    "Nantucket local government",
+    "Nantucket board meetings",
+    "Nantucket town decisions",
+    "Nantucket zoning board",
+    "Nantucket special town meeting"
+  ],
+  openGraph: {
+    title: "AckIndex - Search Nantucket Town Meetings",
+    description: "Search every Nantucket town meeting instantly. Find decisions, votes, and discussions with timestamped transcripts.",
+    type: "website",
+    locale: "en_US",
+    siteName: "AckIndex",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AckIndex - Search Nantucket Town Meetings",
+    description: "Search every Nantucket town meeting instantly. Find decisions, votes, and discussions with timestamped transcripts.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
 export default function RootLayout({

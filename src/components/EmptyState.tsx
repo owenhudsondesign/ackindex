@@ -4,10 +4,10 @@ interface EmptyStateProps {
 
 export default function EmptyState({ onQuestionClick }: EmptyStateProps) {
   const exampleQueries = [
-    "What are the latest Town Meeting articles?",
-    "Tell me about recent zoning changes",
-    "What permits were approved last month?",
-    "Explain the waterfront development proposal"
+    "What decisions were made at the last Select Board meeting?",
+    "Show me Planning Board discussions about zoning",
+    "What did the Town Council vote on this month?",
+    "Find public hearing comments about the stadium project"
   ];
 
   return (

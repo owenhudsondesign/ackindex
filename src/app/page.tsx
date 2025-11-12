@@ -11,6 +11,7 @@ import { Message } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { organizationSchema, breadcrumbSchema, faqSchema } from './metadata';
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -281,7 +282,22 @@ export default function Home() {
 
   // Chat content (without PageLayout wrapper when messages exist)
   const chatContent = (
-    <div className="flex min-h-screen">
+    <>
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
+      <div className="flex min-h-screen">
       {/* Conversation Sidebar - Always visible (shows upgrade for non-premium) */}
       {isSidebarOpen && (
         <div className="hidden lg:block transition-all duration-300">
@@ -389,14 +405,12 @@ export default function Home() {
               <span className="inline md:hidden">
                 <span className="text-gray-900 dark:text-white">Search Every</span>
                 <br />
-                <span className="text-gray-900 dark:text-white">Nantucket Town Meeting</span>
-                <br />
+                <span className="text-gray-900 dark:text-white">Nantucket Town Meeting </span>
                 <span className="text-ack-blue dark:text-blue-300">Instantly</span>
               </span>
               {/* Desktop version */}
               <span className="hidden md:inline">
-                <span className="text-gray-900 dark:text-white">Search Every Nantucket Town Meeting</span>
-                <br />
+                <span className="text-gray-900 dark:text-white">Search Every Nantucket Town Meeting </span>
                 <span className="text-ack-blue dark:text-blue-300">Instantly</span>
               </span>
             </h1>
@@ -506,6 +520,7 @@ export default function Home() {
         </div>
       </div>
     </div>
+    </>
   );
 
   // Always wrap with PageLayout to keep nav bar visible
