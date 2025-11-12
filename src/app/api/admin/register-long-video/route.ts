@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
 
     console.log('[register-long-video] Auth successful');
 
-    const { title, transcriptId, fileName } = await req.json();
-    console.log('[register-long-video] Params:', { title, transcriptId, fileName });
+    const { title, youtubeUrl, transcriptId, fileName } = await req.json();
+    console.log('[register-long-video] Params:', { title, youtubeUrl, transcriptId, fileName });
 
     if (!title) {
       return NextResponse.json(
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       .from('documents')
       .insert({
         title: title.trim(),
-        source_url: null, // No URL for uploaded audio files
+        source_url: youtubeUrl?.trim() || null, // Store YouTube URL if provided
         source_type: 'url', // Keep as 'url' for compatibility
         status: 'processing',
         total_chunks: 0,

@@ -5,6 +5,7 @@ import Card from '@/components/Card';
 
 export default function AudioUploader() {
   const [title, setTitle] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState<{
@@ -149,6 +150,7 @@ export default function AudioUploader() {
         },
         body: JSON.stringify({
           title: title.trim(),
+          youtubeUrl: youtubeUrl.trim() || null,
           transcriptId,
           fileName: audioFile.name,
         }),
@@ -174,6 +176,7 @@ export default function AudioUploader() {
 
       // Clear form
       setTitle('');
+      setYoutubeUrl('');
       setAudioFile(null);
       const fileInput = document.getElementById('audio-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
@@ -240,6 +243,27 @@ export default function AudioUploader() {
           />
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Enter a descriptive title for this audio recording
+          </p>
+        </div>
+
+        <div>
+          <label
+            htmlFor="youtube-url"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
+            YouTube URL (Optional)
+          </label>
+          <input
+            id="youtube-url"
+            type="url"
+            value={youtubeUrl}
+            onChange={(e) => setYoutubeUrl(e.target.value)}
+            placeholder="https://youtube.com/watch?v=..."
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100"
+            disabled={isUploading}
+          />
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Link to source video for "Jump to video" functionality in transcripts
           </p>
         </div>
 
