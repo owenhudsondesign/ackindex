@@ -16,7 +16,8 @@ import { chunkText } from '@/lib/chunking';
 import { createHash } from 'crypto';
 import OpenAI from 'openai';
 import { createBlogPostForDocument } from '@/lib/blogGenerator';
-import { saveSocialMediaPostsForDocument } from '@/lib/socialMediaGenerator';
+import { createSocialMediaPostsForDocument } from '@/lib/socialMediaGenerator';
+import { queueInstagramPostInBuffer } from '@/lib/bufferClient';
 
 // Server-side Supabase client with service role key
 const supabase = createClient(
@@ -681,18 +682,25 @@ Options:
       console.log(`❌ Blog post generation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    // Generate social media posts
-    console.log(`\n📱 Generating social media posts...`);
+    // Generate Instagram post and queue in Buffer
+    console.log(`\n📸 Generating Instagram post for Buffer...`);
     try {
-      const socialPostsId = await saveSocialMediaPostsForDocument(documentId);
-      if (socialPostsId) {
-        console.log(`✅ Social media posts created (Instagram + Facebook)`);
+      const socialPosts = await createSocialMediaPostsForDocument(documentId);
+      if (socialPosts && videoInfo.thumbnailUrl) {
+        // Queue Instagram post in Buffer for approval
+        const bufferPostId = await queueInstagramPostInBuffer(
+          socialPosts.instagramPost,
+          videoInfo.thumbnailUrl
+        );
+        console.log(`✅ Instagram post queued in Buffer for approval`);
+        console.log(`   Buffer post ID: ${bufferPostId}`);
       } else {
-        console.log(`⚠️ Social media post generation skipped or failed`);
+        console.log(`⚠️ Instagram post generation skipped (no post or thumbnail)`);
       }
     } catch (error) {
-      logger.error({ error, documentId }, 'Social media post generation failed (non-fatal)');
-      console.log(`❌ Social media post generation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error({ error, documentId }, 'Buffer queueing failed (non-fatal)');
+      console.log(`❌ Buffer error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(`   Post will NOT appear in Buffer - check BUFFER_ACCESS_TOKEN and BUFFER_INSTAGRAM_PROFILE_ID`);
     }
 
     // Reset error count if this was a scheduled scrape
