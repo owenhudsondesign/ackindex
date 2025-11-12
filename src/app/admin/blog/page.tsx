@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import PageLayout from '@/components/PageLayout';
 
 interface BlogPost {
   id: string;
@@ -121,29 +122,41 @@ export default function AdminBlogDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Blog Dashboard
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Manage auto-generated blog posts from meeting transcriptions
-              </p>
-            </div>
+    <PageLayout>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Header */}
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            {/* Back to Admin Button */}
             <Link
-              href="/blog"
-              target="_blank"
-              className="px-4 py-2 bg-ack-blue hover:bg-ack-blue-dark text-white rounded-lg font-medium"
+              href="/admin"
+              className="inline-flex items-center text-sm text-ack-blue dark:text-blue-400 hover:underline mb-4"
             >
-              View Public Blog →
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Admin Panel
             </Link>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Blog Dashboard
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-2">
+                  Manage auto-generated blog posts from meeting transcriptions
+                </p>
+              </div>
+              <Link
+                href="/blog"
+                target="_blank"
+                className="px-4 py-2 bg-ack-blue hover:bg-ack-blue-dark text-white rounded-lg font-medium"
+              >
+                View Public Blog →
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -459,6 +472,7 @@ export default function AdminBlogDashboard() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </PageLayout>
   );
 }
