@@ -20,6 +20,8 @@ interface BlogPost {
   meeting_date: string | null;
   published_at: string;
   keywords: string[];
+  thumbnail_url: string | null;
+  og_image_url: string | null;
 }
 
 export default function BlogIndexPage() {
@@ -43,7 +45,7 @@ export default function BlogIndexPage() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('blog_posts')
-        .select('id, title, slug, excerpt, meeting_type, meeting_date, published_at, keywords')
+        .select('id, title, slug, excerpt, meeting_type, meeting_date, published_at, keywords, thumbnail_url, og_image_url')
         .eq('status', 'published')
         .order('published_at', { ascending: false });
 
@@ -342,62 +344,86 @@ export default function BlogIndexPage() {
                       })
                     : null;
 
+                  const thumbnailUrl = post.og_image_url || post.thumbnail_url;
+
                   return (
                     <article
                       key={post.id}
-                      className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 hover:bg-white/70 dark:hover:bg-gray-800/70 hover:shadow-xl hover:border-ack-blue dark:hover:border-blue-500/50 transition-all"
+                      className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-white/70 dark:hover:bg-gray-800/70 hover:shadow-xl hover:border-ack-blue dark:hover:border-blue-500/50 transition-all overflow-hidden"
                     >
-                      {/* Meeting Type & Date */}
-                      {(post.meeting_type || meetingDate) && (
-                        <div className="flex items-center gap-3 mb-4">
-                          {post.meeting_type && (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-ack-blue/10 dark:bg-blue-500/20 text-ack-blue dark:text-blue-300">
-                              {post.meeting_type}
-                            </span>
+                      <div className="flex flex-col sm:flex-row">
+                        {/* Thumbnail */}
+                        {thumbnailUrl && (
+                          <Link
+                            href={`/blog/${post.slug}`}
+                            className="flex-shrink-0 w-full sm:w-64 h-48 sm:h-auto"
+                          >
+                            <img
+                              src={thumbnailUrl}
+                              alt={post.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          </Link>
+                        )}
+
+                        {/* Content */}
+                        <div className="p-6 sm:p-8 flex-1">
+                          {/* Meeting Type & Date */}
+                          {(post.meeting_type || meetingDate) && (
+                            <div className="flex items-center gap-3 mb-4">
+                              {post.meeting_type && (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-ack-blue/10 dark:bg-blue-500/20 text-ack-blue dark:text-blue-300">
+                                  {post.meeting_type}
+                                </span>
+                              )}
+                              {meetingDate && (
+                                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                  {meetingDate}
+                                </span>
+                              )}
+                            </div>
                           )}
-                          {meetingDate && (
-                            <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                              {meetingDate}
-                            </span>
-                          )}
+
+                          {/* Title */}
+                          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3 leading-snug">
+                            <Link
+                              href={`/blog/${post.slug}`}
+                              className="hover:text-ack-blue dark:hover:text-blue-400 transition-colors"
+                            >
+                              {post.title}
+                            </Link>
+                          </h2>
+
+                          {/* Excerpt */}
+                          <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                            {post.excerpt}
+                          </p>
+
+                          {/* Read More Link */}
+                          <Link
+                            href={`/blog/${post.slug}`}
+                            className="inline-flex items-center text-ack-blue dark:text-blue-400 hover:text-ack-blue-dark dark:hover:text-blue-300 hover:underline font-semibold group"
+                          >
+                            Read full summary
+                            <svg
+                              className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 7l5 5m0 0l-5 5m5-5H6"
+                              />
+                            </svg>
+                          </Link>
                         </div>
-                      )}
-
-                      {/* Title */}
-                      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3 leading-snug">
-                        <Link
-                          href={`/blog/${post.slug}`}
-                          className="hover:text-ack-blue dark:hover:text-blue-400 transition-colors"
-                        >
-                          {post.title}
-                        </Link>
-                      </h2>
-
-                      {/* Excerpt */}
-                      <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
-                        {post.excerpt}
-                      </p>
-
-                      {/* Read More Link */}
-                      <Link
-                        href={`/blog/${post.slug}`}
-                        className="inline-flex items-center text-ack-blue dark:text-blue-400 hover:text-ack-blue-dark dark:hover:text-blue-300 hover:underline font-semibold group"
-                      >
-                        Read full summary
-                        <svg
-                          className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 7l5 5m0 0l-5 5m5-5H6"
-                          />
-                        </svg>
-                      </Link>
+                      </div>
                     </article>
                   );
                 })}

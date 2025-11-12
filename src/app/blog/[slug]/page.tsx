@@ -9,6 +9,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import ReactMarkdown from 'react-markdown';
 import TranscriptSection from '@/components/TranscriptSection';
+import PageLayout from '@/components/PageLayout';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -24,6 +25,8 @@ interface BlogPost {
   published_at: string;
   keywords: string[];
   document_id: string;
+  thumbnail_url: string | null;
+  og_image_url: string | null;
 }
 
 interface Document {
@@ -45,7 +48,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const { data: post } = await supabase
     .from('blog_posts')
-    .select('title, excerpt, keywords, meeting_type, meeting_date')
+    .select('title, excerpt, keywords, meeting_type, meeting_date, thumbnail_url, og_image_url')
     .eq('slug', slug)
     .eq('status', 'published')
     .single();
@@ -60,6 +63,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? new Date(post.meeting_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : '';
 
+  const imageUrl = post.og_image_url || post.thumbnail_url;
+
   return {
     title: `${post.title} | AckIndex`,
     description: post.excerpt,
@@ -69,6 +74,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: post.excerpt,
       type: 'article',
       publishedTime: meetingDate,
+      images: imageUrl ? [{ url: imageUrl }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+      images: imageUrl ? [imageUrl] : undefined,
     },
   };
 }
@@ -114,8 +126,11 @@ export default async function BlogPostPage({ params }: PageProps) {
     day: 'numeric',
   });
 
+  const featuredImage = blogPost.og_image_url || blogPost.thumbnail_url;
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <PageLayout>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-3xl mx-auto px-4 py-8">
@@ -158,6 +173,70 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </div>
       </header>
+
+      {/* Featured Image - Hero */}
+      {featuredImage && (
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          {sourceDoc?.source_url ? (
+            <a
+              href={sourceDoc.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block relative group overflow-hidden rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-300"
+            >
+              <img
+                src={featuredImage}
+                alt={blogPost.title}
+                className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              {/* Play Button Overlay */}
+              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
+                <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-6 group-hover:scale-110 transition-transform duration-300 shadow-xl">
+                  <svg
+                    className="w-12 h-12 text-ack-blue dark:text-blue-400"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
+              {/* Watch Video Label */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                <div className="flex items-center gap-2 text-white">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span className="font-semibold">Watch Full Meeting Video</span>
+                </div>
+              </div>
+            </a>
+          ) : (
+            <div className="overflow-hidden rounded-xl shadow-2xl">
+              <img
+                src={featuredImage}
+                alt={blogPost.title}
+                className="w-full h-auto object-cover"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Blog Content */}
       <main className="max-w-3xl mx-auto px-4 py-12">
@@ -263,5 +342,6 @@ export default async function BlogPostPage({ params }: PageProps) {
         )}
       </main>
     </div>
+    </PageLayout>
   );
 }
