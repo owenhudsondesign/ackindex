@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (contentType.includes('application/json')) {
       // Storage-based upload (for large files)
       const body = await request.json();
-      const { storagePath, filename } = body;
+      const { storagePath, filename, youtubeUrl } = body;
 
       if (!storagePath || !filename) {
         return NextResponse.json(
@@ -37,15 +37,33 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      log.info({ filename, storagePath }, 'Starting storage-based PDF processing');
+      log.info({ filename, storagePath, youtubeUrl }, 'Starting storage-based PDF processing');
+
+      // Extract YouTube video ID and fetch thumbnail if URL provided
+      let thumbnailUrl: string | undefined;
+      if (youtubeUrl) {
+        try {
+          const videoIdMatch = youtubeUrl.match(/(?:v=|\/videos\/|embed\/|youtu\.be\/|\/v\/|watch\?v=|&v=)([^#&?]*)/);
+          if (videoIdMatch && videoIdMatch[1]) {
+            const videoId = videoIdMatch[1];
+            // Use maxresdefault for highest quality
+            thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+            log.info({ videoId, thumbnailUrl }, 'Extracted YouTube thumbnail');
+          }
+        } catch (error) {
+          log.warn({ error, youtubeUrl }, 'Failed to extract thumbnail from YouTube URL');
+        }
+      }
 
       // Create document record
       const document = await createDocument({
         source_type: 'pdf',
+        source_url: youtubeUrl,
         filename: filename,
         title: filename.replace('.pdf', ''),
+        thumbnail_url: thumbnailUrl,
         created_by: adminOrError.id,
-      });
+      } as any);
 
       // Queue PDF processing job
       const job = await pdfProcessingQueue.add('process-pdf', {

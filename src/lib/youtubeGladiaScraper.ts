@@ -15,6 +15,8 @@ import logger from '@/lib/logger';
 import { chunkText } from '@/lib/chunking';
 import { createHash } from 'crypto';
 import OpenAI from 'openai';
+import { createBlogPostForDocument } from '@/lib/blogGenerator';
+import { saveSocialMediaPostsForDocument } from '@/lib/socialMediaGenerator';
 
 // Server-side Supabase client with service role key
 const supabase = createClient(
@@ -43,6 +45,7 @@ export interface YouTubeVideoInfo {
   publishedAt: string;
   duration: number;
   viewCount: number;
+  thumbnailUrl: string; // High-res thumbnail for blog/social media
 }
 
 export interface EnrichedMeetingData {
@@ -250,6 +253,16 @@ async function getVideoMetadata(videoId: string): Promise<YouTubeVideoInfo> {
   const video = data.items[0];
   const duration = parseDuration(video.contentDetails.duration);
 
+  // Get highest resolution thumbnail available
+  const thumbnails = video.snippet.thumbnails;
+  const thumbnailUrl =
+    thumbnails.maxres?.url ||
+    thumbnails.standard?.url ||
+    thumbnails.high?.url ||
+    thumbnails.medium?.url ||
+    thumbnails.default?.url ||
+    `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`; // Fallback
+
   return {
     videoId,
     url: `https://www.youtube.com/watch?v=${videoId}`,
@@ -260,6 +273,7 @@ async function getVideoMetadata(videoId: string): Promise<YouTubeVideoInfo> {
     publishedAt: video.snippet.publishedAt,
     duration,
     viewCount: parseInt(video.statistics.viewCount) || 0,
+    thumbnailUrl,
   };
 }
 
@@ -449,6 +463,7 @@ export async function processYouTubeVideo(
       await updateDocument(documentId, {
         title: videoInfo.title,
         description: videoInfo.description.slice(0, 200),
+        thumbnail_url: videoInfo.thumbnailUrl,
         status: 'failed',
       } as any);
 
@@ -476,6 +491,7 @@ Options:
     await updateDocument(documentId, {
       title: videoInfo.title,
       description: videoInfo.description.slice(0, 200),
+      thumbnail_url: videoInfo.thumbnailUrl,
     } as any);
 
     // Try to get YouTube captions first (free!)
@@ -650,6 +666,34 @@ Options:
     );
     console.log(`\n✅ Marking document as completed (${totalTokens} tokens)...`);
     await markDocumentCompleted(documentId, chunksWithMetadata.length, totalTokens);
+
+    // Generate blog post for SEO
+    console.log(`\n📝 Generating blog post for SEO...`);
+    try {
+      const blogPostId = await createBlogPostForDocument(documentId);
+      if (blogPostId) {
+        console.log(`✅ Blog post created: ${blogPostId}`);
+      } else {
+        console.log(`⚠️ Blog post generation skipped or failed`);
+      }
+    } catch (error) {
+      logger.error({ error, documentId }, 'Blog post generation failed (non-fatal)');
+      console.log(`❌ Blog post generation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    // Generate social media posts
+    console.log(`\n📱 Generating social media posts...`);
+    try {
+      const socialPostsId = await saveSocialMediaPostsForDocument(documentId);
+      if (socialPostsId) {
+        console.log(`✅ Social media posts created (Instagram + Facebook)`);
+      } else {
+        console.log(`⚠️ Social media post generation skipped or failed`);
+      }
+    } catch (error) {
+      logger.error({ error, documentId }, 'Social media post generation failed (non-fatal)');
+      console.log(`❌ Social media post generation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 
     // Reset error count if this was a scheduled scrape
     if (scheduleId) {
