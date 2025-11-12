@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    return NextResponse.json({ post });
+    return NextResponse.json(post);
   } catch (error) {
     log.error({ error }, 'Failed to fetch blog post');
     return NextResponse.json(
@@ -66,6 +66,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       excerpt,
       keywords,
       status,
+      thumbnail_url,
+      og_image_url,
+      published_at,
     } = body;
 
     // Build update object
@@ -77,11 +80,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (content !== undefined) updates.content = content;
     if (excerpt !== undefined) updates.excerpt = excerpt;
     if (keywords !== undefined) updates.keywords = keywords;
+    if (thumbnail_url !== undefined) updates.thumbnail_url = thumbnail_url;
+    if (og_image_url !== undefined) updates.og_image_url = og_image_url;
     if (status !== undefined) {
       updates.status = status;
-      // Set published_at when publishing
+      // Set published_at when publishing (or use provided value)
       if (status === 'published') {
-        updates.published_at = new Date().toISOString();
+        updates.published_at = published_at || new Date().toISOString();
+      } else if (published_at !== undefined) {
+        updates.published_at = published_at;
       }
     }
 

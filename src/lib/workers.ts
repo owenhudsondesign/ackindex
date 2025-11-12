@@ -567,12 +567,29 @@ async function processLongVideoJob(
     // 1. Get document info from database
     const { data: doc } = await supabaseAdmin
       .from('documents')
-      .select('title, created_at')
+      .select('title, created_at, source_url')
       .eq('id', documentId)
       .single();
 
     if (!doc) {
       throw new Error('Document not found');
+    }
+
+    // Extract video ID from YouTube URL if provided
+    let thumbnailUrl: string | null = null;
+    if (doc.source_url) {
+      const videoIdMatch = doc.source_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (videoIdMatch) {
+        const videoId = videoIdMatch[1];
+        thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        log.info({ videoId, thumbnailUrl }, 'Extracted YouTube thumbnail');
+
+        // Update document with thumbnail
+        await supabaseAdmin
+          .from('documents')
+          .update({ thumbnail_url: thumbnailUrl })
+          .eq('id', documentId);
+      }
     }
 
     const videoInfo = {
@@ -582,7 +599,7 @@ async function processLongVideoJob(
       description: '',
     };
 
-    log.info({ videoInfo }, 'Document metadata fetched');
+    log.info({ videoInfo, thumbnailUrl }, 'Document metadata fetched');
     await job.updateProgress(20);
 
     // 2. Poll AssemblyAI for transcript completion
