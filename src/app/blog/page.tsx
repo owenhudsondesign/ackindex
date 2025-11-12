@@ -1,31 +1,14 @@
 /**
  * Blog Index Page
  * Lists all published blog posts about Nantucket town meetings
+ * With search and filtering by date, meeting type, and keywords
  */
 
-import { Metadata } from 'next';
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-
-export const metadata: Metadata = {
-  title: 'Nantucket Town Meeting Blog | AckIndex',
-  description: 'Read summaries and highlights from Nantucket Select Board meetings, Town Council meetings, Planning Board meetings, and public hearings.',
-  keywords: [
-    'Nantucket town meeting blog',
-    'Nantucket Select Board news',
-    'Nantucket local government updates',
-    'Planning Board Nantucket',
-    'Town Council Nantucket',
-  ],
-  openGraph: {
-    title: 'Nantucket Town Meeting Blog | AckIndex',
-    description: 'Read summaries and highlights from Nantucket town meetings',
-    type: 'website',
-  },
-};
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { createClient } from '@/lib/supabase/client';
 
 interface BlogPost {
   id: string;
@@ -38,28 +21,120 @@ interface BlogPost {
   keywords: string[];
 }
 
-export default async function BlogIndexPage() {
-  const supabase = await createClient();
+export default function BlogIndexPage() {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch all published blog posts, ordered by publish date (newest first)
-  const { data: posts, error } = await supabase
-    .from('blog_posts')
-    .select('id, title, slug, excerpt, meeting_type, meeting_date, published_at, keywords')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-    .limit(50);
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMeetingType, setSelectedMeetingType] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'meeting-date'>('newest');
 
-  if (error) {
-    console.error('Error fetching blog posts:', error);
+  // Fetch posts on mount
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  async function fetchPosts() {
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('id, title, slug, excerpt, meeting_type, meeting_date, published_at, keywords')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false });
+
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error) {
+      console.error('Error fetching blog posts:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const blogPosts = (posts || []) as BlogPost[];
+  // Extract unique meeting types and years from posts
+  const meetingTypes = useMemo(() => {
+    const types = new Set<string>();
+    posts.forEach((post) => {
+      if (post.meeting_type) types.add(post.meeting_type);
+    });
+    return Array.from(types).sort();
+  }, [posts]);
+
+  const years = useMemo(() => {
+    const yearSet = new Set<string>();
+    posts.forEach((post) => {
+      if (post.meeting_date) {
+        const year = new Date(post.meeting_date).getFullYear().toString();
+        yearSet.add(year);
+      }
+    });
+    return Array.from(yearSet).sort((a, b) => parseInt(b) - parseInt(a));
+  }, [posts]);
+
+  // Filter and sort posts
+  const filteredPosts = useMemo(() => {
+    let filtered = [...posts];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (post) =>
+          post.title.toLowerCase().includes(query) ||
+          post.excerpt.toLowerCase().includes(query) ||
+          post.keywords.some((kw) => kw.toLowerCase().includes(query))
+      );
+    }
+
+    // Meeting type filter
+    if (selectedMeetingType !== 'all') {
+      filtered = filtered.filter((post) => post.meeting_type === selectedMeetingType);
+    }
+
+    // Year filter
+    if (selectedYear !== 'all') {
+      filtered = filtered.filter((post) => {
+        if (!post.meeting_date) return false;
+        const postYear = new Date(post.meeting_date).getFullYear().toString();
+        return postYear === selectedYear;
+      });
+    }
+
+    // Sorting
+    if (sortBy === 'newest') {
+      filtered.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+    } else if (sortBy === 'oldest') {
+      filtered.sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime());
+    } else if (sortBy === 'meeting-date') {
+      filtered.sort((a, b) => {
+        if (!a.meeting_date) return 1;
+        if (!b.meeting_date) return -1;
+        return new Date(b.meeting_date).getTime() - new Date(a.meeting_date).getTime();
+      });
+    }
+
+    return filtered;
+  }, [posts, searchQuery, selectedMeetingType, selectedYear, sortBy]);
+
+  // Reset filters
+  function resetFilters() {
+    setSearchQuery('');
+    setSelectedMeetingType('all');
+    setSelectedYear('all');
+    setSortBy('newest');
+  }
+
+  const hasActiveFilters = searchQuery || selectedMeetingType !== 'all' || selectedYear !== 'all';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 py-8">
           <Link
             href="/"
             className="text-sm text-ack-blue dark:text-blue-400 hover:underline mb-4 inline-block"
@@ -75,17 +150,143 @@ export default async function BlogIndexPage() {
         </div>
       </header>
 
+      {/* Search and Filters */}
+      <section className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search blog posts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 pl-11 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-400"
+              />
+              <svg
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Filter Controls */}
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Meeting Type Filter */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Board:
+              </label>
+              <select
+                value={selectedMeetingType}
+                onChange={(e) => setSelectedMeetingType(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-400"
+              >
+                <option value="all">All Types</option>
+                {meetingTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Year Filter */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Year:
+              </label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-400"
+              >
+                <option value="all">All Years</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort By */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Sort:
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'meeting-date')}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-ack-blue dark:focus:ring-blue-400"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="meeting-date">By Meeting Date</option>
+              </select>
+            </div>
+
+            {/* Reset Filters */}
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="px-3 py-2 text-sm text-ack-blue dark:text-blue-400 hover:underline"
+              >
+                Reset Filters
+              </button>
+            )}
+
+            {/* Results Count */}
+            <div className="ml-auto text-sm text-gray-600 dark:text-gray-400">
+              {loading ? (
+                'Loading...'
+              ) : (
+                <>
+                  {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'}
+                  {hasActiveFilters && ` (of ${posts.length} total)`}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Blog Posts */}
-      <main className="max-w-4xl mx-auto px-4 py-12">
-        {blogPosts.length === 0 ? (
+      <main className="max-w-6xl mx-auto px-4 py-12">
+        {loading ? (
           <div className="text-center py-16">
             <p className="text-gray-600 dark:text-gray-400 text-lg">
-              No blog posts yet. Check back soon for summaries of Nantucket town meetings!
+              Loading blog posts...
             </p>
+          </div>
+        ) : filteredPosts.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-gray-600 dark:text-gray-400 text-lg mb-2">
+              {posts.length === 0
+                ? 'No blog posts yet. Check back soon for summaries of Nantucket town meetings!'
+                : 'No posts match your filters.'}
+            </p>
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="text-ack-blue dark:text-blue-400 hover:underline"
+              >
+                Reset filters
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-8">
-            {blogPosts.map((post) => {
+            {filteredPosts.map((post) => {
               const meetingDate = post.meeting_date
                 ? new Date(post.meeting_date).toLocaleDateString('en-US', {
                     year: 'numeric',
@@ -154,7 +355,7 @@ export default async function BlogIndexPage() {
 
       {/* Footer CTA */}
       <section className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
-        <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <div className="max-w-6xl mx-auto px-4 py-12 text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
             Search All Nantucket Town Meetings
           </h2>
