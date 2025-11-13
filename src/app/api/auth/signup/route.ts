@@ -78,31 +78,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create user profile (using service role, bypasses RLS)
-    const { error: profileError } = await supabaseAdmin
-      .from('user_profiles')
-      .insert({
-        id: authData.user.id,
-        full_name: fullName || null,
-        email_updates_enabled: emailUpdates || false,
-      });
-
-    if (profileError) {
-      log.error({
-        err: profileError,
-        code: profileError.code,
-        message: profileError.message,
-        details: profileError.details,
-        hint: profileError.hint,
-        userId: authData.user.id
-      }, 'Profile creation error');
-
-      // Return error to user so they know what went wrong
-      return NextResponse.json(
-        { error: `Database error: ${profileError.message || 'Failed to create user profile'}` },
-        { status: 500 }
-      );
-    }
+    // Profile is now created automatically by database trigger
+    // No need to create it manually
+    log.info({ userId: authData.user.id }, 'User profile created by trigger');
 
     // If email updates enabled, add to email_subscribers
     if (emailUpdates) {
