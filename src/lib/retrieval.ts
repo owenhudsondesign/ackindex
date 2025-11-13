@@ -368,6 +368,7 @@ export function extractCitations(results: RetrievalResult[]): Array<{
 
 /**
  * Check if results are relevant enough to answer the query
+ * Improved logic: Accept if we have multiple good results, not just a single top result
  */
 export function hasRelevantResults(
   results: RetrievalResult[],
@@ -375,8 +376,20 @@ export function hasRelevantResults(
 ): boolean {
   if (results.length === 0) return false;
 
-  // Check if the top result meets the threshold
-  return results[0].similarity >= minSimilarity;
+  // Strategy: Accept if we have strong evidence across multiple results
+  // This prevents false negatives when relevant content scores slightly below threshold
+
+  // Option A: Top result is very strong (high confidence)
+  if (results[0].similarity >= minSimilarity) {
+    return true;
+  }
+
+  // Option B: Multiple good results (medium confidence)
+  // If we have 2+ results above a slightly lower threshold, that's still relevant
+  const slightlyLowerThreshold = minSimilarity - 0.04; // e.g., 0.74 -> 0.70
+  const goodResults = results.filter(r => r.similarity >= slightlyLowerThreshold);
+
+  return goodResults.length >= 2;
 }
 
 /**
