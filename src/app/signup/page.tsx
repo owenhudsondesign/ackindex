@@ -271,7 +271,7 @@ export default function SignUpPage() {
                   Free Account Includes:
                 </h3>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>✓ 3,500 tokens per month (~25-30 questions)</li>
+                  <li>✓ 50,000 tokens per month (~35-50 questions)</li>
                   <li>✓ Full access to the chatbot</li>
                   <li>✓ Search all Nantucket documents</li>
                   <li>✓ Optional weekly email updates</li>

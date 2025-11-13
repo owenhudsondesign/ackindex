@@ -112,10 +112,10 @@ export default function PricingPage() {
                   />
                 </svg>
                 <span className="text-gray-700 dark:text-gray-300">
-                  <strong>15,000 tokens per month</strong>
+                  <strong>50,000 tokens per month</strong>
                   <br />
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    Approximately 9 questions
+                    Approximately 35-50 questions
                   </span>
                 </span>
               </li>
@@ -343,7 +343,7 @@ export default function PricingPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
                 Tokens are units of text used by the AI. On average, one question and
-                answer uses about 1,700 tokens. Free users get 15,000 tokens (~9 questions),
+                answer uses about 1,700 tokens. Free users get 50,000 tokens (~35-50 questions),
                 while Premium users get 500,000 tokens (~293 questions) per month.
               </p>
             </Card>
@@ -365,7 +365,7 @@ export default function PricingPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
                 You'll be notified when you're close to your limit. Once you reach
-                15,000 tokens, you won't be able to ask more questions until next month,
+                50,000 tokens, you won't be able to ask more questions until next month,
                 unless you upgrade to Premium (500,000 tokens) or contact us for enterprise pricing.
               </p>
             </Card>

@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
     // Step 2: Retrieve relevant chunks
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
       maxResults: 10, // Get more results to deduplicate
-      minSimilarity: 0.75, // Stricter threshold to avoid irrelevant results
+      minSimilarity: 0.72, // Balanced threshold - not too strict, not too loose
       includeDocumentInfo: true,
       searchMode: 'semantic',
     });
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 3: Check if we have relevant information
-    const hasRelevant = hasRelevantResults(results, 0.78); // Higher threshold for stricter relevance
+    const hasRelevant = hasRelevantResults(results, 0.74); // Balanced threshold
     log.info({ hasRelevant }, 'Checked relevance of results');
 
     if (!hasRelevant) {
