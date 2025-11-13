@@ -88,13 +88,25 @@ export async function POST(request: NextRequest) {
       });
 
     if (profileError) {
-      log.error({ err: profileError }, 'Profile creation error');
-      // User is created, but profile failed - log it but don't fail the request
+      log.error({
+        err: profileError,
+        code: profileError.code,
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+        userId: authData.user.id
+      }, 'Profile creation error');
+
+      // Return error to user so they know what went wrong
+      return NextResponse.json(
+        { error: `Database error: ${profileError.message || 'Failed to create user profile'}` },
+        { status: 500 }
+      );
     }
 
     // If email updates enabled, add to email_subscribers
     if (emailUpdates) {
-      await supabaseAdmin
+      const { error: subscriberError } = await supabaseAdmin
         .from('email_subscribers')
         .insert({
           email: email,
@@ -103,6 +115,16 @@ export async function POST(request: NextRequest) {
           verified: true,
           frequency: 'weekly',
         });
+
+      if (subscriberError) {
+        log.error({
+          err: subscriberError,
+          code: subscriberError.code,
+          message: subscriberError.message,
+          userId: authData.user.id
+        }, 'Email subscriber creation error');
+        // Don't fail signup if email subscription fails
+      }
     }
 
     return NextResponse.json({
