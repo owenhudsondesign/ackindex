@@ -125,6 +125,9 @@ export default function Home() {
   };
 
   const handleSubmit = async (message: string) => {
+    // Open sidebar when user submits a question (so they see where to create new chat)
+    setIsSidebarOpen(true);
+
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -368,8 +371,8 @@ export default function Home() {
           {/* Badge - only show when no messages */}
           {!hasMessages && (
             <div className="flex justify-center mb-8">
-              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200">
-                AI-Powered Meeting Search for Local Government
+              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200 text-center">
+                AI-Powered Meeting Search for&nbsp;Local&nbsp;Government
               </span>
             </div>
           )}
