@@ -33,7 +33,10 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
     environment: process.env.NODE_ENV || 'production',
-    tracesSampleRate: 0.1,
+    tracesSampleRate: 0.01, // Reduced from 0.1 to 0.01 (1% sampling)
+
+    // Reduce breadcrumb noise
+    maxBreadcrumbs: 10, // Only keep last 10 breadcrumbs (default is 100)
 
     // Add worker-specific tags
     initialScope: {
@@ -125,14 +128,11 @@ async function startWorkers() {
   console.log('💡 Tip: Jobs should appear below when added to the queue');
   console.log('==============================================\n');
 
-  // Keep the process alive - log status every minute
+  // Keep the process alive - log status every 30 minutes (reduced from 1 minute to save logs)
   setInterval(() => {
     const timestamp = new Date().toISOString();
-    console.log(`⏰ [${timestamp}] Workers still running...`);
-    console.log(`   Scraping: ${scrapingWorker.isRunning() ? '✅' : '❌'}`);
-    console.log(`   Embedding: ${embeddingWorker.isRunning() ? '✅' : '❌'}`);
-    console.log(`   PDF Processing: ${pdfProcessingWorker.isRunning() ? '✅' : '❌'}`);
-  }, 60000); // Every 60 seconds
+    console.log(`⏰ [${timestamp}] Workers health check`);
+  }, 1800000); // Every 30 minutes
 
   // Keep the process alive
   process.on('SIGTERM', async () => {
@@ -153,10 +153,7 @@ async function startWorkers() {
     process.exit(0);
   });
 
-  // Log periodic status updates
-  setInterval(async () => {
-    console.log(`[${new Date().toISOString()}] Workers still running...`);
-  }, 60000); // Every minute
+  // Removed duplicate status logging - already handled above at 30 min intervals
 }
 
 // Start the workers
