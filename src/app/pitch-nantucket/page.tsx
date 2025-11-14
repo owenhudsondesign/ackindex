@@ -281,7 +281,7 @@ export default function NantucketPitch() {
                 <div className="flex-1 bg-ack-white rounded-xl p-6 border-2 border-ack-blue/20">
                   <h3 className="text-xl font-bold text-ack-black mb-2">AI Transcription</h3>
                   <p className="text-ack-dark-gray">
-                    State-of-the-art speech-to-text AI (AssemblyAI/Gladia) transcribes the entire meeting with speaker identification and precise timestamps.
+                    State-of-the-art speech-to-text AI transcribes the entire meeting with speaker identification and precise timestamps.
                   </p>
                 </div>
               </div>
@@ -316,7 +316,7 @@ export default function NantucketPitch() {
 
           <div className="mt-12 bg-ack-blue/10 rounded-xl p-6 border border-ack-blue/30">
             <p className="text-center text-ack-dark-gray">
-              <span className="font-semibold text-ack-black">Already working:</span> AckIndex is currently indexing Nantucket Select Board meetings from YouTube at ackindex.com
+              <span className="font-semibold text-ack-black">Already working:</span> AckIndex is currently indexing all Nantucket public government meetings from YouTube at ackindex.com
             </p>
           </div>
         </div>
