@@ -208,20 +208,35 @@ function AccountContent() {
                 </div>
               )}
 
-              {isPremium && dashboard.stripe_customer_id && (
+              {isPremium && (
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                  <Button
-                    variant="secondary"
-                    onClick={handleManageSubscription}
-                    disabled={portalLoading}
-                  >
-                    {portalLoading
-                      ? 'Loading...'
-                      : 'Manage Subscription & Billing'}
-                  </Button>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    Update payment method, view invoices, or cancel subscription
-                  </p>
+                  {dashboard.stripe_customer_id ? (
+                    <>
+                      <Button
+                        variant="secondary"
+                        onClick={handleManageSubscription}
+                        disabled={portalLoading}
+                      >
+                        {portalLoading
+                          ? 'Loading...'
+                          : 'Manage Subscription & Billing'}
+                      </Button>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        Update payment method, view invoices, or cancel subscription
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/pricing">
+                        <Button variant="secondary" fullWidth>
+                          Subscribe via Stripe
+                        </Button>
+                      </Link>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        Set up billing to manage your subscription
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
             </Card>
