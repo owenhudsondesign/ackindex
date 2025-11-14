@@ -34,7 +34,11 @@ export async function POST(request: NextRequest) {
 
     // Check if Resend is configured
     if (!process.env.RESEND_API_KEY) {
-      log.error('RESEND_API_KEY is not configured');
+      log.error('RESEND_API_KEY is not configured', {
+        hasKey: !!process.env.RESEND_API_KEY,
+        keyPrefix: process.env.RESEND_API_KEY?.substring(0, 3),
+        allEnvKeys: Object.keys(process.env).filter(k => k.includes('RESEND'))
+      });
       return NextResponse.json(
         { error: 'Email service is not configured. Please contact the administrator.' },
         { status: 500 }
