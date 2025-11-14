@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: 'AckIndex Contact Form <onboarding@resend.dev>', // Using Resend test domain until ackindex.com is verified
+      from: 'AckIndex Contact Form <noreply@mail.ackindex.com>',
       to: ['owen@ackindex.com'], // Contact form submissions go to Owen
       replyTo: sanitizedData.email,
       subject: `AckIndex Contact Form: Message from ${sanitizedData.name}`,
