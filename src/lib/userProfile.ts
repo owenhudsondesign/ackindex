@@ -116,47 +116,55 @@ export async function updateUserProfile(
  */
 export async function getUserDashboard(userId: string): Promise<UserDashboard | null> {
   try {
-    // Fetch dashboard data (everything except email)
-    const { data: dashboardData, error: dashboardError } = await supabaseAdmin
-      .from('user_dashboard')
+    // Build dashboard data manually instead of using the view
+    // The view uses auth.uid() which doesn't work with service role
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('user_profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (dashboardError) {
-      logger.error({ error: dashboardError, userId }, 'Error fetching user dashboard');
+    if (profileError || !profile) {
+      logger.error({ error: profileError, userId }, 'Error fetching user profile');
       return null;
     }
 
-    if (!dashboardData) {
-      logger.error({ userId }, 'No dashboard data returned');
-      return null;
-    }
+    // Get current month's usage
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    const { data: usage } = await supabaseAdmin
+      .from('usage_tracking')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('year', year)
+      .eq('month', month)
+      .single();
+
+    const tokensUsed = usage?.total_tokens || 0;
+    const queriesThisMonth = usage?.query_count || 0;
+    const tokensRemaining = profile.monthly_token_limit - tokensUsed;
 
     // Fetch email from auth.users (server-side only, using service role)
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
 
     if (userError) {
       logger.error({ error: userError, userId }, 'Error fetching user email');
-      // Don't fail completely, just return dashboard without email
-      return {
-        ...dashboardData,
-        email: '', // Fallback if email fetch fails
-      } as UserDashboard;
     }
 
-    // Combine dashboard data with email
+    // Build the dashboard object
     return {
-      id: dashboardData.id,
-      email: userData.user.email || '',
-      full_name: dashboardData.full_name,
-      subscription_tier: dashboardData.subscription_tier,
-      subscription_status: dashboardData.subscription_status,
-      monthly_token_limit: dashboardData.monthly_token_limit,
-      email_updates_enabled: dashboardData.email_updates_enabled,
-      tokens_used_this_month: dashboardData.tokens_used_this_month,
-      queries_this_month: dashboardData.queries_this_month,
-      tokens_remaining: dashboardData.tokens_remaining,
+      id: profile.id,
+      email: userData?.user.email || '',
+      full_name: profile.full_name,
+      subscription_tier: profile.subscription_tier,
+      subscription_status: profile.subscription_status,
+      monthly_token_limit: profile.monthly_token_limit,
+      email_updates_enabled: profile.email_updates_enabled,
+      tokens_used_this_month: tokensUsed,
+      queries_this_month: queriesThisMonth,
+      tokens_remaining: tokensRemaining,
     };
   } catch (error) {
     logger.error({ error, userId }, 'Exception in getUserDashboard');
