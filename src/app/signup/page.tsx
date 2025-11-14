@@ -145,13 +145,6 @@ export default function SignUpPage() {
               </p>
             </div>
 
-            {formData.emailUpdates && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-green-900">
-                  ✓ You're subscribed to weekly Nantucket town updates
-                </p>
-              </div>
-            )}
 
             <p className="text-sm text-gray-500">
               Redirecting you to start chatting in a few seconds...
@@ -163,13 +156,13 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center py-8 px-4">
       <Container size="sm">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
             Create Your Account
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-600 dark:text-gray-300">
             Start asking questions about Nantucket with AckIndex
           </p>
         </div>
@@ -225,7 +218,7 @@ export default function SignUpPage() {
             <div>
               <label
                 htmlFor="fullName"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
               >
                 Full Name
               </label>
@@ -245,7 +238,7 @@ export default function SignUpPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
               >
                 Email Address
               </label>
@@ -265,7 +258,7 @@ export default function SignUpPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
               >
                 Password
               </label>
@@ -286,7 +279,7 @@ export default function SignUpPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
               >
                 Confirm Password
               </label>
@@ -304,36 +297,15 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div className="border-t border-gray-200 pt-4">
-              <label className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  checked={formData.emailUpdates}
-                  onChange={(e) =>
-                    setFormData({ ...formData, emailUpdates: e.target.checked })
-                  }
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  disabled={loading}
-                />
-                <span className="text-sm text-gray-700">
-                  <strong>Subscribe to weekly email updates</strong>
-                  <br />
-                  Get the latest news, documents, and announcements from Nantucket
-                  town government delivered to your inbox every week.
-                </span>
-              </label>
-            </div>
-
-            <div className="border-t border-gray-200 pt-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h3 className="text-sm font-semibold text-blue-900 mb-2">
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">
                   Free Account Includes:
                 </h3>
-                <ul className="text-sm text-blue-800 space-y-1">
+                <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
                   <li>✓ 50,000 tokens per month (~35-50 questions)</li>
                   <li>✓ Full access to the chatbot</li>
                   <li>✓ Search all Nantucket documents</li>
-                  <li>✓ Optional weekly email updates</li>
                 </ul>
               </div>
 
@@ -350,14 +322,14 @@ export default function SignUpPage() {
               {loading ? 'Creating Account...' : 'Create Account'}
             </Button>
 
-            <p className="text-center text-sm text-gray-600">
+            <p className="text-center text-sm text-gray-600 dark:text-gray-300">
               Already have an account?{' '}
-              <Link href="/login" className="text-blue-600 hover:underline">
+              <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">
                 Sign in
               </Link>
             </p>
 
-            <p className="text-xs text-gray-500 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
               By creating an account, you agree to our Terms of Service and Privacy
               Policy.
             </p>
