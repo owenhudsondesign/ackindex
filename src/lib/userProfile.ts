@@ -156,7 +156,7 @@ export async function getUserDashboard(userId: string): Promise<UserDashboard | 
     // Build the dashboard object
     return {
       id: profile.id,
-      email: userData?.user.email || '',
+      email: userData?.user?.email || '',
       full_name: profile.full_name,
       subscription_tier: profile.subscription_tier,
       subscription_status: profile.subscription_status,
