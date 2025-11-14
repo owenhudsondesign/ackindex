@@ -111,20 +111,39 @@ export async function updateUserProfile(
 
 /**
  * Get user's dashboard data
+ * Note: Email is fetched separately from auth.users (server-side only)
+ * to avoid exposing auth.users table in the view
  */
 export async function getUserDashboard(userId: string): Promise<UserDashboard | null> {
-  const { data, error } = await supabaseAdmin
+  // Fetch dashboard data (everything except email)
+  const { data: dashboardData, error: dashboardError } = await supabaseAdmin
     .from('user_dashboard')
     .select('*')
     .eq('id', userId)
     .single();
 
-  if (error) {
-    console.error('Error fetching user dashboard:', error);
+  if (dashboardError) {
+    logger.error({ error: dashboardError, userId }, 'Error fetching user dashboard');
     return null;
   }
 
-  return data;
+  // Fetch email from auth.users (server-side only, using service role)
+  const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+
+  if (userError) {
+    logger.error({ error: userError, userId }, 'Error fetching user email');
+    // Don't fail completely, just return dashboard without email
+    return {
+      ...dashboardData,
+      email: '', // Fallback if email fetch fails
+    };
+  }
+
+  // Combine dashboard data with email
+  return {
+    ...dashboardData,
+    email: userData.user.email || '',
+  };
 }
 
 /**
