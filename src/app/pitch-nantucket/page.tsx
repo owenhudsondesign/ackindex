@@ -19,7 +19,8 @@ export default function NantucketPitch() {
     { id: 3, title: 'Meeting Transcription' },
     { id: 4, title: 'AI Search' },
     { id: 5, title: 'Benefits' },
-    { id: 6, title: 'Next Steps' }
+    { id: 6, title: 'Historical Archive' },
+    { id: 7, title: 'Next Steps' }
   ];
 
   // Scroll to slide
@@ -64,7 +65,7 @@ export default function NantucketPitch() {
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   activeSlide === slide.id
                     ? 'bg-ack-blue scale-125'
-                    : 'bg-ack-light-gray hover:bg-ack-dark-gray
+                    : 'bg-ack-light-gray hover:bg-ack-dark-gray'
                 }`}
               />
               <span className="absolute right-6 top-1/2 -translate-y-1/2 bg-ack-dark-gray text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
@@ -521,9 +522,126 @@ export default function NantucketPitch() {
         </div>
       </section>
 
-      {/* Slide 7: Next Steps */}
+      {/* Slide 7: Historical Archive Options */}
       <section
         id="slide-6"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
+      >
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-8 text-center">
+            Historical Archive Options
+          </h2>
+
+          <p className="text-xl text-ack-dark-gray mb-12 text-center max-w-3xl mx-auto">
+            Beyond ongoing meeting transcription, we can backfill Nantucket's meeting archive to create a searchable record of past decisions.
+          </p>
+
+          <div className="bg-ack-blue/5 rounded-xl p-6 mb-8 border border-ack-blue/20">
+            <p className="text-ack-dark-gray text-center">
+              <span className="font-semibold text-ack-black">Proof of concept:</span> I've already transcribed October 2024's Select Board meetings — over 5,000 minutes of content now searchable on AckIndex.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
+            {/* Option 1: Year to Date */}
+            <div className="bg-ack-light-gray rounded-xl p-8 border-2 border-ack-blue/20 hover:border-ack-blue/50 transition-colors">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-ack-black">2025 YTD</h3>
+                <div className="text-3xl">📅</div>
+              </div>
+              <p className="text-ack-dark-gray mb-4">
+                Index all Select Board meetings from January 2025 to present for quick access to current-year decisions
+              </p>
+              <div className="pt-4 border-t border-ack-blue/20">
+                <p className="text-sm text-ack-dark-gray">
+                  <span className="font-semibold text-ack-black">Scope:</span> Current year only
+                </p>
+                <p className="text-sm text-ack-dark-gray mt-2">
+                  <span className="font-semibold text-ack-black">Value:</span> Immediate searchability for recent topics
+                </p>
+              </div>
+            </div>
+
+            {/* Option 2: Targeted Years */}
+            <div className="bg-ack-light-gray rounded-xl p-8 border-2 border-ack-blue/40 hover:border-ack-blue/70 transition-colors relative">
+              <div className="absolute -top-3 right-4 bg-ack-blue text-white text-xs font-bold px-3 py-1 rounded-full">
+                RECOMMENDED
+              </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-ack-black">3 Year Archive</h3>
+                <div className="text-3xl">📚</div>
+              </div>
+              <p className="text-ack-dark-gray mb-4">
+                Index meetings from 2022-2025, capturing recent decisions and ongoing projects
+              </p>
+              <div className="pt-4 border-t border-ack-blue/20">
+                <p className="text-sm text-ack-dark-gray">
+                  <span className="font-semibold text-ack-black">Scope:</span> Last 3 years
+                </p>
+                <p className="text-sm text-ack-dark-gray mt-2">
+                  <span className="font-semibold text-ack-black">Value:</span> Context for current initiatives
+                </p>
+              </div>
+            </div>
+
+            {/* Option 3: Complete Archive */}
+            <div className="bg-ack-light-gray rounded-xl p-8 border-2 border-ack-blue/20 hover:border-ack-blue/50 transition-colors">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-ack-black">7 Year Archive</h3>
+                <div className="text-3xl">🏛️</div>
+              </div>
+              <p className="text-ack-dark-gray mb-4">
+                Complete historical archive from 2018-2025 for comprehensive institutional knowledge
+              </p>
+              <div className="pt-4 border-t border-ack-blue/20">
+                <p className="text-sm text-ack-dark-gray">
+                  <span className="font-semibold text-ack-black">Scope:</span> Full 7-year record
+                </p>
+                <p className="text-sm text-ack-dark-gray mt-2">
+                  <span className="font-semibold text-ack-black">Value:</span> Track multi-year trends & policy evolution
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-ack-blue/10 rounded-xl p-8 border border-ack-blue/30">
+            <h3 className="text-xl font-bold text-ack-black mb-4 flex items-center gap-2">
+              <svg className="w-6 h-6 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Why Historical Data Matters
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-ack-dark-gray mb-2">
+                  <span className="font-semibold text-ack-black">• Long-term Projects:</span> Track multi-year initiatives like waterfront development or infrastructure projects
+                </p>
+                <p className="text-ack-dark-gray mb-2">
+                  <span className="font-semibold text-ack-black">• Policy Evolution:</span> See how regulations and bylaws have changed over time
+                </p>
+              </div>
+              <div>
+                <p className="text-ack-dark-gray mb-2">
+                  <span className="font-semibold text-ack-black">• Institutional Memory:</span> Preserve knowledge even as staff and board members change
+                </p>
+                <p className="text-ack-dark-gray mb-2">
+                  <span className="font-semibold text-ack-black">• Research & Planning:</span> Enable data-driven decisions based on past outcomes
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-ack-dark-gray italic">
+              All options include ongoing transcription of new meetings going forward
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Slide 8: Next Steps */}
+      <section
+        id="slide-7"
         className="min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-ack-blue/5 to-ack-blue/10"
       >
         <div className="max-w-4xl mx-auto text-center">
