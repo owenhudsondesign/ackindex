@@ -115,35 +115,53 @@ export async function updateUserProfile(
  * to avoid exposing auth.users table in the view
  */
 export async function getUserDashboard(userId: string): Promise<UserDashboard | null> {
-  // Fetch dashboard data (everything except email)
-  const { data: dashboardData, error: dashboardError } = await supabaseAdmin
-    .from('user_dashboard')
-    .select('*')
-    .eq('id', userId)
-    .single();
+  try {
+    // Fetch dashboard data (everything except email)
+    const { data: dashboardData, error: dashboardError } = await supabaseAdmin
+      .from('user_dashboard')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-  if (dashboardError) {
-    logger.error({ error: dashboardError, userId }, 'Error fetching user dashboard');
+    if (dashboardError) {
+      logger.error({ error: dashboardError, userId }, 'Error fetching user dashboard');
+      return null;
+    }
+
+    if (!dashboardData) {
+      logger.error({ userId }, 'No dashboard data returned');
+      return null;
+    }
+
+    // Fetch email from auth.users (server-side only, using service role)
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+
+    if (userError) {
+      logger.error({ error: userError, userId }, 'Error fetching user email');
+      // Don't fail completely, just return dashboard without email
+      return {
+        ...dashboardData,
+        email: '', // Fallback if email fetch fails
+      } as UserDashboard;
+    }
+
+    // Combine dashboard data with email
+    return {
+      id: dashboardData.id,
+      email: userData.user.email || '',
+      full_name: dashboardData.full_name,
+      subscription_tier: dashboardData.subscription_tier,
+      subscription_status: dashboardData.subscription_status,
+      monthly_token_limit: dashboardData.monthly_token_limit,
+      email_updates_enabled: dashboardData.email_updates_enabled,
+      tokens_used_this_month: dashboardData.tokens_used_this_month,
+      queries_this_month: dashboardData.queries_this_month,
+      tokens_remaining: dashboardData.tokens_remaining,
+    };
+  } catch (error) {
+    logger.error({ error, userId }, 'Exception in getUserDashboard');
     return null;
   }
-
-  // Fetch email from auth.users (server-side only, using service role)
-  const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
-
-  if (userError) {
-    logger.error({ error: userError, userId }, 'Error fetching user email');
-    // Don't fail completely, just return dashboard without email
-    return {
-      ...dashboardData,
-      email: '', // Fallback if email fetch fails
-    };
-  }
-
-  // Combine dashboard data with email
-  return {
-    ...dashboardData,
-    email: userData.user.email || '',
-  };
 }
 
 /**
