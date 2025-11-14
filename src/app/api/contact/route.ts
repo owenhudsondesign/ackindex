@@ -41,14 +41,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.CONTACT_EMAIL) {
-      log.error('CONTACT_EMAIL is not configured');
-      return NextResponse.json(
-        { error: 'Contact email is not configured. Please contact the administrator.' },
-        { status: 500 }
-      );
-    }
-
     const resend = getResendClient();
     if (!resend) {
       return NextResponse.json(
@@ -59,8 +51,8 @@ export async function POST(request: NextRequest) {
 
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: 'AckIndex Contact Form <onboarding@resend.dev>', // Resend's test domain
-      to: [process.env.CONTACT_EMAIL],
+      from: 'AckIndex <noreply@ackindex.com>',
+      to: ['owen@ackindex.com'], // Contact form submissions go to Owen
       replyTo: sanitizedData.email,
       subject: `AckIndex Contact Form: Message from ${sanitizedData.name}`,
       html: `
