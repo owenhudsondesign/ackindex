@@ -78,8 +78,18 @@ function AccountContent() {
   const handleManageSubscription = async () => {
     setPortalLoading(true);
     try {
+      // Get the session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+
       const response = await fetch('/api/stripe/portal', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       });
 
       if (!response.ok) {
