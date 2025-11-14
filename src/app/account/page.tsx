@@ -20,6 +20,7 @@ interface UserDashboard {
   tokens_used_this_month: number;
   queries_this_month: number;
   tokens_remaining: number;
+  stripe_customer_id: string | null;
 }
 
 function AccountContent() {
@@ -207,7 +208,7 @@ function AccountContent() {
                 </div>
               )}
 
-              {isPremium && (
+              {isPremium && dashboard.stripe_customer_id && (
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                   <Button
                     variant="secondary"
