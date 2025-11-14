@@ -318,8 +318,9 @@ export function buildContext(results: RetrievalResult[]): string {
       docToSourceNum.set(docId, sourceNum);
     }
 
-    // Only include top 3 unique sources (matching extractCitations limit)
-    if (sourceNum > 3) {
+    // Only include sources that meet quality threshold (70%+) and top 3 max
+    // This must match extractCitations() filtering logic
+    if (result.similarity < 0.70 || sourceNum > 3) {
       return null;
     }
 
@@ -353,8 +354,12 @@ export function extractCitations(results: RetrievalResult[]): Array<{
     }
   }
 
-  // Only return top 3 most relevant sources
-  const topResults = uniqueResults.slice(0, 3);
+  // Only show sources above quality threshold
+  // Minimum 70% similarity for a source to be shown
+  const qualitySources = uniqueResults.filter(r => r.similarity >= 0.70);
+
+  // Take top 3 quality sources (or fewer if not enough meet threshold)
+  const topResults = qualitySources.slice(0, 3);
 
   return topResults.map((result, index) => ({
     title: result.document?.title || result.document?.filename || 'Untitled',
