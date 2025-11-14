@@ -34,11 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Check if Resend is configured
     if (!process.env.RESEND_API_KEY) {
-      log.error('RESEND_API_KEY is not configured', {
-        hasKey: !!process.env.RESEND_API_KEY,
-        keyPrefix: process.env.RESEND_API_KEY?.substring(0, 3),
-        allEnvKeys: Object.keys(process.env).filter(k => k.includes('RESEND'))
-      });
+      log.error({ msg: 'RESEND_API_KEY is not configured' });
       return NextResponse.json(
         { error: 'Email service is not configured. Please contact the administrator.' },
         { status: 500 }
@@ -55,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: 'AckIndex <noreply@ackindex.com>',
+      from: 'AckIndex Contact Form <onboarding@resend.dev>', // Using Resend test domain until ackindex.com is verified
       to: ['owen@ackindex.com'], // Contact form submissions go to Owen
       replyTo: sanitizedData.email,
       subject: `AckIndex Contact Form: Message from ${sanitizedData.name}`,
