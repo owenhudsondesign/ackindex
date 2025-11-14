@@ -48,7 +48,7 @@ export default function ChatInput({
           onChange={(e) => setMessage(e.target.value)}
           placeholder={placeholder}
           disabled={isLoading}
-          className="flex-grow py-4 px-2 bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm md:text-base disabled:opacity-50"
+          className="flex-grow py-4 px-2 bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-base disabled:opacity-50"
           aria-label="Ask a question"
         />
 
