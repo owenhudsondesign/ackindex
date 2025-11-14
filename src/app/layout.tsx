@@ -4,8 +4,8 @@ import SentryInit from "@/components/SentryInit";
 import ThemeProvider from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "AckIndex - Search Nantucket Town Meetings | Select Board, Planning Board & More",
-  description: "Search every Nantucket town meeting instantly. Find decisions, votes, and discussions from Select Board meetings, Town Council, Planning Board, and public hearings with timestamped transcripts.",
+  title: "AckIndex - Search Nantucket Town Meetings Instantly",
+  description: "AI-powered search for Nantucket town meetings. Find decisions, votes, and discussions in seconds with timestamped transcripts from all boards.",
   keywords: [
     "Nantucket town meetings",
     "Nantucket Select Board",
@@ -24,16 +24,16 @@ export const metadata: Metadata = {
     "Nantucket special town meeting"
   ],
   openGraph: {
-    title: "AckIndex - Search Nantucket Town Meetings",
-    description: "Search every Nantucket town meeting instantly. Find decisions, votes, and discussions with timestamped transcripts.",
+    title: "AckIndex - Search Nantucket Town Meetings Instantly",
+    description: "AI-powered search for Nantucket town meetings. Find decisions, votes, and discussions in seconds with timestamped transcripts.",
     type: "website",
     locale: "en_US",
     siteName: "AckIndex",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AckIndex - Search Nantucket Town Meetings",
-    description: "Search every Nantucket town meeting instantly. Find decisions, votes, and discussions with timestamped transcripts.",
+    title: "AckIndex - Search Nantucket Town Meetings Instantly",
+    description: "AI-powered search for Nantucket town meetings. Find decisions, votes, and discussions in seconds with timestamped transcripts.",
   },
   robots: {
     index: true,
