@@ -60,6 +60,32 @@ export const breadcrumbSchema = {
   ]
 };
 
+export const localBusinessSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "AckIndex",
+  "applicationCategory": "GovernmentApplication",
+  "operatingSystem": "Web",
+  "description": "AI-powered search for Nantucket town meetings. Search Select Board, Planning Board, and Town Council meetings with timestamped transcripts.",
+  "url": "https://www.ackindex.com",
+  "areaServed": {
+    "@type": "City",
+    "name": "Nantucket",
+    "containedIn": {
+      "@type": "State",
+      "name": "Massachusetts"
+    }
+  },
+  "serviceType": "Government Meeting Search",
+  "keywords": "Nantucket town meetings, Select Board, Planning Board, Town Council, meeting search, transcripts",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "description": "Free tier available with 50,000 tokens per month"
+  }
+};
+
 export const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",

@@ -11,7 +11,7 @@ import { Message } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { organizationSchema, breadcrumbSchema, faqSchema } from './metadata';
+import { organizationSchema, breadcrumbSchema, faqSchema, localBusinessSchema } from './metadata';
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -298,6 +298,10 @@ export default function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />
 
       <div className="flex min-h-screen">

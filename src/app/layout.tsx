@@ -29,6 +29,15 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "AckIndex",
+    url: "https://www.ackindex.com",
+    images: [
+      {
+        url: "https://www.ackindex.com/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "AckIndex - Search Nantucket Town Meetings Instantly",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
