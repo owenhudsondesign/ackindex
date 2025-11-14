@@ -506,6 +506,11 @@ export default function Home() {
               <p className="text-center text-xs text-gray-600 dark:text-gray-400 mt-4">
                 Ask questions about any Nantucket town meeting. Get timestamped quotes you can verify in the source video.
               </p>
+
+              {/* Disclaimer */}
+              <p className="text-center text-xs text-gray-500 dark:text-gray-500 mt-3 max-w-2xl mx-auto">
+                <strong>Disclaimer:</strong> AI transcriptions may contain errors. Always verify quotes and information against original source recordings before publishing or making decisions.
+              </p>
             </>
           )}
 
