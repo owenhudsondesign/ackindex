@@ -16,12 +16,14 @@ export default function NantucketPitch() {
     { id: 0, title: 'Cover' },
     { id: 1, title: 'The Challenge' },
     { id: 2, title: 'Solution' },
-    { id: 3, title: 'How It Works' },
-    { id: 4, title: 'Pricing & ROI' },
-    { id: 5, title: 'Cost Comparison' },
-    { id: 6, title: 'Security & Compliance' },
-    { id: 7, title: 'Historical Archive' },
-    { id: 8, title: 'Pilot Program' }
+    { id: 3, title: 'What Town Gets' },
+    { id: 4, title: 'How It Works' },
+    { id: 5, title: 'Pricing Model' },
+    { id: 6, title: 'Pricing & ROI' },
+    { id: 7, title: 'Cost Comparison' },
+    { id: 8, title: 'Security & Compliance' },
+    { id: 9, title: 'Historical Archive' },
+    { id: 10, title: 'Pilot Program' }
   ];
 
   // Scroll to slide
@@ -95,12 +97,12 @@ export default function NantucketPitch() {
           </div>
 
           <h1 className="text-5xl md:text-6xl font-bold text-ack-black mb-6">
-            AI-Powered Meeting Transcription
-            <span className="block text-ack-blue mt-2">for Nantucket</span>
+            Official Meeting Transcription Services
+            <span className="block text-ack-blue mt-2">for Town of Nantucket</span>
           </h1>
 
           <p className="text-xl md:text-2xl text-ack-dark-gray mb-12">
-            Making Town Meeting Records Searchable & Accessible
+            Professional AI Transcription + Citizen Transparency Platform
           </p>
 
           <div className="inline-flex items-center gap-2 text-ack-dark-gray text-sm">
@@ -246,9 +248,196 @@ export default function NantucketPitch() {
         </div>
       </section>
 
-      {/* Slide 4: Meeting Transcription */}
+      {/* Slide 4: What the Town Contract Includes */}
       <section
         id="slide-3"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
+      >
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
+            What's Included in Your Town Contract
+          </h2>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            {/* Primary: Transcription Services */}
+            <div className="bg-ack-blue/10 rounded-2xl p-8 border-2 border-ack-blue/50">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-ack-blue rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-ack-black">1. Official Transcription Services</h3>
+              </div>
+              <ul className="space-y-3 text-ack-dark-gray">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Professional-grade transcription</strong> of all Select Board meetings</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Speaker identification</strong> and precise timestamps</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>24-48 hour turnaround</strong> on new meetings</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Downloadable transcript files</strong> for town archives</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Accuracy guarantees</strong> and correction process</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Secondary: Enterprise Features */}
+            <div className="bg-ack-light-gray rounded-2xl p-8 border-2 border-ack-blue/30">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-ack-blue/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-ack-black">2. Enterprise Tools for Staff</h3>
+              </div>
+              <ul className="space-y-3 text-ack-dark-gray">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Unlimited searches</strong> for all town employees</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Admin dashboard</strong> with meeting analytics</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Priority processing</strong> of new meetings</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Direct upload</strong> of audio/video files</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Dedicated support line</strong> for urgent requests</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Tertiary: Citizen Benefits */}
+            <div className="bg-ack-light-gray rounded-2xl p-8 border-2 border-ack-blue/30">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-ack-blue/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-ack-black">3. Town-Sponsored Citizen Access</h3>
+              </div>
+              <ul className="space-y-3 text-ack-dark-gray">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>All Nantucket residents</strong> get unlimited premium access</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>No paywalls</strong> between citizens and their government</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Branded as "Sponsored by Town of Nantucket"</strong> in app</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>24/7 self-service</strong> reduces staff workload</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Quaternary: Meeting Management */}
+            <div className="bg-ack-light-gray rounded-2xl p-8 border-2 border-ack-blue/30">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-ack-blue/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-ack-black">4. Meeting Management</h3>
+              </div>
+              <ul className="space-y-3 text-ack-dark-gray">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Automatic detection</strong> and indexing of new meetings</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Integration</strong> with town's existing video platform</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Archival and backup</strong> services</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Historical backfill options</strong> (3-year or 7-year packages)</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="bg-ack-blue text-white rounded-2xl p-8 text-center">
+            <p className="text-xl mb-2">
+              <strong>Bottom Line:</strong> You're replacing your transcription service, not buying search access.
+            </p>
+            <p className="text-lg opacity-90">
+              The AI-powered citizen platform is a value-added benefit that makes Nantucket a leader in civic tech.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Slide 5: Meeting Transcription */}
+      <section
+        id="slide-4"
         className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
       >
         <div className="max-w-4xl mx-auto">
@@ -323,10 +512,122 @@ export default function NantucketPitch() {
         </div>
       </section>
 
-      {/* Slide 5: Pricing & ROI */}
+      {/* Slide 6: How AckIndex Pricing Works */}
       <section
-        id="slide-4"
+        id="slide-5"
         className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
+      >
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
+            How AckIndex Pricing Works
+          </h2>
+
+          {/* For Residents Today */}
+          <div className="bg-ack-light-gray rounded-2xl p-8 mb-8 border-2 border-ack-blue/20">
+            <h3 className="text-2xl font-bold text-ack-black mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 bg-ack-blue/10 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              For Nantucket Residents Today
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-ack-dark-gray mb-2">
+                  <span className="font-semibold text-ack-black">Free tier:</span> 50,000 tokens/month (~35-50 searches)
+                </p>
+              </div>
+              <div>
+                <p className="text-ack-dark-gray mb-2">
+                  <span className="font-semibold text-ack-black">Premium:</span> $9.99/month for unlimited searches
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* With Town Partnership */}
+          <div className="bg-ack-blue/10 rounded-2xl p-8 mb-8 border-2 border-ack-blue/50">
+            <h3 className="text-2xl font-bold text-ack-black mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 bg-ack-blue rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              With a Town Partnership
+            </h3>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-ack-white rounded-xl p-6 border border-ack-blue/30">
+                <p className="text-sm text-ack-dark-gray mb-2">Town pays:</p>
+                <p className="text-2xl font-bold text-ack-blue mb-3">$3,500/month</p>
+                <p className="text-sm text-ack-dark-gray">Professional transcription services + infrastructure</p>
+              </div>
+              <div className="bg-ack-white rounded-xl p-6 border border-ack-blue/30">
+                <p className="text-sm text-ack-dark-gray mb-2">Residents get:</p>
+                <p className="text-2xl font-bold text-green-600 mb-3">Unlimited FREE</p>
+                <p className="text-sm text-ack-dark-gray">Premium access at no cost (town-sponsored)</p>
+              </div>
+              <div className="bg-ack-white rounded-xl p-6 border border-ack-blue/30">
+                <p className="text-sm text-ack-dark-gray mb-2">Town receives:</p>
+                <p className="text-lg font-bold text-ack-black mb-1">Official Transcripts</p>
+                <p className="text-sm text-ack-dark-gray">Staff dashboard, analytics, priority support</p>
+              </div>
+            </div>
+          </div>
+
+          {/* What Town Gets */}
+          <div className="bg-ack-white rounded-2xl p-8 border-2 border-ack-blue/20">
+            <h3 className="text-2xl font-bold text-ack-black mb-6 text-center">What the Town Contract Includes</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray">Professional meeting transcription service</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray">Eliminates need to hire transcription services</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray">Official archival-quality records</span>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray">Staff time savings from citizen self-service</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray">Enhanced transparency without extra work</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray">All residents get premium access (town-sponsored benefit)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Slide 7: Transparent Pricing & ROI */}
+      <section
+        id="slide-6"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
@@ -381,22 +682,29 @@ export default function NantucketPitch() {
 
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-bold text-ack-black mb-2">Staff Time Savings</h4>
-                  <p className="text-ack-dark-gray text-sm mb-2">Town clerks spend an estimated <span className="font-semibold text-ack-black">10-15 hours/month</span> responding to meeting record requests and searching old minutes.</p>
+                  <h4 className="font-bold text-ack-black mb-2">Traditional Transcription Replacement</h4>
+                  <p className="text-ack-dark-gray text-sm mb-2">5 Select Board meetings/month at 2 hours each = 10 hours</p>
+                  <p className="text-ack-dark-gray text-sm mb-2">
+                    Traditional transcription: <span className="font-semibold text-ack-black">10 hrs × $125/hr = $1,250/month</span>
+                  </p>
                   <p className="text-ack-dark-gray text-sm">
-                    At $35/hour: <span className="font-semibold text-ack-black">$350-525/month saved</span>
+                    Annual cost: <span className="font-semibold text-ack-black">$15,000/year</span>
                   </p>
                 </div>
 
                 <div className="border-t border-ack-blue/20 pt-6">
-                  <h4 className="font-bold text-ack-black mb-2">Citizen Time Savings</h4>
-                  <p className="text-ack-dark-gray text-sm mb-2">Citizens collectively save <span className="font-semibold text-ack-black">hundreds of hours</span> not having to watch full meeting recordings or wait for staff responses.</p>
-                  <p className="text-ack-dark-gray text-sm font-semibold text-ack-black">Impossible to quantify the transparency value</p>
+                  <h4 className="font-bold text-ack-black mb-2">Staff Time Savings</h4>
+                  <p className="text-ack-dark-gray text-sm mb-2">Staff search time saved: <span className="font-semibold text-ack-black">15 hrs/month × $35/hr = $525/month</span></p>
+                  <p className="text-ack-dark-gray text-sm">
+                    Annual savings: <span className="font-semibold text-ack-black">$6,300/year</span>
+                  </p>
                 </div>
 
-                <div className="border-t border-ack-blue/20 pt-6">
-                  <h4 className="font-bold text-ack-black mb-2">Transparency & Accountability</h4>
-                  <p className="text-ack-dark-gray text-sm">Improved civic engagement and informed decision-making. <span className="font-semibold text-ack-black">Pays for itself in transparency value alone.</span></p>
+                <div className="border-t border-ack-blue/20 pt-6 bg-ack-white rounded-lg p-4">
+                  <h4 className="font-bold text-ack-blue mb-2">Total Annual Value</h4>
+                  <p className="text-2xl font-bold text-ack-black mb-2">$21,300/year</p>
+                  <p className="text-sm text-ack-dark-gray">For a service that costs <span className="font-semibold text-ack-black">$42,000/year</span></p>
+                  <p className="text-sm text-ack-dark-gray mt-2 italic">This excludes transparency & engagement value</p>
                 </div>
               </div>
             </div>
@@ -404,76 +712,110 @@ export default function NantucketPitch() {
 
           <div className="bg-ack-white rounded-xl p-6 border border-ack-blue/20 text-center">
             <p className="text-ack-dark-gray">
-              <span className="font-semibold text-ack-black">Bottom line:</span> If town staff save just 5 hours/month searching old minutes at $35/hour = $175/month saved. Service pays for itself in staff efficiency + transparency benefits.
+              <span className="font-semibold text-ack-black">Bottom line:</span> You're already spending money on transcription and staff time searching records. We'll do both for less, and as a bonus, your residents get an AI-powered transparency tool.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Slide 6: Cost Comparison */}
+      {/* Slide 7: Cost Comparison */}
       <section
-        id="slide-5"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
+        id="slide-7"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
-            Cost Comparison
+            Competitive Positioning
           </h2>
 
-          <div className="bg-ack-white rounded-2xl overflow-hidden border-2 border-ack-blue/20">
+          <div className="bg-ack-white rounded-2xl overflow-hidden border-2 border-ack-blue/20 mb-8">
             <table className="w-full">
               <thead>
                 <tr className="bg-ack-blue text-white">
-                  <th className="text-left p-6 font-bold">Feature</th>
-                  <th className="text-left p-6 font-bold">Manual Transcription</th>
-                  <th className="text-left p-6 font-bold bg-ack-blue">AckIndex</th>
+                  <th className="text-left p-6 font-bold">Service</th>
+                  <th className="text-left p-6 font-bold">Cost</th>
+                  <th className="text-left p-6 font-bold">What You Get</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-ack-light-gray">
-                  <td className="p-6 font-semibold text-ack-black">Cost</td>
-                  <td className="p-6 text-ack-dark-gray">$75-150/hour<br/><span className="text-sm">(~$500-1,000 per 3hr meeting)</span></td>
-                  <td className="p-6 text-ack-blue font-bold bg-ack-blue/5">$3,500/month flat rate<br/><span className="text-sm text-ack-dark-gray">(unlimited meetings)</span></td>
+                  <td className="p-6 font-semibold text-ack-black">Traditional Transcription</td>
+                  <td className="p-6 text-ack-dark-gray">$100-150/hour<br/><span className="text-sm">(~$15,000/year)</span></td>
+                  <td className="p-6 text-ack-dark-gray">Text transcripts only, no search</td>
                 </tr>
                 <tr className="border-b border-ack-light-gray">
-                  <td className="p-6 font-semibold text-ack-black">Turnaround Time</td>
-                  <td className="p-6 text-ack-dark-gray">3-5 business days</td>
-                  <td className="p-6 text-ack-blue font-bold bg-ack-blue/5">Same day (automated)</td>
+                  <td className="p-6 font-semibold text-ack-black">Manual Staff Time</td>
+                  <td className="p-6 text-ack-dark-gray">$35/hr × 10-15 hrs/month<br/><span className="text-sm">(~$6,300/year)</span></td>
+                  <td className="p-6 text-ack-dark-gray">Inconsistent, diverts from core duties</td>
                 </tr>
-                <tr className="border-b border-ack-light-gray">
-                  <td className="p-6 font-semibold text-ack-black">Search Capability</td>
-                  <td className="p-6 text-ack-dark-gray">Manual Ctrl+F only</td>
-                  <td className="p-6 text-ack-blue font-bold bg-ack-blue/5">AI-powered semantic search</td>
-                </tr>
-                <tr className="border-b border-ack-light-gray">
-                  <td className="p-6 font-semibold text-ack-black">Citizen Access</td>
-                  <td className="p-6 text-ack-dark-gray">Must contact town staff</td>
-                  <td className="p-6 text-ack-blue font-bold bg-ack-blue/5">Instant 24/7 self-service</td>
-                </tr>
-                <tr className="border-b border-ack-light-gray">
-                  <td className="p-6 font-semibold text-ack-black">Staff Workload</td>
-                  <td className="p-6 text-ack-dark-gray">Manual searching required</td>
-                  <td className="p-6 text-ack-blue font-bold bg-ack-blue/5">Fully automated</td>
-                </tr>
-                <tr>
-                  <td className="p-6 font-semibold text-ack-black">Historical Archive</td>
-                  <td className="p-6 text-ack-dark-gray">Expensive to backfill</td>
-                  <td className="p-6 text-ack-blue font-bold bg-ack-blue/5">Add-on available</td>
+                <tr className="bg-ack-blue/5">
+                  <td className="p-6 font-semibold text-ack-blue">AckIndex</td>
+                  <td className="p-6 font-bold text-ack-blue">$3,500/month flat rate<br/><span className="text-sm text-ack-dark-gray">($42,000/year)</span></td>
+                  <td className="p-6 font-bold text-ack-black">Transcription + AI search + unlimited resident access + staff tools + analytics</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <div className="mt-8 text-center">
-            <p className="text-ack-dark-gray italic">Traditional transcription costs $6,000-12,000 annually for just monthly meetings. AckIndex: $42,000/year for unlimited meetings + AI search.</p>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-ack-light-gray rounded-xl p-8 border border-ack-blue/20">
+              <h3 className="text-xl font-bold text-ack-black mb-4">Example ROI Calculation</h3>
+              <div className="space-y-3 text-ack-dark-gray">
+                <p>
+                  <strong className="text-ack-black">Traditional transcription:</strong><br/>
+                  10 hrs/month × $125/hr = $1,250/month
+                </p>
+                <p>
+                  <strong className="text-ack-black">Staff search time saved:</strong><br/>
+                  15 hrs/month × $35/hr = $525/month
+                </p>
+                <p className="pt-3 border-t border-ack-blue/20">
+                  <strong className="text-ack-blue">Total monthly value:</strong> $1,775<br/>
+                  <span className="text-sm">(excluding transparency/engagement value)</span>
+                </p>
+                <p className="text-lg font-bold text-ack-black">
+                  Annual value: $21,300 for a $42,000/year service
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-ack-blue/10 rounded-xl p-8 border border-ack-blue/30">
+              <h3 className="text-xl font-bold text-ack-black mb-4">What Makes AckIndex Different</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray"><strong className="text-ack-black">Unlimited meetings:</strong> No per-meeting charges</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray"><strong className="text-ack-black">Same-day delivery:</strong> vs. 3-5 day traditional turnaround</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray"><strong className="text-ack-black">AI-powered search:</strong> Not just text, but semantic understanding</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-ack-dark-gray"><strong className="text-ack-black">Citizen transparency:</strong> Political win + staff time savings</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Slide 7: Security & Compliance */}
+      {/* Slide 8: Security & Compliance */}
       <section
-        id="slide-6"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
+        id="slide-8"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
@@ -760,9 +1102,9 @@ export default function NantucketPitch() {
         </div>
       </section>
 
-      {/* Slide 7: Historical Archive Options */}
+      {/* Slide 9: Historical Archive Options */}
       <section
-        id="slide-6"
+        id="slide-9"
         className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
       >
         <div className="max-w-5xl mx-auto">
@@ -877,9 +1219,9 @@ export default function NantucketPitch() {
         </div>
       </section>
 
-      {/* Slide 9: Zero-Risk Pilot Program */}
+      {/* Slide 10: Zero-Risk Pilot Program */}
       <section
-        id="slide-8"
+        id="slide-10"
         className="min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-ack-blue/5 to-ack-blue/10"
       >
         <div className="max-w-5xl mx-auto">
