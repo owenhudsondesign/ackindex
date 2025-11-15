@@ -1349,7 +1349,7 @@ export default function NantucketPitch() {
               Schedule a <span className="font-semibold text-ack-black">30-minute live demo</span> with Town Manager and IT Director to see the system working with actual Nantucket meetings from October and November 2025 (already indexed).
             </p>
             <div className="flex justify-center gap-4">
-              <a href="mailto:owenhudsondesign@gmail.com?subject=AckIndex%20Demo%20Request%20-%20Town%20of%20Nantucket" className="inline-block">
+              <a href="mailto:owen@ackindex.com?subject=AckIndex%20Demo%20Request%20-%20Town%20of%20Nantucket" className="inline-block">
                 <button className="bg-ack-blue hover:bg-ack-blue/90 text-white font-bold px-8 py-4 rounded-lg transition-colors">
                   Schedule Demo
                 </button>
@@ -1365,7 +1365,7 @@ export default function NantucketPitch() {
           <div className="bg-ack-blue/10 rounded-xl p-6 border border-ack-blue/30 text-center">
             <p className="text-ack-dark-gray">
               <span className="font-semibold text-ack-black">Contact:</span> Owen Hudson, Founder<br/>
-              <a href="mailto:owenhudsondesign@gmail.com" className="text-ack-blue hover:underline">owenhudsondesign@gmail.com</a> | <a href="https://ackindex.com" className="text-ack-blue hover:underline">ackindex.com</a>
+              <a href="mailto:owen@ackindex.com" className="text-ack-blue hover:underline">owen@ackindex.com</a> | <a href="https://ackindex.com" className="text-ack-blue hover:underline">ackindex.com</a>
             </p>
           </div>
         </div>
