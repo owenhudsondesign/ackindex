@@ -97,7 +97,7 @@ export default function NantucketPitch() {
       {/* Slide 1: Cover */}
       <section
         id="slide-0"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-ack-white to-ack-light-gray"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-ack-white to-ack-light-gray relative z-10"
       >
         <div className="max-w-4xl mx-auto text-center">
           <div className="mb-8 flex justify-center">
@@ -132,7 +132,7 @@ export default function NantucketPitch() {
       {/* Slide 2: The Challenge */}
       <section
         id="slide-1"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray relative z-10"
       >
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
@@ -194,7 +194,7 @@ export default function NantucketPitch() {
       {/* Slide 3: Solution */}
       <section
         id="slide-2"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white relative z-10"
       >
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-block bg-ack-blue/10 text-ack-blue px-4 py-2 rounded-full text-sm font-semibold mb-6">
@@ -266,7 +266,7 @@ export default function NantucketPitch() {
       {/* Slide 4: What the Town Contract Includes */}
       <section
         id="slide-3"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white relative z-10"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
@@ -453,7 +453,7 @@ export default function NantucketPitch() {
       {/* Slide 5: Meeting Transcription */}
       <section
         id="slide-4"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray relative z-10"
       >
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
@@ -530,7 +530,7 @@ export default function NantucketPitch() {
       {/* Slide 6: How AckIndex Pricing Works */}
       <section
         id="slide-5"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white relative z-10"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
@@ -642,7 +642,7 @@ export default function NantucketPitch() {
       {/* Slide 7: Transparent Pricing & ROI */}
       <section
         id="slide-6"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray relative z-10"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
@@ -736,7 +736,7 @@ export default function NantucketPitch() {
       {/* Slide 7: Cost Comparison */}
       <section
         id="slide-7"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white relative z-10"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
@@ -830,7 +830,7 @@ export default function NantucketPitch() {
       {/* Slide 8: Security & Compliance */}
       <section
         id="slide-8"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray relative z-10"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
@@ -1120,7 +1120,7 @@ export default function NantucketPitch() {
       {/* Slide 9: Historical Archive Options */}
       <section
         id="slide-9"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-white relative z-10"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-8 text-center">
@@ -1237,7 +1237,7 @@ export default function NantucketPitch() {
       {/* Slide 10: Zero-Risk Pilot Program */}
       <section
         id="slide-10"
-        className="min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-ack-blue/5 to-ack-blue/10"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-ack-blue/5 to-ack-blue/10 relative z-10"
       >
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-8 text-center">
