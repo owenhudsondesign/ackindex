@@ -53,7 +53,22 @@ export default function NantucketPitch() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-ack-white">
+    <div className="min-h-screen bg-ack-white relative">
+      {/* Subtle Grid Background - Light Mode */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgb(200 200 200 / 0.15) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(200 200 200 / 0.15) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%)
+          `,
+          backgroundSize: '40px 40px, 40px 40px, 100% 100%',
+          backgroundPosition: '0 0, 0 0, center',
+          zIndex: 0
+        }}
+      />
+
       {/* Navigation Dots */}
       <nav className="fixed right-8 top-1/2 -translate-y-1/2 z-50 hidden lg:block">
         <div className="flex flex-col gap-3">
