@@ -1118,7 +1118,7 @@ export default function NantucketPitch() {
 
           <div className="bg-ack-blue/5 rounded-xl p-6 mb-8 border border-ack-blue/20">
             <p className="text-ack-dark-gray text-center">
-              <span className="font-semibold text-ack-black">Proof of concept:</span> I've already transcribed October 2024's Select Board meetings — over 5,000 minutes of content now searchable on AckIndex.
+              <span className="font-semibold text-ack-black">Proof of concept:</span> I've already transcribed October and November 2025's Select Board meetings — over 5,000 minutes of content now searchable on AckIndex.
             </p>
           </div>
 
@@ -1248,7 +1248,7 @@ export default function NantucketPitch() {
                   <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>Index all November 2024 Select Board meetings</span>
+                  <span>Index all December 2025 Select Board meetings</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1346,7 +1346,7 @@ export default function NantucketPitch() {
           <div className="bg-ack-white rounded-xl p-8 mb-8 border-2 border-ack-blue/30">
             <h3 className="text-2xl font-bold text-ack-black mb-6 text-center">Next Step</h3>
             <p className="text-ack-dark-gray text-center mb-6">
-              Schedule a <span className="font-semibold text-ack-black">30-minute live demo</span> with Town Manager and IT Director to see the system working with actual Nantucket October 2024 meetings (already indexed).
+              Schedule a <span className="font-semibold text-ack-black">30-minute live demo</span> with Town Manager and IT Director to see the system working with actual Nantucket meetings from October and November 2025 (already indexed).
             </p>
             <div className="flex justify-center gap-4">
               <a href="mailto:owenhudsondesign@gmail.com?subject=AckIndex%20Demo%20Request%20-%20Town%20of%20Nantucket" className="inline-block">
