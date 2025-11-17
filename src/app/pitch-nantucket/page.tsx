@@ -102,7 +102,7 @@ export default function NantucketPitch() {
           </h1>
 
           <p className="text-xl md:text-2xl text-ack-dark-gray mb-12">
-            Professional AI Transcription + Citizen Transparency Platform
+            AI Transcription + Citizen Transparency Platform
           </p>
 
           <div className="inline-flex items-center gap-2 text-ack-dark-gray text-sm">
@@ -274,7 +274,7 @@ export default function NantucketPitch() {
                   <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span><strong>Professional-grade transcription</strong> of all Select Board meetings</span>
+                  <span><strong>AI transcription</strong> of all Select Board meetings</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -559,8 +559,8 @@ export default function NantucketPitch() {
             <div className="grid md:grid-cols-3 gap-6">
               <div className="bg-ack-white rounded-xl p-6 border border-ack-blue/30">
                 <p className="text-sm text-ack-dark-gray mb-2">Town pays:</p>
-                <p className="text-2xl font-bold text-ack-blue mb-3">$3,500/month</p>
-                <p className="text-sm text-ack-dark-gray">Professional transcription services + infrastructure</p>
+                <p className="text-2xl font-bold text-ack-blue mb-3">$2,500/month</p>
+                <p className="text-sm text-ack-dark-gray">AI transcription services + infrastructure</p>
               </div>
               <div className="bg-ack-white rounded-xl p-6 border border-ack-blue/30">
                 <p className="text-sm text-ack-dark-gray mb-2">Residents get:</p>
@@ -584,7 +584,7 @@ export default function NantucketPitch() {
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-ack-dark-gray">Professional meeting transcription service</span>
+                  <span className="text-ack-dark-gray">AI meeting transcription service</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -596,7 +596,7 @@ export default function NantucketPitch() {
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-ack-dark-gray">Official archival-quality records</span>
+                  <span className="text-ack-dark-gray">Searchable permanent records</span>
                 </div>
               </div>
               <div className="space-y-3">
@@ -638,38 +638,29 @@ export default function NantucketPitch() {
             {/* Pricing Card */}
             <div className="bg-ack-light-gray rounded-2xl p-8 border-2 border-ack-blue/30">
               <h3 className="text-2xl font-bold text-ack-black mb-6">Monthly Service</h3>
-              <div className="text-5xl font-bold text-ack-blue mb-6">$3,500<span className="text-2xl text-ack-dark-gray">/mo</span></div>
+              <div className="text-5xl font-bold text-ack-blue mb-6">$2,500<span className="text-2xl text-ack-dark-gray">/mo</span></div>
 
-              <div className="space-y-3 mb-6">
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <p className="text-ack-dark-gray">Automatic transcription of all Select Board meetings</p>
+              <div className="space-y-4 mb-6">
+                <div className="bg-white rounded-lg p-4 border border-ack-blue/20">
+                  <h4 className="font-semibold text-ack-black mb-2">Active Meeting Transcription</h4>
+                  <p className="text-sm text-ack-dark-gray mb-1">Automated AI transcription with timestamps</p>
+                  <p className="text-sm text-ack-blue font-semibold">$0.25/minute (~5,000 min/mo = $1,250)</p>
                 </div>
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <p className="text-ack-dark-gray">Unlimited AI search queries for staff & citizens</p>
+
+                <div className="bg-white rounded-lg p-4 border border-ack-blue/20">
+                  <h4 className="font-semibold text-ack-black mb-2">Hosting, Maintenance & Support</h4>
+                  <p className="text-sm text-ack-dark-gray mb-1">Cloud infrastructure, AI models, search interface, monitoring & technical support</p>
+                  <p className="text-sm text-ack-blue font-semibold">$1,250/month flat fee</p>
                 </div>
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <p className="text-ack-dark-gray">Monthly usage reports & analytics</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <p className="text-ack-dark-gray">Email support & transcription corrections</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <p className="text-ack-dark-gray">Same-day transcription availability</p>
+
+                <div className="bg-ack-blue/5 rounded-lg p-4 border border-ack-blue/20">
+                  <h4 className="font-semibold text-ack-black mb-2">Includes:</h4>
+                  <ul className="text-sm text-ack-dark-gray space-y-1">
+                    <li>• Unlimited AI search queries for staff & residents</li>
+                    <li>• Monthly usage reports & analytics</li>
+                    <li>• Email support & corrections</li>
+                    <li>• Same-day transcription availability</li>
+                  </ul>
                 </div>
               </div>
 
@@ -719,16 +710,45 @@ export default function NantucketPitch() {
                 <div className="border-t border-ack-blue/20 pt-6 bg-ack-white rounded-lg p-4">
                   <h4 className="font-bold text-ack-blue mb-2">Total Annual Value</h4>
                   <p className="text-2xl font-bold text-ack-black mb-2">$98,400/year</p>
-                  <p className="text-sm text-ack-dark-gray">For a service that costs <span className="font-semibold text-ack-black">$42,000/year</span></p>
-                  <p className="text-sm text-ack-dark-gray mt-2 italic">2.3x ROI — plus transparency & engagement value</p>
+                  <p className="text-sm text-ack-dark-gray">For a service that costs <span className="font-semibold text-ack-black">$30,000/year</span></p>
+                  <p className="text-sm text-ack-dark-gray mt-2 italic">3.3x ROI — plus transparency & engagement value</p>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Optional Add-On: Archival Backfill */}
+          <div className="bg-ack-blue/5 rounded-2xl p-8 mb-8 border-2 border-ack-blue/20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-ack-blue/10 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-ack-black">Optional Add-On: Archival Backfill</h3>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold text-ack-black mb-2">What It Is</h4>
+                <p className="text-sm text-ack-dark-gray mb-4">Bulk transcription of previous year's meeting recordings to create a searchable historical index within AckIndex.</p>
+
+                <h4 className="font-semibold text-ack-black mb-2">Pricing</h4>
+                <p className="text-sm text-ack-dark-gray mb-1"><span className="font-semibold text-ack-blue">$0.15 per minute</span> (40% discount from active rate)</p>
+                <p className="text-sm text-ack-dark-gray">60,000 minutes (≈1,000 hours) = <span className="font-semibold text-ack-black">$9,000 one-time project</span></p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-ack-black mb-2">Value</h4>
+                <p className="text-sm text-ack-dark-gray mb-3">Makes an entire year of prior meetings fully searchable, extending transparency beyond the current period and preserving historical records for residents, staff, and researchers.</p>
+                <p className="text-sm text-ack-dark-gray italic">Older years can be processed incrementally in future cycles.</p>
               </div>
             </div>
           </div>
 
           <div className="bg-ack-white rounded-xl p-6 border border-ack-blue/20 text-center">
             <p className="text-ack-dark-gray">
-              <span className="font-semibold text-ack-black">Bottom line:</span> You're already spending money on transcription and staff time searching records. We'll do both for less, and as a bonus, your residents get an AI-powered transparency tool.
+              <span className="font-semibold text-ack-black">Bottom line:</span> Predictable $30,000/year budget delivers transcription, search platform, and public transparency—all for less than traditional transcription alone.
             </p>
           </div>
         </div>
