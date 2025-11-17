@@ -683,26 +683,26 @@ export default function NantucketPitch() {
               <div className="space-y-6">
                 <div>
                   <h4 className="font-bold text-ack-black mb-2">Traditional Transcription Replacement</h4>
-                  <p className="text-ack-dark-gray text-sm mb-2">5 Select Board meetings/month at 2 hours each = 10 hours</p>
+                  <p className="text-ack-dark-gray text-sm mb-2">Based on October 2024 data: ~5,000 minutes/month = 83 hours</p>
                   <p className="text-ack-dark-gray text-sm mb-2">
-                    Traditional transcription: <span className="font-semibold text-ack-black">10 hrs × $125/hr = $1,250/month</span>
+                    Traditional transcription: <span className="font-semibold text-ack-black">83 hrs × $125/hr = $10,375/month</span>
                   </p>
                   <p className="text-ack-dark-gray text-sm">
-                    Annual cost: <span className="font-semibold text-ack-black">$15,000/year</span>
+                    Annual cost: <span className="font-semibold text-ack-black">$124,500/year</span>
                   </p>
                 </div>
 
                 <div className="border-t border-ack-blue/20 pt-6">
                   <h4 className="font-bold text-ack-black mb-2">Staff Time Savings</h4>
-                  <p className="text-ack-dark-gray text-sm mb-2">Staff search time saved: <span className="font-semibold text-ack-black">15 hrs/month × $35/hr = $525/month</span></p>
+                  <p className="text-ack-dark-gray text-sm mb-2">Staff search time saved: <span className="font-semibold text-ack-black">20 hrs/month × $35/hr = $700/month</span></p>
                   <p className="text-ack-dark-gray text-sm">
-                    Annual savings: <span className="font-semibold text-ack-black">$6,300/year</span>
+                    Annual savings: <span className="font-semibold text-ack-black">$8,400/year</span>
                   </p>
                 </div>
 
                 <div className="border-t border-ack-blue/20 pt-6 bg-ack-white rounded-lg p-4">
                   <h4 className="font-bold text-ack-blue mb-2">Total Annual Value</h4>
-                  <p className="text-2xl font-bold text-ack-black mb-2">$21,300/year</p>
+                  <p className="text-2xl font-bold text-ack-black mb-2">$132,900/year</p>
                   <p className="text-sm text-ack-dark-gray">For a service that costs <span className="font-semibold text-ack-black">$42,000/year</span></p>
                   <p className="text-sm text-ack-dark-gray mt-2 italic">This excludes transparency & engagement value</p>
                 </div>
