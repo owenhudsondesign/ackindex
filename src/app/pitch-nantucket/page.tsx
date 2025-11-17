@@ -682,13 +682,29 @@ export default function NantucketPitch() {
 
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-bold text-ack-black mb-2">Traditional Transcription Replacement</h4>
-                  <p className="text-ack-dark-gray text-sm mb-2">Based on October 2025 data: ~5,000 minutes/month = 83 hours</p>
+                  <h4 className="font-bold text-ack-black mb-2">Market Rate Comparison</h4>
+                  <p className="text-ack-dark-gray text-sm mb-3">Based on October 2025 data: ~5,000 minutes/month</p>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-ack-dark-gray text-sm">Human transcription (market avg):</span>
+                      <span className="font-semibold text-ack-black text-sm">$1.50-$3.00/min</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ack-dark-gray text-sm">AI transcription (market avg):</span>
+                      <span className="font-semibold text-ack-black text-sm">$0.05-$0.25/min</span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-ack-blue/20 pt-2">
+                      <span className="text-ack-blue text-sm font-semibold">AckIndex rate:</span>
+                      <span className="font-bold text-ack-blue text-sm">$0.75/min + search</span>
+                    </div>
+                  </div>
+
                   <p className="text-ack-dark-gray text-sm mb-2">
-                    Traditional transcription: <span className="font-semibold text-ack-black">83 hrs × $125/hr = $10,375/month</span>
+                    At market rates: <span className="font-semibold text-ack-black">5,000 min × $1.50/min = $7,500/month</span>
                   </p>
                   <p className="text-ack-dark-gray text-sm">
-                    Annual cost: <span className="font-semibold text-ack-black">$124,500/year</span>
+                    Annual cost at market: <span className="font-semibold text-ack-black">$90,000/year</span>
                   </p>
                 </div>
 
@@ -702,9 +718,9 @@ export default function NantucketPitch() {
 
                 <div className="border-t border-ack-blue/20 pt-6 bg-ack-white rounded-lg p-4">
                   <h4 className="font-bold text-ack-blue mb-2">Total Annual Value</h4>
-                  <p className="text-2xl font-bold text-ack-black mb-2">$132,900/year</p>
+                  <p className="text-2xl font-bold text-ack-black mb-2">$98,400/year</p>
                   <p className="text-sm text-ack-dark-gray">For a service that costs <span className="font-semibold text-ack-black">$42,000/year</span></p>
-                  <p className="text-sm text-ack-dark-gray mt-2 italic">This excludes transparency & engagement value</p>
+                  <p className="text-sm text-ack-dark-gray mt-2 italic">2.3x ROI — plus transparency & engagement value</p>
                 </div>
               </div>
             </div>
