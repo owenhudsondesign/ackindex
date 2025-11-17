@@ -683,7 +683,7 @@ export default function NantucketPitch() {
               <div className="space-y-6">
                 <div>
                   <h4 className="font-bold text-ack-black mb-2">Traditional Transcription Replacement</h4>
-                  <p className="text-ack-dark-gray text-sm mb-2">Based on October 2024 data: ~5,000 minutes/month = 83 hours</p>
+                  <p className="text-ack-dark-gray text-sm mb-2">Based on October 2025 data: ~5,000 minutes/month = 83 hours</p>
                   <p className="text-ack-dark-gray text-sm mb-2">
                     Traditional transcription: <span className="font-semibold text-ack-black">83 hrs × $125/hr = $10,375/month</span>
                   </p>
