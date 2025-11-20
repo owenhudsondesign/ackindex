@@ -582,11 +582,6 @@ export default function NantucketPitch() {
             <p className="text-lg opacity-95 max-w-3xl mx-auto">
               That's why <strong>every answer includes source citations</strong> — users can click through to verify information against the original meeting video. This transparency is RAG's greatest strength.
             </p>
-            <div className="mt-6 inline-block bg-white/20 px-6 py-3 rounded-lg">
-              <p className="text-sm font-semibold">
-                ⚖️ Our Commitment: Accuracy over perfection. Citations enable verification.
-              </p>
-            </div>
           </div>
         </div>
       </section>
