@@ -303,12 +303,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 4: Build context from retrieved chunks
-    const context = buildContext(results);
+    let context = buildContext(results);
     const citations = extractCitations(results);
+
+    // Add previous assistant message citations to context for follow-up questions
+    const previousCitations = conversationHistory
+      .filter((m: any) => m.role === 'assistant' && m.citations && m.citations.length > 0)
+      .slice(-2) // Get last 2 assistant messages
+      .flatMap((m: any) => m.citations);
+
+    if (previousCitations.length > 0) {
+      const previousContext = previousCitations
+        .map((cite: any, idx: number) => `[Previous Source ${idx + 1}] ${cite.title}: ${cite.snippet || ''}`)
+        .join('\n\n');
+
+      context = `${context}\n\n--- Previous Sources from Conversation History ---\n${previousContext}`;
+
+      log.info({
+        previousCitationsCount: previousCitations.length
+      }, 'Added previous citations to context for follow-up');
+    }
 
     log.info({
       citationsCount: citations.length,
-      contextLength: context.length
+      contextLength: context.length,
+      hasPreviousCitations: previousCitations.length > 0
     }, 'Built context from retrieved chunks');
 
     // Debug: Log detailed results info

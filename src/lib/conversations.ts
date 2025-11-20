@@ -306,17 +306,18 @@ export async function getRecentMessages(
   conversationId: string,
   userId: string,
   limit: number = 10
-): Promise<{ role: string; content: string }[]> {
+): Promise<{ role: string; content: string; citations?: any[] }[]> {
   try {
     const messages = await getConversationMessages(conversationId, userId);
 
     // Get the last N messages
     const recentMessages = messages.slice(-limit);
 
-    // Format for API context
+    // Format for API context, including citations for follow-up questions
     return recentMessages.map(msg => ({
       role: msg.role,
       content: msg.content,
+      citations: msg.citations || [],
     }));
   } catch (error) {
     logger.error({ err: error, conversationId }, 'Exception getting recent messages');
