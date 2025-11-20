@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults, deduplicateResults } from '@/lib/retrieval';
 import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
+import { generateFingerprint, getOrCreateAnonymousSession, recordAnonymousUsage, ANONYMOUS_TOKEN_LIMIT } from '@/lib/anonymousSession';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -117,63 +118,103 @@ export async function POST(request: NextRequest) {
 
     // Check if user is authenticated
     const user = await getUserFromRequest(request);
+
+    // Anonymous session tracking
+    let isAnonymous = false;
+    let anonymousFingerprint: string | undefined;
+    let anonymousSession: Awaited<ReturnType<typeof getOrCreateAnonymousSession>> | null = null;
+
     if (!user) {
-      log.warn('Unauthenticated chat request');
-      return NextResponse.json(
-        { error: 'Authentication required. Please sign up or log in to use the chatbot.' },
-        { status: 401 }
-      );
+      // No authenticated user - handle as anonymous
+      isAnonymous = true;
+      anonymousFingerprint = generateFingerprint(request);
+
+      log.info({ fingerprint: anonymousFingerprint }, 'Anonymous chat request');
+
+      // Get or create anonymous session
+      anonymousSession = await getOrCreateAnonymousSession(anonymousFingerprint);
+
+      if (!anonymousSession) {
+        log.error({ fingerprint: anonymousFingerprint }, 'Failed to create anonymous session');
+        return NextResponse.json(
+          { error: 'Unable to process request. Please try again.' },
+          { status: 500 }
+        );
+      }
+
+      // Check if anonymous user has tokens remaining
+      if (!anonymousSession.canQuery) {
+        log.info({ fingerprint: anonymousFingerprint, tokensUsed: anonymousSession.tokensUsed }, 'Anonymous user hit token limit');
+        return NextResponse.json(
+          {
+            error: 'Free trial limit reached',
+            message: `You've used all ${anonymousSession.tokensUsed} of your free trial tokens. Sign up for a free account to get 14x more queries (50,000 tokens/month)!`,
+            signupRequired: true,
+            isAnonymous: true,
+          },
+          { status: 429 } // Too Many Requests
+        );
+      }
+
+      log.info({ fingerprint: anonymousFingerprint, tokensRemaining: anonymousSession.tokensRemaining }, 'Anonymous user authorized to query');
+    } else {
+      // Authenticated user
+      log.setBindings({ userId: user.id, userEmail: user.email });
+      log.info('User authenticated successfully');
+
+      // Check if user has tokens remaining
+      const canQuery = await canUserQuery(user.id);
+      if (!canQuery) {
+        const dashboard = await getUserDashboard(user.id);
+        return NextResponse.json(
+          {
+            error: 'Token limit exceeded',
+            message: `You've used all ${dashboard?.tokens_used_this_month || 0} of your monthly tokens. Upgrade to Premium for unlimited access!`,
+            upgradeRequired: true,
+          },
+          { status: 429 } // Too Many Requests
+        );
+      }
+
+      log.info('User authorized to query');
     }
-
-    // Add user context to logger
-    log.setBindings({ userId: user.id, userEmail: user.email });
-    log.info('User authenticated successfully');
-
-    // Check if user has tokens remaining
-    const canQuery = await canUserQuery(user.id);
-    if (!canQuery) {
-      const dashboard = await getUserDashboard(user.id);
-      return NextResponse.json(
-        {
-          error: 'Token limit exceeded',
-          message: `You've used all ${dashboard?.tokens_used_this_month || 0} of your monthly tokens. Upgrade to Premium for unlimited access!`,
-          upgradeRequired: true,
-        },
-        { status: 429 } // Too Many Requests
-      );
-    }
-
-    log.info('User authorized to query');
 
     // Step 0: Handle conversation (PREMIUM ONLY FEATURE)
     let activeConversationId = conversationId;
     conversationHistory = [];
+    let isPremium = false;
+    let dashboard: Awaited<ReturnType<typeof getUserDashboard>> | null = null;
 
-    // Get user's subscription tier
-    const dashboard = await getUserDashboard(user.id);
-    const isPremium = dashboard?.subscription_tier === 'premium';
+    if (!isAnonymous && user) {
+      // Get user's subscription tier (only for authenticated users)
+      dashboard = await getUserDashboard(user.id);
+      isPremium = dashboard?.subscription_tier === 'premium';
 
-    if (isPremium) {
-      // Premium users get conversation history
-      if (!activeConversationId) {
-        // Create new conversation
-        const newConversation = await createConversation(user.id, 'New Conversation');
-        if (newConversation) {
-          activeConversationId = newConversation.id;
-          log.info({ conversationId: activeConversationId }, 'Created new conversation (premium)');
+      if (isPremium) {
+        // Premium users get conversation history
+        if (!activeConversationId) {
+          // Create new conversation
+          const newConversation = await createConversation(user.id, 'New Conversation');
+          if (newConversation) {
+            activeConversationId = newConversation.id;
+            log.info({ conversationId: activeConversationId }, 'Created new conversation (premium)');
+          }
+        } else {
+          // Load conversation history
+          conversationHistory = await getRecentMessages(activeConversationId, user.id, 8);
+          log.info({ conversationId: activeConversationId, historyLength: conversationHistory.length }, 'Loaded conversation history (premium)');
         }
       } else {
-        // Load conversation history
-        conversationHistory = await getRecentMessages(activeConversationId, user.id, 8);
-        log.info({ conversationId: activeConversationId, historyLength: conversationHistory.length }, 'Loaded conversation history (premium)');
+        // Free users: stateless queries (no conversation history)
+        log.info('Free user - stateless query mode');
       }
     } else {
-      // Free users: stateless queries (no conversation history)
-      log.info('Free user - stateless query mode');
+      // Anonymous users: stateless queries (no conversation history)
+      log.info('Anonymous user - stateless query mode');
     }
 
     // Step 1: Validate and sanitize user input (prevent prompt injection)
-    const validation = validateUserInput(message, user.id);
+    const validation = validateUserInput(message, user?.id || anonymousFingerprint || 'anonymous');
 
     if (!validation.isValid || validation.blocked) {
       logger.warn(
@@ -238,19 +279,21 @@ export async function POST(request: NextRequest) {
     if (!hasRelevant) {
       log.info('No relevant information found for query');
 
-      // Log query with no results for analytics
+      // Log query with no results for analytics (only for authenticated users)
       const responseTime = Date.now() - startTime;
-      logQuery({
-        user_id: user.id,
-        query_text: sanitizedMessage,
-        response_text: "No relevant information found",
-        tokens_used: 0,
-        response_time_ms: responseTime,
-        has_results: false,
-        num_citations: 0,
-      }).catch(err => {
-        log.error({ err }, 'Failed to log no-results query');
-      });
+      if (user) {
+        logQuery({
+          user_id: user.id,
+          query_text: sanitizedMessage,
+          response_text: "No relevant information found",
+          tokens_used: 0,
+          response_time_ms: responseTime,
+          has_results: false,
+          num_citations: 0,
+        }).catch(err => {
+          log.error({ err }, 'Failed to log no-results query');
+        });
+      }
 
       return NextResponse.json({
         response: "I don't have enough information in my database to answer that question. I can only provide information about content that has been uploaded to AckIndex. Please try asking about topics covered in the uploaded documents, or consider uploading more relevant content.",
@@ -339,7 +382,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Record usage in database
-    await recordUsage(user.id, inputTokens, outputTokens, costCents);
+    if (isAnonymous && anonymousFingerprint) {
+      await recordAnonymousUsage(anonymousFingerprint, totalTokens);
+    } else if (user) {
+      await recordUsage(user.id, inputTokens, outputTokens, costCents);
+    }
 
     log.info({
       totalTokens,
@@ -396,20 +443,45 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Log query for analytics (non-blocking)
-    logQuery({
-      user_id: user.id,
-      query_text: sanitizedMessage,
-      response_text: response,
-      tokens_used: totalTokens,
-      response_time_ms: responseTime,
-      has_results: true,
-      num_citations: citations.length,
-    }).catch(err => {
-      log.error({ err }, 'Failed to log query analytics');
-    });
+    // Log query for analytics (non-blocking) - only for authenticated users
+    if (user) {
+      logQuery({
+        user_id: user.id,
+        query_text: sanitizedMessage,
+        response_text: response,
+        tokens_used: totalTokens,
+        response_time_ms: responseTime,
+        has_results: true,
+        num_citations: citations.length,
+      }).catch(err => {
+        log.error({ err }, 'Failed to log query analytics');
+      });
+    } else {
+      // For anonymous users, just log to application logs (not user analytics)
+      log.info({ isAnonymous: true, tokensUsed: totalTokens, responseTime }, 'Anonymous query completed');
+    }
 
     log.info({ responseTime, conversationId: activeConversationId }, 'Request completed');
+
+    // Build usage stats
+    let usageStats;
+    if (isAnonymous && anonymousSession) {
+      // Refresh session to get updated usage
+      const updatedSession = await getOrCreateAnonymousSession(anonymousFingerprint!);
+      usageStats = {
+        tokensUsed: updatedSession?.tokensUsed || anonymousSession.tokensUsed + totalTokens,
+        tokensRemaining: Math.max(0, (updatedSession?.tokensRemaining || anonymousSession.tokensRemaining) - totalTokens),
+        monthlyLimit: ANONYMOUS_TOKEN_LIMIT,
+        isAnonymous: true,
+      };
+    } else {
+      usageStats = {
+        tokensUsed: totalTokens,
+        tokensRemaining: dashboard?.tokens_remaining || 0,
+        monthlyLimit: dashboard?.monthly_token_limit || 50000,
+        isAnonymous: false,
+      };
+    }
 
     return NextResponse.json({
       response,
@@ -417,17 +489,14 @@ export async function POST(request: NextRequest) {
       hasContext: true,
       conversationId: isPremium ? activeConversationId : undefined, // Only return conversationId for premium
       isPremium,
+      isAnonymous,
       stats: {
         chunksRetrieved: results.length,
         avgSimilarity: Math.round(
           results.reduce((sum, r) => sum + r.similarity, 0) / results.length * 100
         ),
       },
-      usage: {
-        tokensUsed: totalTokens,
-        tokensRemaining: dashboard?.tokens_remaining || 0,
-        monthlyLimit: dashboard?.monthly_token_limit || 15000,
-      },
+      usage: usageStats,
     });
   } catch (error) {
     log.error({ err: error }, 'Chat API error occurred');

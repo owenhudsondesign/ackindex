@@ -305,7 +305,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />
 
-      <div className="flex min-h-screen">
+      <div className="flex flex-1 overflow-hidden">
       {/* Conversation Sidebar - Always visible (shows upgrade for non-premium) */}
       {isSidebarOpen && (
         <div className="hidden lg:block transition-all duration-300">
@@ -320,7 +320,7 @@ export default function Home() {
       )}
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col relative bg-white dark:bg-gray-900 overflow-hidden">
+      <div className="flex-1 flex flex-col relative bg-white dark:bg-gray-900">
         {/* Sidebar Toggle Button - Always visible on desktop */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -530,9 +530,9 @@ export default function Home() {
   if (hasMessages) {
     // In chat mode: custom layout without footer, full height
     return (
-      <div className="h-[100dvh] md:h-screen flex flex-col overflow-hidden">
+      <div className="h-[100dvh] md:h-screen flex flex-col">
         <Header />
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-hidden min-h-0">
           {chatContent}
         </main>
       </div>
