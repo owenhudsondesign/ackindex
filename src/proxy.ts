@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   let res = NextResponse.next({
     request: {
       headers: req.headers,
@@ -58,7 +58,7 @@ export async function middleware(req: NextRequest) {
 
     // If not admin, redirect to home page
     if (error || !profile || profile.role !== 'admin') {
-      console.warn(`[Middleware] Non-admin user ${session.user.email} attempted to access ${req.nextUrl.pathname}`);
+      console.warn(`[Proxy] Non-admin user ${session.user.email} attempted to access ${req.nextUrl.pathname}`);
       const redirectUrl = req.nextUrl.clone();
       redirectUrl.pathname = '/';
       redirectUrl.searchParams.set('error', 'admin_required');
@@ -69,7 +69,7 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-// Configure which routes use this middleware
+// Configure which routes use this proxy
 export const config = {
   matcher: '/admin/:path*',
 };
