@@ -6,6 +6,12 @@ import ThemeProvider from "@/components/ThemeProvider";
 export const metadata: Metadata = {
   title: "AckIndex - Search Nantucket Town Meetings Instantly",
   description: "AI-powered search for Nantucket town meetings. Find decisions, votes, and discussions in seconds with timestamped transcripts from all boards.",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
   keywords: [
     "Nantucket town meetings",
     "Nantucket Select Board",

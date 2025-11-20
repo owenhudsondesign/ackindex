@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import PageLayout from '@/components/PageLayout';
+import Header from '@/components/Header';
 import Image from 'next/image';
 import ChatInput from '@/components/ChatInput';
 import ChatDialogue from '@/components/ChatDialogue';
@@ -319,7 +320,7 @@ export default function Home() {
       )}
 
       {/* Main Chat Area */}
-      <div className={`flex-1 flex flex-col items-center py-8 relative bg-white dark:bg-gray-900 ${!hasMessages ? 'justify-center min-h-screen' : 'justify-start'}`}>
+      <div className="flex-1 flex flex-col relative bg-white dark:bg-gray-900 overflow-hidden">
         {/* Sidebar Toggle Button - Always visible on desktop */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -371,68 +372,61 @@ export default function Home() {
             zIndex: 0
           }}
         />
-        <div className="w-full max-w-3xl px-4 relative z-10">
-          {/* Badge - only show when no messages */}
-          {!hasMessages && (
-            <div className="flex justify-center mb-8">
-              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200 text-center">
-                AI-Powered Meeting Search for&nbsp;Local&nbsp;Government
-              </span>
-            </div>
-          )}
+        {/* Empty State - Landing page content (centered when no messages) */}
+        {!hasMessages && (
+          <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 overflow-y-auto">
+            <div className="w-full max-w-3xl relative z-10">
+              {/* Badge */}
+              <div className="flex justify-center mb-8">
+                <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200 text-center">
+                  AI-Powered Meeting Search for&nbsp;Local&nbsp;Government
+                </span>
+              </div>
 
-          {/* Logo - only show when no messages */}
-          {!hasMessages && (
-            <div className="flex justify-center mb-6">
-              {/* Light mode logo */}
-              <Image
-                src="/logo.svg"
-                alt="AckIndex"
-                width={200}
-                height={53}
-                priority
-                className="h-12 w-auto block dark:hidden"
-              />
-              {/* Dark mode logo */}
-              <Image
-                src="/logo-white.svg"
-                alt="AckIndex"
-                width={200}
-                height={53}
-                priority
-                className="h-12 w-auto hidden dark:block"
-              />
-            </div>
-          )}
+              {/* Logo */}
+              <div className="flex justify-center mb-6">
+                {/* Light mode logo */}
+                <Image
+                  src="/logo.svg"
+                  alt="AckIndex"
+                  width={200}
+                  height={53}
+                  priority
+                  className="h-12 w-auto block dark:hidden"
+                />
+                {/* Dark mode logo */}
+                <Image
+                  src="/logo-white.svg"
+                  alt="AckIndex"
+                  width={200}
+                  height={53}
+                  priority
+                  className="h-12 w-auto hidden dark:block"
+                />
+              </div>
 
-          {/* Heading - only show when no messages */}
-          {!hasMessages && (
-            <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
-              {/* Mobile version */}
-              <span className="inline md:hidden">
-                <span className="text-gray-900 dark:text-white">Search Every</span>
-                <br />
-                <span className="text-gray-900 dark:text-white">Nantucket Town Meeting </span>
-                <span className="text-ack-blue dark:text-blue-300">Instantly</span>
-              </span>
-              {/* Desktop version */}
-              <span className="hidden md:inline">
-                <span className="text-gray-900 dark:text-white">Search Every Nantucket Town Meeting </span>
-                <span className="text-ack-blue dark:text-blue-300">Instantly</span>
-              </span>
-            </h1>
-          )}
+              {/* Heading */}
+              <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
+                {/* Mobile version */}
+                <span className="inline md:hidden">
+                  <span className="text-gray-900 dark:text-white">Search Every</span>
+                  <br />
+                  <span className="text-gray-900 dark:text-white">Nantucket Town Meeting </span>
+                  <span className="text-ack-blue dark:text-blue-300">Instantly</span>
+                </span>
+                {/* Desktop version */}
+                <span className="hidden md:inline">
+                  <span className="text-gray-900 dark:text-white">Search Every Nantucket Town Meeting </span>
+                  <span className="text-ack-blue dark:text-blue-300">Instantly</span>
+                </span>
+              </h1>
 
-          {/* Subheading - only show when no messages */}
-          {!hasMessages && (
-            <p className="text-center text-gray-700 dark:text-gray-300 mb-8 max-w-lg mx-auto">
-              AI-powered transcription and search for Nantucket town meetings. Find decisions, votes, and discussions in seconds—not hours.
-            </p>
-          )}
+              {/* Subheading */}
+              <p className="text-center text-gray-700 dark:text-gray-300 mb-8 max-w-lg mx-auto">
+                AI-powered transcription and search for Nantucket town meetings. Find decisions, votes, and discussions in seconds—not hours.
+              </p>
 
-          {/* Authentication Status - only show when no messages */}
-          {!hasMessages && (
-            <>
+              {/* Authentication Status */}
               {authLoading ? (
                 <div className="flex justify-center mb-6">
                   <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -495,12 +489,8 @@ export default function Home() {
                   </div>
                 </div>
               )}
-            </>
-          )}
 
-          {/* Chat Input - only show when no messages */}
-          {!hasMessages && (
-            <>
+              {/* Chat Input */}
               <ChatInput
                 onSubmit={handleSubmit}
                 isLoading={isLoading}
@@ -515,27 +505,41 @@ export default function Home() {
               <p className="text-center text-xs text-gray-500 dark:text-gray-500 mt-3 max-w-2xl mx-auto">
                 <strong>Disclaimer:</strong> AI transcriptions may contain errors. Always verify quotes and information against original source recordings before publishing or making decisions.
               </p>
-            </>
-          )}
 
-          {/* Chat Dialogue or Empty State */}
-          {hasMessages ? (
-            <ChatDialogue
-              messages={messages}
-              isVisible={hasMessages}
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-            />
-          ) : (
-            <EmptyState onQuestionClick={handleSubmit} />
-          )}
-        </div>
+              {/* Empty State Examples */}
+              <EmptyState onQuestionClick={handleSubmit} />
+            </div>
+          </div>
+        )}
+
+        {/* Chat Interface - Full height with messages (ChatGPT-style) */}
+        {hasMessages && (
+          <ChatDialogue
+            messages={messages}
+            isVisible={hasMessages}
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+          />
+        )}
       </div>
     </div>
     </>
   );
 
-  // Always wrap with PageLayout to keep nav bar visible
+  // Conditionally wrap with PageLayout - use custom layout for chat mode
+  if (hasMessages) {
+    // In chat mode: custom layout without footer, full height
+    return (
+      <div className="h-[100dvh] md:h-screen flex flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {chatContent}
+        </main>
+      </div>
+    );
+  }
+
+  // Landing page mode: standard PageLayout with footer
   return <PageLayout>{chatContent}</PageLayout>;
 }
 
