@@ -1406,6 +1406,148 @@ export default function NantucketPitch() {
         </div>
       </section>
 
+      {/* New Slide: Future Expansion Possibilities */}
+      <section
+        id="slide-future"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-ack-blue/10 text-ack-blue px-4 py-2 rounded-full text-sm font-semibold mb-6">
+              Looking Ahead
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-6">
+              Future Expansion Possibilities
+            </h2>
+            <p className="text-xl text-ack-dark-gray max-w-3xl mx-auto">
+              Once meeting transcription is established, AckIndex can expand to become a comprehensive searchable archive of all town documents and records.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            {/* Document Types */}
+            <div className="bg-white rounded-xl p-8 border-2 border-ack-blue/20">
+              <h3 className="text-2xl font-bold text-ack-black mb-6 flex items-center gap-3">
+                <span className="text-3xl">📁</span>
+                Additional Document Types
+              </h3>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">Town Reports & Studies</p>
+                    <p className="text-sm text-ack-dark-gray">Annual reports, feasibility studies, impact assessments</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">Planning & Zoning Documents</p>
+                    <p className="text-sm text-ack-dark-gray">Bylaws, zoning maps, site plans, variance applications</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">Budget & Financial Records</p>
+                    <p className="text-sm text-ack-dark-gray">Annual budgets, financial statements, audit reports</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">Policy Documents</p>
+                    <p className="text-sm text-ack-dark-gray">Employee handbooks, procedure manuals, contract templates</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-ack-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">Historical Archives</p>
+                    <p className="text-sm text-ack-dark-gray">Town charters, historical bylaws, archived correspondence</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            {/* Benefits */}
+            <div className="bg-white rounded-xl p-8 border-2 border-ack-blue/20">
+              <h3 className="text-2xl font-bold text-ack-black mb-6 flex items-center gap-3">
+                <span className="text-3xl">🎯</span>
+                Expansion Benefits
+              </h3>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">One-Stop Search</p>
+                    <p className="text-sm text-ack-dark-gray">Find any town document from a single search interface</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">Cross-Reference Power</p>
+                    <p className="text-sm text-ack-dark-gray">Connect related information across different document types</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">Staff Efficiency</p>
+                    <p className="text-sm text-ack-dark-gray">Reduce time spent searching for reference documents</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">Comprehensive Transparency</p>
+                    <p className="text-sm text-ack-dark-gray">Make all public records easily discoverable by residents</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-ack-black">Institutional Knowledge</p>
+                    <p className="text-sm text-ack-dark-gray">Preserve organizational memory as personnel change</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="bg-ack-blue/10 rounded-xl p-8 border border-ack-blue/30 text-center">
+            <h3 className="text-xl font-bold text-ack-black mb-4">Phase-Based Approach</h3>
+            <p className="text-ack-dark-gray max-w-3xl mx-auto mb-4">
+              Document expansion can be implemented gradually after meeting transcription is established. Start with the most valuable document types and expand based on staff feedback and usage patterns.
+            </p>
+            <p className="text-sm text-ack-dark-gray italic">
+              This roadmap ensures the town gets immediate value from meeting transcription while building toward a comprehensive knowledge management system.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Slide 10: Zero-Risk Pilot Program */}
       <section
         id="slide-10"
@@ -1533,7 +1675,7 @@ export default function NantucketPitch() {
           <div className="bg-ack-white rounded-xl p-8 mb-8 border-2 border-ack-blue/30">
             <h3 className="text-2xl font-bold text-ack-black mb-6 text-center">Next Step</h3>
             <p className="text-ack-dark-gray text-center mb-6">
-              Schedule a <span className="font-semibold text-ack-black">30-minute live demo</span> with Town Manager and IT Director to see the system working with actual Nantucket meetings from October and November 2025 (already indexed).
+              Schedule a <span className="font-semibold text-ack-black">30-minute live demo</span> with Town Manager and IT Director to see the system in action with real Nantucket meeting transcripts.
             </p>
             <div className="flex justify-center gap-4">
               <a href="mailto:owen@ackindex.com?subject=AckIndex%20Demo%20Request%20-%20Town%20of%20Nantucket" className="inline-block">
