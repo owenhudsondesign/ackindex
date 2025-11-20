@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.isValid || validation.blocked) {
       logger.warn(
-        { userId: user.id, reason: validation.reason, warnings: validation.warnings },
+        { userId: user?.id || anonymousFingerprint || 'anonymous', reason: validation.reason, warnings: validation.warnings },
         'User input blocked due to security violation'
       );
 
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
 
     // Log warnings if any suspicious patterns detected
     if (validation.warnings.length > 0) {
-      logger.info({ userId: user.id, warnings: validation.warnings }, 'Suspicious input patterns detected');
+      logger.info({ userId: user?.id || anonymousFingerprint || 'anonymous', warnings: validation.warnings }, 'Suspicious input patterns detected');
     }
 
     // Use sanitized input for the rest of the processing
@@ -355,10 +355,10 @@ export async function POST(request: NextRequest) {
     const responseValidation = validateAIResponse(rawResponse);
 
     if (!responseValidation.isValid) {
-      logger.error({ userId: user.id }, 'AI response contained system prompt leak');
+      logger.error({ userId: user?.id || anonymousFingerprint || 'anonymous' }, 'AI response contained system prompt leak');
       captureException(new Error('AI response validation failed'), {
         tags: { endpoint: '/api/chat', issue: 'prompt-leak' },
-        extra: { userId: user.id },
+        extra: { userId: user?.id || anonymousFingerprint || 'anonymous' },
       });
     }
 
@@ -400,7 +400,7 @@ export async function POST(request: NextRequest) {
 
     // Save messages to conversation (PREMIUM ONLY) - AWAIT to ensure completion
     let messagesSaved = false;
-    if (isPremium && activeConversationId) {
+    if (isPremium && activeConversationId && user) {
       try {
         log.info({ conversationId: activeConversationId, isPremium, hasHistory: conversationHistory.length > 0 }, 'Starting to save conversation messages');
 
