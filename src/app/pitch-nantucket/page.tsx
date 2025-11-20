@@ -1218,7 +1218,8 @@ export default function NantucketPitch() {
                     <h4 className="text-xl font-bold text-ack-black mb-2">Data-Driven Insights</h4>
                     <p className="text-ack-dark-gray">
                       See what topics residents search for most. Understand community priorities and inform communication strategies.
-                  </p>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
