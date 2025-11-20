@@ -203,7 +203,7 @@ export default function NantucketPitch() {
                     <div className="w-8 h-8 bg-ack-dark-gray rounded-full flex-shrink-0"></div>
                     <div className="flex-1">
                       <div className="bg-ack-white rounded-lg p-3 text-sm text-ack-black border border-ack-blue/20">
-                        What did the Select Board decide about short-term rental regulations?
+                        What's the status of the new community center project?
                       </div>
                     </div>
                   </div>
@@ -214,10 +214,10 @@ export default function NantucketPitch() {
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <div className="bg-ack-blue/10 border border-ack-blue/30 rounded-lg p-3 text-sm text-ack-black">
-                        The Select Board voted 4-1 to approve new short-term rental regulations requiring registration and limiting rentals to 90 days per year...
-                        <div className="mt-2 text-xs text-ack-blue font-medium">
-                          📄 Source: Select Board Meeting, March 15, 2024 [12:34]
+                      <div className="bg-ack-blue/10 border border-ack-blue/30 rounded-lg p-3 text-sm text-ack-black leading-relaxed">
+                        The Planning Board approved the community center design on February 28, 2024.<sup className="text-ack-blue font-semibold">[1]</sup> The project budget was set at $12.5 million<sup className="text-ack-blue font-semibold">[2]</sup>, with construction expected to begin in Summer 2024.<sup className="text-ack-blue font-semibold">[3]</sup> The facility will include a gymnasium, meeting rooms, and a senior center.<sup className="text-ack-blue font-semibold">[1]</sup>
+                        <div className="mt-3 pt-3 border-t border-ack-blue/20 text-xs text-ack-dark-gray">
+                          <span className="font-medium">💡 Click citations to view sources</span>
                         </div>
                       </div>
                     </div>
