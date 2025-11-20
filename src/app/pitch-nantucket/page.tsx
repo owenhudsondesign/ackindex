@@ -97,12 +97,16 @@ export default function NantucketPitch() {
           </div>
 
           <h1 className="text-5xl md:text-6xl font-bold text-ack-black mb-6">
-            Official Meeting Transcription Services
-            <span className="block text-ack-blue mt-2">for Town of Nantucket</span>
+            Making Nantucket's Government<br/>
+            <span className="text-ack-blue">Accessible to Everyone</span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-ack-dark-gray mb-12">
-            AI Transcription + Citizen Transparency Platform
+          <p className="text-xl md:text-2xl text-ack-dark-gray mb-8 max-w-3xl mx-auto">
+            The Select Board has identified language accessibility as a priority for improving civic engagement. AckIndex makes every town meeting instantly accessible in any language, 24/7.
+          </p>
+
+          <p className="text-lg text-ack-dark-gray mb-12 max-w-2xl mx-auto">
+            No more waiting for translations. No more reading through hundred-page transcripts. Citizens ask questions in their native language and get instant answers with exact meeting timestamps.
           </p>
 
           <div className="inline-flex items-center gap-2 text-ack-dark-gray text-sm">
@@ -120,58 +124,68 @@ export default function NantucketPitch() {
         className="min-h-screen flex items-center justify-center px-4 py-20 bg-ack-light-gray"
       >
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-12 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-8 text-center">
             The Challenge
           </h2>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-ack-white p-8 rounded-2xl border-2 border-ack-blue/20">
-              <div className="w-12 h-12 bg-ack-blue rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <p className="text-xl text-ack-dark-gray mb-12 text-center max-w-3xl mx-auto">
+            Nantucket's government meetings contain crucial information about zoning, permits, development, and town decisions. But accessing this information is difficult.
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-ack-white p-6 rounded-xl border-2 border-ack-blue/30">
+              <div className="w-10 h-10 bg-ack-blue/10 rounded-lg flex items-center justify-center mb-3">
+                <svg className="w-5 h-5 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-ack-black mb-3">Buried Information</h3>
-              <p className="text-ack-dark-gray">
-                Meeting transcripts are hundreds of pages long. Finding specific discussions about permits, zoning, or town decisions requires reading through entire documents.
+              <h3 className="text-lg font-bold text-ack-black mb-2">Meeting Transcripts Are Hundreds of Pages Long</h3>
+              <p className="text-sm text-ack-dark-gray">
+                Finding specific discussions about permits or zoning buried in dense PDFs
               </p>
             </div>
 
-            <div className="bg-ack-white p-8 rounded-2xl border-2 border-ack-blue/20">
-              <div className="w-12 h-12 bg-ack-blue rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-ack-white p-6 rounded-xl border-2 border-ack-blue/30">
+              <div className="w-10 h-10 bg-ack-blue/10 rounded-lg flex items-center justify-center mb-3">
+                <svg className="w-5 h-5 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-ack-black mb-3">Staff Time Drain</h3>
-              <p className="text-ack-dark-gray">
-                Town staff spend hours answering "What was decided about X?" questions, searching through old meeting minutes manually.
+              <h3 className="text-lg font-bold text-ack-black mb-2">Important Discussions Get Lost</h3>
+              <p className="text-sm text-ack-dark-gray">
+                Critical decisions about development and town policy are hard to track over time
               </p>
             </div>
 
-            <div className="bg-ack-white p-8 rounded-2xl border-2 border-ack-blue/20">
-              <div className="w-12 h-12 bg-ack-blue rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-ack-black mb-3">Limited Transparency</h3>
-              <p className="text-ack-dark-gray">
-                Citizens want to know what their government is doing, but dense PDF transcripts discourage engagement and civic participation.
-              </p>
-            </div>
-
-            <div className="bg-ack-white p-8 rounded-2xl border-2 border-ack-blue/20">
-              <div className="w-12 h-12 bg-ack-blue rounded-lg flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-ack-white p-6 rounded-xl border-2 border-ack-blue/30">
+              <div className="w-10 h-10 bg-ack-blue/10 rounded-lg flex items-center justify-center mb-3">
+                <svg className="w-5 h-5 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-ack-black mb-3">Language Barriers</h3>
-              <p className="text-ack-dark-gray">
-                Non-English speaking residents struggle to access meeting information, limiting participation from the full community.
+              <h3 className="text-lg font-bold text-ack-black mb-2">Non-English Speakers Struggle to Participate</h3>
+              <p className="text-sm text-ack-dark-gray">
+                Language barriers prevent full community engagement in civic matters
               </p>
             </div>
+
+            <div className="bg-ack-white p-6 rounded-xl border-2 border-ack-blue/30">
+              <div className="w-10 h-10 bg-ack-blue/10 rounded-lg flex items-center justify-center mb-3">
+                <svg className="w-5 h-5 text-ack-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-ack-black mb-2">Dense PDFs Discourage Civic Engagement</h3>
+              <p className="text-sm text-ack-dark-gray">
+                Current meeting records make transparency and engagement goals difficult to achieve
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 bg-ack-blue/10 rounded-xl p-6 border border-ack-blue/30 text-center">
+            <p className="text-ack-dark-gray">
+              <span className="font-semibold text-ack-black">The Select Board has identified</span> language accessibility and civic engagement as priorities — but current meeting records make both goals difficult to achieve.
+            </p>
           </div>
         </div>
       </section>
