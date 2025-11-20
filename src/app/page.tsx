@@ -379,7 +379,7 @@ export default function Home() {
               {/* Badge */}
               <div className="flex justify-center mb-8">
                 <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-ack-blue/10 dark:bg-ack-blue/20 text-ack-blue dark:text-blue-200 text-center">
-                  AI-Powered Meeting Search for&nbsp;Local&nbsp;Government
+                  Making Local Government Accessible to Everyone
                 </span>
               </div>
 
@@ -409,21 +409,22 @@ export default function Home() {
               <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
                 {/* Mobile version */}
                 <span className="inline md:hidden">
-                  <span className="text-gray-900 dark:text-white">Search Every</span>
+                  <span className="text-gray-900 dark:text-white">Ask Questions</span>
                   <br />
-                  <span className="text-gray-900 dark:text-white">Nantucket Town Meeting </span>
-                  <span className="text-ack-blue dark:text-blue-300">Instantly</span>
+                  <span className="text-gray-900 dark:text-white">About Town Meetings</span>
+                  <br />
+                  <span className="text-ack-blue dark:text-blue-300">In Any Language</span>
                 </span>
                 {/* Desktop version */}
                 <span className="hidden md:inline">
-                  <span className="text-gray-900 dark:text-white">Search Every Nantucket Town Meeting </span>
-                  <span className="text-ack-blue dark:text-blue-300">Instantly</span>
+                  <span className="text-gray-900 dark:text-white">Ask Questions About Town Meetings </span>
+                  <span className="text-ack-blue dark:text-blue-300">In Any Language</span>
                 </span>
               </h1>
 
               {/* Subheading */}
-              <p className="text-center text-gray-700 dark:text-gray-300 mb-8 max-w-lg mx-auto">
-                AI-powered transcription and search for Nantucket town meetings. Find decisions, votes, and discussions in seconds—not hours.
+              <p className="text-center text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+                AI-powered civic engagement platform for Nantucket. Get instant answers about meetings, decisions, and votes — with exact timestamps and source citations. Available in English, Spanish, Portuguese, and 100+ languages.
               </p>
 
               {/* Authentication Status */}
@@ -498,7 +499,7 @@ export default function Home() {
 
               {/* Helper text */}
               <p className="text-center text-xs text-gray-600 dark:text-gray-400 mt-4">
-                Ask questions about any Nantucket town meeting. Get timestamped quotes you can verify in the source video.
+                Ask in any language. Get instant answers with exact meeting timestamps and verifiable sources.
               </p>
 
               {/* Disclaimer */}
