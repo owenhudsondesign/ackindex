@@ -1672,25 +1672,6 @@ export default function NantucketPitch() {
             </div>
           </div>
 
-          <div className="bg-ack-white rounded-xl p-8 mb-8 border-2 border-ack-blue/30">
-            <h3 className="text-2xl font-bold text-ack-black mb-6 text-center">Next Step</h3>
-            <p className="text-ack-dark-gray text-center mb-6">
-              Schedule a <span className="font-semibold text-ack-black">30-minute live demo</span> with Town Manager and IT Director to see the system in action with real Nantucket meeting transcripts.
-            </p>
-            <div className="flex justify-center gap-4">
-              <a href="mailto:owen@ackindex.com?subject=AckIndex%20Demo%20Request%20-%20Town%20of%20Nantucket" className="inline-block">
-                <button className="bg-ack-blue hover:bg-ack-blue/90 text-white font-bold px-8 py-4 rounded-lg transition-colors">
-                  Schedule Demo
-                </button>
-              </a>
-              <a href="https://ackindex.com" target="_blank" rel="noopener noreferrer" className="inline-block">
-                <button className="bg-ack-white hover:bg-ack-light-gray text-ack-blue border-2 border-ack-blue font-bold px-8 py-4 rounded-lg transition-colors">
-                  Try Live Site
-                </button>
-              </a>
-            </div>
-          </div>
-
           <div className="bg-ack-blue/10 rounded-xl p-6 border border-ack-blue/30 text-center">
             <p className="text-ack-dark-gray">
               <span className="font-semibold text-ack-black">Contact:</span> Owen Hudson, Founder<br/>
