@@ -9,8 +9,64 @@ interface ChatMessageProps {
   isLoading?: boolean;
 }
 
+// Helper function to render content with inline citation links
+function renderContentWithCitations(content: string, citations?: Citation[]) {
+  if (!citations || citations.length === 0) {
+    return <span>{content}</span>;
+  }
+
+  // Find all citation markers like [1], [2], etc.
+  const citationRegex = /\[(\d+)\]/g;
+  const parts: (string | JSX.Element)[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = citationRegex.exec(content)) !== null) {
+    const citationNumber = parseInt(match[1], 10);
+    const citation = citations.find(c => (c.index ?? citations.indexOf(c) + 1) === citationNumber);
+
+    // Add text before the citation
+    if (match.index > lastIndex) {
+      parts.push(content.substring(lastIndex, match.index));
+    }
+
+    // Add citation as clickable superscript link
+    if (citation && citation.url) {
+      parts.push(
+        <a
+          key={`citation-${citationNumber}-${match.index}`}
+          href={citation.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-baseline text-ack-blue dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 no-underline hover:underline font-semibold"
+          title={citation.title}
+        >
+          <sup className="text-xs">[{citationNumber}]</sup>
+        </a>
+      );
+    } else {
+      // Fallback if no URL
+      parts.push(
+        <sup key={`citation-${citationNumber}-${match.index}`} className="text-xs text-ack-blue dark:text-blue-400">
+          [{citationNumber}]
+        </sup>
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.substring(lastIndex));
+  }
+
+  return <>{parts}</>;
+}
+
 export default function ChatMessage({ role, content, citations, isLoading }: ChatMessageProps) {
   const [showSources, setShowSources] = useState(false);
+
   if (role === 'user') {
     return (
       <div className="flex justify-end mb-4">
@@ -36,9 +92,9 @@ export default function ChatMessage({ role, content, citations, isLoading }: Cha
               <span className="text-sm">Searching documents...</span>
             </div>
           ) : (
-            <p className="text-sm md:text-base text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">
-              {content}
-            </p>
+            <div className="text-sm md:text-base text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">
+              {renderContentWithCitations(content, citations)}
+            </div>
           )}
         </div>
 

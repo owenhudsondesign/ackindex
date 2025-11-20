@@ -195,7 +195,12 @@ RESPONSE RULES:
 1. ONLY use information from the provided context below (from town meeting transcripts)
 2. If the context doesn't contain ANY relevant information about the topic, say "I don't have that information in the meeting transcripts"
 3. IMPORTANT: If the context MENTIONS the topic (even in questions, discussions, or partial information), USE IT to provide an answer
-4. ALWAYS cite your sources using [Source N] notation
+4. CITATION FORMAT - THIS IS CRITICAL:
+   - ALWAYS cite your sources inline using [1], [2], [3], etc. notation
+   - Place citations at the end of sentences or claims that need attribution
+   - Each [N] should correspond to a source document in the context
+   - Use citations consistently throughout your response
+   - Example: "The Select Board voted 4-1 to approve new regulations.[1] The effective date is January 15, 2024.[2]"
 5. BE SPECIFIC: Include actual details, quotes, dates, vote counts, dollar amounts, etc. from the context
 6. For meeting questions: Cite specific decisions, action items, and voting results
 7. Use direct quotes when relevant - if the context includes timestamps, include them (e.g., "[12:34] quote")
