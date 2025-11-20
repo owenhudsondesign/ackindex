@@ -435,6 +435,162 @@ export default function NantucketPitch() {
         </div>
       </section>
 
+      {/* New Slide: RAG Technology & Accuracy */}
+      <section
+        id="slide-rag"
+        className="min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-ack-blue/5 via-white to-ack-blue/10"
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-ack-blue/10 text-ack-blue px-4 py-2 rounded-full text-sm font-semibold mb-6">
+              Technology Deep Dive
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-ack-black mb-6">
+              How RAG Technology
+              <span className="block text-ack-blue mt-2">Ensures Accurate Answers</span>
+            </h2>
+            <p className="text-xl text-ack-dark-gray max-w-3xl mx-auto">
+              AckIndex uses Retrieval Augmented Generation (RAG) — a proven AI architecture that dramatically reduces hallucinations by grounding every answer in your actual meeting transcripts.
+            </p>
+          </div>
+
+          {/* RAG Process Visualization */}
+          <div className="bg-white rounded-2xl p-8 mb-8 border-2 border-ack-blue/20 shadow-lg">
+            <h3 className="text-2xl font-bold text-ack-black mb-6 text-center">How RAG Works</h3>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-6">
+              {/* Step 1: Retrieval */}
+              <div className="relative">
+                <div className="bg-ack-blue/10 rounded-xl p-6 border-2 border-ack-blue/30 h-full">
+                  <div className="w-12 h-12 bg-ack-blue rounded-full flex items-center justify-center mb-4 mx-auto">
+                    <span className="text-white font-bold text-xl">1</span>
+                  </div>
+                  <h4 className="font-bold text-ack-black mb-3 text-center">🔍 Retrieval</h4>
+                  <p className="text-sm text-ack-dark-gray text-center">
+                    Your question searches through <strong>all meeting transcripts</strong> to find the most relevant passages
+                  </p>
+                </div>
+                {/* Arrow for desktop */}
+                <div className="hidden md:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-ack-blue text-3xl">
+                  →
+                </div>
+              </div>
+
+              {/* Step 2: Augmentation */}
+              <div className="relative">
+                <div className="bg-ack-blue/10 rounded-xl p-6 border-2 border-ack-blue/30 h-full">
+                  <div className="w-12 h-12 bg-ack-blue rounded-full flex items-center justify-center mb-4 mx-auto">
+                    <span className="text-white font-bold text-xl">2</span>
+                  </div>
+                  <h4 className="font-bold text-ack-black mb-3 text-center">📚 Augmentation</h4>
+                  <p className="text-sm text-ack-dark-gray text-center">
+                    Retrieved passages are <strong>injected directly</strong> into the AI's context as source material
+                  </p>
+                </div>
+                {/* Arrow for desktop */}
+                <div className="hidden md:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-ack-blue text-3xl">
+                  →
+                </div>
+              </div>
+
+              {/* Step 3: Generation */}
+              <div>
+                <div className="bg-ack-blue/10 rounded-xl p-6 border-2 border-ack-blue/30 h-full">
+                  <div className="w-12 h-12 bg-ack-blue rounded-full flex items-center justify-center mb-4 mx-auto">
+                    <span className="text-white font-bold text-xl">3</span>
+                  </div>
+                  <h4 className="font-bold text-ack-black mb-3 text-center">✨ Generation</h4>
+                  <p className="text-sm text-ack-dark-gray text-center">
+                    AI writes an answer <strong>based only on the retrieved text</strong>, citing exact sources
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-ack-blue/5 rounded-lg p-4 border border-ack-blue/20">
+              <p className="text-sm text-ack-dark-gray text-center">
+                <strong className="text-ack-blue">Key Difference:</strong> Unlike ChatGPT (which generates from memory), RAG answers are <em>constrained</em> to only use your actual meeting transcripts as source material.
+              </p>
+            </div>
+          </div>
+
+          {/* Hallucination Comparison */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Without RAG */}
+            <div className="bg-red-50 rounded-xl p-6 border-2 border-red-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xl">✕</span>
+                </div>
+                <h4 className="font-bold text-red-900">Without RAG (Standard AI)</h4>
+              </div>
+              <ul className="space-y-2 text-sm text-red-900">
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>AI generates answers from its training data (may be outdated or generic)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span><strong>High hallucination risk:</strong> AI may "make up" plausible-sounding facts</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>No source citations or verification possible</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">•</span>
+                  <span>Cannot access your specific meeting content</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* With RAG */}
+            <div className="bg-green-50 rounded-xl p-6 border-2 border-green-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xl">✓</span>
+                </div>
+                <h4 className="font-bold text-green-900">With RAG (AckIndex)</h4>
+              </div>
+              <ul className="space-y-2 text-sm text-green-900">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">•</span>
+                  <span>AI answers strictly from retrieved meeting transcripts</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">•</span>
+                  <span><strong>Minimizes hallucinations:</strong> AI can only use information that actually exists in your meetings</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">•</span>
+                  <span>Every answer includes source citations with timestamps</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">•</span>
+                  <span>Users can verify answers against original video</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Accuracy Statement */}
+          <div className="bg-ack-blue text-white rounded-2xl p-8 text-center">
+            <h3 className="text-2xl font-bold mb-4">Does RAG Eliminate Hallucinations?</h3>
+            <p className="text-lg opacity-95 mb-4 max-w-3xl mx-auto">
+              RAG <strong>dramatically reduces</strong> hallucinations but doesn't eliminate them entirely. The AI can still misinterpret transcript text or make minor errors.
+            </p>
+            <p className="text-lg opacity-95 max-w-3xl mx-auto">
+              That's why <strong>every answer includes source citations</strong> — users can click through to verify information against the original meeting video. This transparency is RAG's greatest strength.
+            </p>
+            <div className="mt-6 inline-block bg-white/20 px-6 py-3 rounded-lg">
+              <p className="text-sm font-semibold">
+                ⚖️ Our Commitment: Accuracy over perfection. Citations enable verification.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Slide 5: Meeting Transcription */}
       <section
         id="slide-4"
