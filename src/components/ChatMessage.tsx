@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import { Citation } from '@/lib/types';
 import { useState } from 'react';
 
@@ -17,7 +18,7 @@ function renderContentWithCitations(content: string, citations?: Citation[]) {
 
   // Find all citation markers like [1], [2], etc.
   const citationRegex = /\[(\d+)\]/g;
-  const parts: (string | JSX.Element)[] = [];
+  const parts: (string | React.ReactElement)[] = [];
   let lastIndex = 0;
   let match;
 
