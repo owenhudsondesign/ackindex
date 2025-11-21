@@ -193,20 +193,6 @@ function AccountContent() {
                 )}
               </div>
 
-              {!isPremium && (
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Upgrade to Premium
-                  </h3>
-                  <p className="text-gray-700 dark:text-gray-200 mb-4">
-                    Get unlimited tokens, priority support, and early access to new
-                    features for just $9.99/month.
-                  </p>
-                  <Link href="/pricing">
-                    <Button>Upgrade Now</Button>
-                  </Link>
-                </div>
-              )}
 
               {isPremium && (
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
@@ -300,14 +286,8 @@ function AccountContent() {
                 {!isPremium && usagePercentage > 80 && (
                   <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
                     <p className="text-sm text-yellow-900 dark:text-yellow-100">
-                      ⚠️ You're running low on tokens! Upgrade to Premium for
-                      unlimited usage.
+                      ⚠️ You're running low on tokens!
                     </p>
-                    <Link href="/pricing">
-                      <Button size="sm" className="mt-2">
-                        View Plans
-                      </Button>
-                    </Link>
                   </div>
                 )}
               </div>
@@ -364,11 +344,6 @@ function AccountContent() {
                     Go to Chatbot
                   </Button>
                 </Link>
-                {!isPremium && (
-                  <Link href="/pricing" className="block">
-                    <Button fullWidth>Upgrade to Premium</Button>
-                  </Link>
-                )}
                 <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                   <button
                     onClick={async () => {

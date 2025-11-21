@@ -59,14 +59,6 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/pricing"
-                  className="text-sm text-gray-700 dark:text-gray-200 hover:text-ack-blue dark:hover:text-blue-300 transition-colors"
-                >
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/account"
                   className="text-sm text-gray-700 dark:text-gray-200 hover:text-ack-blue dark:hover:text-blue-300 transition-colors"
                 >

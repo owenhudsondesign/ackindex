@@ -162,9 +162,9 @@ export default function ConversationSidebar({
         )}
       </div>
 
-      {/* Premium Badge or Upgrade CTA - Sticky Bottom */}
-      <div className="flex-shrink-0 sticky bottom-0 z-10 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-800/50 p-4">
-        {isPremium ? (
+      {/* Premium Badge - Sticky Bottom */}
+      {isPremium && (
+        <div className="flex-shrink-0 sticky bottom-0 z-10 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-800/50 p-4">
           <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
             <span className="text-base">✨</span>
             <div className="flex-grow">
@@ -176,20 +176,8 @@ export default function ConversationSidebar({
               </p>
             </div>
           </div>
-        ) : (
-          <div className="text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Upgrade for chat history
-            </p>
-            <Link
-              href="/pricing"
-              className="block w-full px-4 py-2 text-sm font-medium text-gray-900 dark:text-gray-900 bg-white hover:bg-gray-50 rounded-lg transition-all shadow-sm border border-gray-200"
-            >
-              Upgrade
-            </Link>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 

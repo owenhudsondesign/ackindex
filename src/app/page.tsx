@@ -214,11 +214,11 @@ export default function Home() {
       
       if (error instanceof Error) {
         if (error.message === 'AUTHENTICATION_REQUIRED') {
-          errorContent = "🔐 **Please sign up or log in to use the chatbot.**\n\nTo ask questions about Nantucket civic documents, you'll need to create a free account. This helps us track usage and provide better service.\n\n[Sign up here](/signup) or [log in](/login) to get started!";
+          errorContent = "🔐 **Please sign up or log in to use the chatbot.**\n\nTo ask questions about Nantucket civic documents, you'll need to create an account. This helps us track usage and provide better service.\n\n[Sign up here](/signup) or [log in](/login) to get started!";
         } else if (error.message === 'TOKEN_LIMIT_EXCEEDED') {
-          errorContent = "📊 **You've reached your monthly token limit.**\n\nFree accounts get 50,000 tokens per month (~35-50 questions). Upgrade to Premium for unlimited access!\n\n[Upgrade to Premium](/pricing) to continue asking questions.";
+          errorContent = "📊 **You've reached your monthly token limit.**\n\nPlease contact us if you need additional access.";
         } else if (error.message.includes('Token limit exceeded')) {
-          errorContent = "📊 **You've reached your monthly token limit.**\n\nFree accounts get 50,000 tokens per month (~35-50 questions). Upgrade to Premium for unlimited access!\n\n[Upgrade to Premium](/pricing) to continue asking questions.";
+          errorContent = "📊 **You've reached your monthly token limit.**\n\nPlease contact us if you need additional access.";
         }
       }
 
