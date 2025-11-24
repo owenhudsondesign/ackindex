@@ -423,8 +423,8 @@ export async function POST(request: NextRequest) {
         issues: verification.issues,
       }, 'Response BLOCKED due to hallucination risk');
 
-      // Log the blocked response for analysis
-      await supabase.from('verification_logs').insert({
+      // Log the blocked response for analysis (fire-and-forget, don't block response)
+      Promise.resolve(supabase.from('verification_logs').insert({
         query_text: sanitizedMessage,
         response_text: response,
         user_id: user?.id || null,
@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
         retrieval_similarity: results[0]?.similarity || 0,
         num_citations: citations.length,
         response_time_ms: Date.now() - startTime,
-      }).catch(err => log.error({ err }, 'Failed to log blocked response'));
+      })).catch(err => log.error({ err }, 'Failed to log blocked response'));
 
       // Return fallback instead of potentially hallucinated response
       return NextResponse.json({
@@ -452,8 +452,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Log successful verification
-    await supabase.from('verification_logs').insert({
+    // Log successful verification (fire-and-forget, don't block response)
+    Promise.resolve(supabase.from('verification_logs').insert({
       query_text: sanitizedMessage,
       response_text: response,
       user_id: user?.id || null,
@@ -469,10 +469,10 @@ export async function POST(request: NextRequest) {
       retrieval_similarity: results[0]?.similarity || 0,
       num_citations: citations.length,
       response_time_ms: Date.now() - startTime,
-    }).catch(err => log.error({ err }, 'Failed to log verification'));
+    })).catch(err => log.error({ err }, 'Failed to log verification'));
 
-    // Record metrics for anti-hallucination dashboard
-    await supabase.rpc('record_query_metrics', {
+    // Record metrics for anti-hallucination dashboard (fire-and-forget)
+    Promise.resolve(supabase.rpc('record_query_metrics', {
       p_has_citations: citations.length > 0,
       p_has_results: true,
       p_avg_similarity: avgSimilarity,
@@ -480,7 +480,7 @@ export async function POST(request: NextRequest) {
       p_is_verified: verification.isValid,
       p_is_blocked: false,
       p_verification_issues: verification.issues,
-    }).catch(err => log.error({ err }, 'Failed to record query metrics'));
+    })).catch(err => log.error({ err }, 'Failed to record query metrics'));
 
     // Track usage
     const inputTokens = completion.usage?.prompt_tokens || 0;

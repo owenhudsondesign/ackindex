@@ -126,6 +126,7 @@ export default function VideoUploadForm() {
       sessionId: null,
       error: null,
       videoId: null,
+      canResume: false,
     });
   };
 
@@ -223,7 +224,7 @@ export default function VideoUploadForm() {
 
         // Save state for resume
         saveUploadState({
-          sessionId,
+          sessionId: sessionId!,
           filename: selectedFile!.name,
           fileSize: selectedFile!.size,
           mimeType: selectedFile!.type,
@@ -555,7 +556,7 @@ export default function VideoUploadForm() {
 
           <div className="border-t border-gray-200 pt-6">
             <button
-              onClick={handleUpload}
+              onClick={() => handleUpload()}
               disabled={!meetingDate || !meetingTitle}
               className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium transition-colors"
             >

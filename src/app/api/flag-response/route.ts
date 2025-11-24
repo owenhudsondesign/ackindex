@@ -124,8 +124,8 @@ export async function POST(request: NextRequest) {
 
     log.info({ flagId: flag.id }, 'Response flagged successfully');
 
-    // Update metrics: increment flagged_responses for current hour
-    await supabase.rpc('record_flagged_response').catch(err => {
+    // Update metrics: increment flagged_responses for current hour (fire-and-forget)
+    Promise.resolve(supabase.rpc('record_flagged_response')).catch(err => {
       log.error({ err }, 'Failed to update flagged response metrics');
     });
 
