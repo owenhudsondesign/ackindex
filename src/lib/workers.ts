@@ -81,6 +81,9 @@ interface ScrapingJobData {
   videoId?: string;
   transcriptId?: string; // AssemblyAI transcript ID to poll
   fileName?: string;
+  // Meeting video processing options
+  storagePath?: string;
+  storageUrl?: string;
 }
 
 // Interface for embedding job data
@@ -729,6 +732,272 @@ async function processLongVideoJob(
 }
 
 /**
+ * Process meeting video job handler
+ * Downloads video from storage, extracts audio, uploads to AssemblyAI, and processes transcript
+ */
+async function processMeetingVideoJob(
+  data: ScrapingJobData,
+  job: Job
+) {
+  const { videoId, documentId, storageUrl, storagePath } = data;
+
+  if (!videoId || !documentId || !storageUrl) {
+    throw new Error('Missing required fields for meeting video processing');
+  }
+
+  const log = workerLogger.child({ jobId: job.id, videoId, documentId });
+
+  try {
+    log.info('Starting meeting video processing');
+    await job.updateProgress(5);
+
+    // Update meeting_videos status
+    await supabaseAdmin
+      .from('meeting_videos')
+      .update({
+        processing_status: 'processing',
+        transcription_status: 'processing',
+      })
+      .eq('id', videoId);
+
+    // Get video metadata
+    const { data: video } = await supabaseAdmin
+      .from('meeting_videos')
+      .select('meeting_title, meeting_date, meeting_description, original_filename')
+      .eq('id', videoId)
+      .single();
+
+    if (!video) {
+      throw new Error('Video not found');
+    }
+
+    log.info({ video }, 'Video metadata fetched');
+    await job.updateProgress(10);
+
+    // Download video from storage (supports both Bunny and Supabase)
+    log.info('Downloading video from storage URL');
+
+    let buffer: Buffer;
+
+    // Determine storage provider and download accordingly
+    const { data: videoRecord } = await supabaseAdmin
+      .from('meeting_videos')
+      .select('storage_provider, storage_url, storage_path')
+      .eq('id', videoId)
+      .single();
+
+    if (videoRecord?.storage_provider === 'bunny' || !storagePath) {
+      // Download from Bunny CDN via HTTP
+      log.info({ url: storageUrl }, 'Downloading from Bunny.net');
+      const videoResponse = await fetch(storageUrl);
+
+      if (!videoResponse.ok) {
+        throw new Error(`Failed to download video from Bunny: ${videoResponse.status}`);
+      }
+
+      buffer = Buffer.from(await videoResponse.arrayBuffer());
+    } else {
+      // Legacy: Download from Supabase Storage
+      log.info({ path: storagePath }, 'Downloading from Supabase Storage');
+      const { data: videoBlob, error: downloadError } = await supabaseAdmin.storage
+        .from('meeting-videos')
+        .download(storagePath!);
+
+      if (downloadError || !videoBlob) {
+        throw new Error(`Failed to download video: ${downloadError?.message}`);
+      }
+
+      buffer = Buffer.from(await videoBlob.arrayBuffer());
+    }
+
+    // Save to temp file
+    const tempDir = os.tmpdir();
+    const tempVideoPath = path.join(tempDir, `meeting_video_${videoId}.mp4`);
+    fs.writeFileSync(tempVideoPath, buffer);
+
+    log.info({ tempVideoPath, size: buffer.length }, 'Video downloaded to temp file');
+    await job.updateProgress(20);
+
+    // Upload to AssemblyAI and start transcription
+    log.info('Starting AssemblyAI transcription');
+    const { AssemblyAI } = await import('assemblyai');
+    const client = new AssemblyAI({
+      apiKey: process.env.ASSEMBLYAI_API_KEY || '',
+    });
+
+    // Upload video file
+    const uploadUrl = await client.files.upload(tempVideoPath);
+    log.info({ uploadUrl }, 'Video uploaded to AssemblyAI');
+    await job.updateProgress(30);
+
+    // Start transcription with best quality settings
+    const transcript = await client.transcripts.transcribe({
+      audio: uploadUrl,
+
+      // Core settings
+      speech_model: 'best',          // Highest quality model
+      speaker_labels: true,          // Speaker diarization
+      language_code: 'en_us',
+
+      // Accuracy enhancements
+      punctuate: true,               // Auto punctuation
+      format_text: true,             // Proper formatting
+
+      // Enhanced features (no additional cost!)
+      auto_highlights: true,         // Extract key moments
+      entity_detection: true,        // Detect names, dates, locations
+      sentiment_analysis: true,      // Understand tone/sentiment
+      iab_categories: true,          // Topic categorization
+      content_safety: true,          // Flag sensitive content
+
+      // Boost accuracy for town meeting terms
+      word_boost: [
+        'Select Board',
+        'Town Meeting',
+        'Planning Board',
+        'Zoning Board',
+        'Board of Selectmen',
+        'Town Manager',
+        'Town Administrator',
+        'Town Clerk',
+        'Acton',  // Add your town name if applicable
+      ],
+      boost_param: 'high',           // Maximum boost for custom terms
+    });
+
+    log.info({ transcriptId: transcript.id, status: transcript.status }, 'Transcription started');
+
+    // Update video with transcript ID
+    await supabaseAdmin
+      .from('meeting_videos')
+      .update({ transcription_job_id: transcript.id })
+      .eq('id', videoId);
+
+    await job.updateProgress(40);
+
+    // Poll for completion
+    log.info('Polling for transcription completion');
+    let attempts = 0;
+    const maxAttempts = 360; // 30 minutes
+    let finalTranscript = transcript;
+
+    while (attempts < maxAttempts && finalTranscript.status !== 'completed' && finalTranscript.status !== 'error') {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s
+      finalTranscript = await client.transcripts.get(transcript.id);
+
+      const progress = Math.min(40 + (attempts / maxAttempts) * 40, 80);
+      await job.updateProgress(progress);
+      attempts++;
+    }
+
+    if (finalTranscript.status === 'error') {
+      throw new Error(`Transcription failed: ${finalTranscript.error}`);
+    }
+
+    if (finalTranscript.status !== 'completed') {
+      throw new Error('Transcription timed out');
+    }
+
+    log.info({ duration: finalTranscript.audio_duration }, 'Transcription completed');
+    await job.updateProgress(85);
+
+    // Convert to our format
+    const transcription = {
+      fullText: finalTranscript.text || '',
+      segments: (finalTranscript.utterances || []).map((utterance: any) => ({
+        text: utterance.text,
+        start: utterance.start / 1000, // ms to seconds
+        end: utterance.end / 1000,
+        speaker: parseInt(utterance.speaker.replace('Speaker ', '')) || undefined,
+        confidence: utterance.confidence,
+      })),
+      totalDuration: (finalTranscript.audio_duration || 0) / 1000,
+    };
+
+    // Store transcript
+    log.info('Storing transcript in database');
+    const videoInfo = {
+      title: video.meeting_title,
+      channel: 'Town Meeting Recording',
+      publishedAt: video.meeting_date,
+      description: video.meeting_description || '',
+    };
+
+    await storeLongVideoTranscript(documentId, null, transcription, videoInfo);
+
+    // Update video record
+    await supabaseAdmin
+      .from('meeting_videos')
+      .update({
+        duration_seconds: Math.floor(transcription.totalDuration),
+        processing_status: 'completed',
+        transcription_status: 'completed',
+        processed_at: new Date().toISOString(),
+      })
+      .eq('id', videoId);
+
+    await job.updateProgress(90);
+
+    // Queue embedding generation
+    log.info('Queuing embedding generation');
+    const { embeddingQueue } = await import('./queues');
+
+    const { data: chunks } = await supabaseAdmin
+      .from('document_chunks')
+      .select('id, content')
+      .eq('document_id', documentId)
+      .is('embedding', null)
+      .limit(1000);
+
+    if (chunks && chunks.length > 0) {
+      await embeddingQueue.add('generate-embeddings', { chunks });
+      log.info({ chunkCount: chunks.length }, 'Queued embedding generation');
+    }
+
+    // Cleanup temp file
+    try {
+      fs.unlinkSync(tempVideoPath);
+    } catch (cleanupError) {
+      log.warn({ err: cleanupError }, 'Failed to cleanup temp file');
+    }
+
+    await job.updateProgress(100);
+    log.info('Meeting video processing completed successfully');
+
+    return {
+      videoId,
+      documentId,
+      duration: transcription.totalDuration,
+      segmentCount: transcription.segments.length,
+    };
+
+  } catch (error) {
+    log.error({ err: error }, 'Meeting video processing failed');
+
+    // Mark video and document as failed
+    try {
+      await supabaseAdmin
+        .from('meeting_videos')
+        .update({
+          processing_status: 'failed',
+          transcription_status: 'failed',
+          transcription_error: error instanceof Error ? error.message : 'Unknown error',
+        })
+        .eq('id', videoId);
+
+      await markDocumentFailed(
+        documentId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    } catch (updateError) {
+      log.error({ err: updateError }, 'Failed to mark as failed');
+    }
+
+    throw error;
+  }
+}
+
+/**
  * Scraping Worker
  * Processes web scraping jobs and YouTube video processing
  */
@@ -741,7 +1010,10 @@ export const scrapingWorker = new Worker<ScrapingJobData>(
     console.log(`📋 Job data:`, JSON.stringify(job.data, null, 2));
 
     // Check job name to determine which processor to use
-    if (job.name === 'process-youtube-video') {
+    if (job.name === 'process-meeting-video') {
+      console.log(`✅ [WORKER] Job identified as meeting video processing`);
+      return await processMeetingVideoJob(job.data, job);
+    } else if (job.name === 'process-youtube-video') {
       console.log(`✅ [WORKER] Job identified as YouTube video processing`);
 
       if (!url) {
