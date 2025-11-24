@@ -8,6 +8,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { captureException, setUserContext } from '@/lib/sentry';
 import { validateUserInput, createSecureSystemPrompt, validateAIResponse } from '@/lib/promptSecurity';
+import { verifyResponse, shouldBlockResponse } from '@/lib/antiHallucination';
 import logger from '@/lib/logger';
 import { logQuery } from '@/lib/analytics';
 import { createConversation, addMessage, getRecentMessages, autoGenerateTitle, updateConversationTitle } from '@/lib/conversations';
@@ -241,8 +242,8 @@ export async function POST(request: NextRequest) {
 
     // Step 2: Retrieve relevant chunks
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
-      maxResults: 10, // Get more results to deduplicate
-      minSimilarity: 0.68, // Lowered threshold to capture more candidates (will be filtered by hasRelevantResults)
+      maxResults: 15, // Increased to allow more high-quality sources (no 3-source limit)
+      minSimilarity: 0.78, // Anti-hallucination requirement: high confidence threshold
       includeDocumentInfo: true,
       searchMode: 'semantic',
     });
@@ -272,8 +273,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 3: Check if we have relevant information
-    // Using 0.72 threshold: accepts if top result >= 0.72 OR if 2+ results >= 0.68
-    const hasRelevant = hasRelevantResults(results, 0.72);
+    // Using 0.78 threshold: high confidence requirement for anti-hallucination
+    const hasRelevant = hasRelevantResults(results, 0.78);
     log.info({ hasRelevant, topSimilarity: results[0]?.similarity }, 'Checked relevance of results');
 
     if (!hasRelevant) {
@@ -388,6 +389,98 @@ export async function POST(request: NextRequest) {
       responseLength: response.length,
       responseValid: responseValidation.isValid
     }, 'Generated LLM response successfully');
+
+    // ANTI-HALLUCINATION: Multi-layer verification
+    const avgSimilarity = results.reduce((sum, r) => sum + r.similarity, 0) / results.length;
+    const verification = await verifyResponse(
+      sanitizedMessage,
+      response,
+      context,
+      citations,
+      { skipCrossModel: false } // Enable cross-model verification for maximum accuracy
+    );
+
+    log.info({
+      verificationValid: verification.isValid,
+      verificationConfidence: verification.confidence,
+      issuesCount: verification.issues.length,
+      warningsCount: verification.warnings.length,
+    }, 'Completed anti-hallucination verification');
+
+    // Log verification details
+    if (verification.issues.length > 0) {
+      log.warn({ issues: verification.issues }, 'Verification issues detected');
+    }
+    if (verification.warnings.length > 0) {
+      log.info({ warnings: verification.warnings }, 'Verification warnings detected');
+    }
+
+    // Block response if verification fails critical checks
+    if (shouldBlockResponse(verification)) {
+      log.error({
+        userId: user?.id || anonymousFingerprint,
+        query: sanitizedMessage,
+        issues: verification.issues,
+      }, 'Response BLOCKED due to hallucination risk');
+
+      // Log the blocked response for analysis
+      await supabase.from('verification_logs').insert({
+        query_text: sanitizedMessage,
+        response_text: response,
+        user_id: user?.id || null,
+        is_valid: false,
+        confidence: verification.confidence,
+        issues: verification.issues,
+        warnings: verification.warnings,
+        citations_present: verification.details.citationsPresent,
+        numbers_verified: verification.details.numbersVerified,
+        no_speculation: verification.details.noSpeculation,
+        facts_grounded: verification.details.factsGrounded,
+        cross_model_verified: verification.details.crossModelVerified,
+        retrieval_similarity: results[0]?.similarity || 0,
+        num_citations: citations.length,
+        response_time_ms: Date.now() - startTime,
+      }).catch(err => log.error({ err }, 'Failed to log blocked response'));
+
+      // Return fallback instead of potentially hallucinated response
+      return NextResponse.json({
+        response: "I found information that might be relevant, but I cannot verify its accuracy with high confidence. To avoid providing incorrect information, I recommend checking the original source documents directly or rephrasing your question.",
+        citations: citations, // Still show sources so user can check manually
+        hasContext: true,
+        blocked: true,
+        verificationIssues: verification.issues,
+      });
+    }
+
+    // Log successful verification
+    await supabase.from('verification_logs').insert({
+      query_text: sanitizedMessage,
+      response_text: response,
+      user_id: user?.id || null,
+      is_valid: verification.isValid,
+      confidence: verification.confidence,
+      issues: verification.issues,
+      warnings: verification.warnings,
+      citations_present: verification.details.citationsPresent,
+      numbers_verified: verification.details.numbersVerified,
+      no_speculation: verification.details.noSpeculation,
+      facts_grounded: verification.details.factsGrounded,
+      cross_model_verified: verification.details.crossModelVerified,
+      retrieval_similarity: results[0]?.similarity || 0,
+      num_citations: citations.length,
+      response_time_ms: Date.now() - startTime,
+    }).catch(err => log.error({ err }, 'Failed to log verification'));
+
+    // Record metrics for anti-hallucination dashboard
+    await supabase.rpc('record_query_metrics', {
+      p_has_citations: citations.length > 0,
+      p_has_results: true,
+      p_avg_similarity: avgSimilarity,
+      p_confidence: verification.confidence,
+      p_is_verified: verification.isValid,
+      p_is_blocked: false,
+      p_verification_issues: verification.issues,
+    }).catch(err => log.error({ err }, 'Failed to record query metrics'));
 
     // Track usage
     const inputTokens = completion.usage?.prompt_tokens || 0;
@@ -516,6 +609,13 @@ export async function POST(request: NextRequest) {
         ),
       },
       usage: usageStats,
+      // Anti-hallucination metadata
+      verification: {
+        confidence: verification.confidence,
+        isValid: verification.isValid,
+        warnings: verification.warnings,
+        details: verification.details,
+      },
     });
   } catch (error) {
     log.error({ err: error }, 'Chat API error occurred');

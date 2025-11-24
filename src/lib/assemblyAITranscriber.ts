@@ -64,12 +64,40 @@ export async function transcribeWithAssemblyAI(
     const uploadUrl = await client.files.upload(audioFilePath);
     console.log(`✅ Upload complete`);
 
-    // Start transcription
+    // Start transcription with best quality settings
     console.log(`\n⏳ Starting transcription (this may take a while for long files)...`);
     const transcript = await client.transcripts.transcribe({
       audio: uploadUrl,
-      speaker_labels: options.speaker_labels ?? true,
+
+      // Core settings
+      speech_model: 'best',                              // Highest quality model
+      speaker_labels: options.speaker_labels ?? true,    // Speaker diarization
       language_code: options.language_code || 'en_us',
+
+      // Accuracy enhancements
+      punctuate: true,                                   // Auto punctuation
+      format_text: true,                                 // Proper formatting
+
+      // Enhanced features (no additional cost!)
+      auto_highlights: true,                             // Extract key moments
+      entity_detection: true,                            // Detect names, dates, locations
+      sentiment_analysis: true,                          // Understand tone/sentiment
+      iab_categories: true,                              // Topic categorization
+      content_safety: true,                              // Flag sensitive content
+
+      // Boost accuracy for town meeting terms
+      word_boost: [
+        'Select Board',
+        'Town Meeting',
+        'Planning Board',
+        'Zoning Board',
+        'Board of Selectmen',
+        'Town Manager',
+        'Town Administrator',
+        'Town Clerk',
+        'Acton',  // Replace with your town name
+      ],
+      boost_param: 'high',                               // Maximum boost
     });
 
     if (transcript.status === 'error') {

@@ -2,12 +2,24 @@
 import React from 'react';
 import { Citation } from '@/lib/types';
 import { useState } from 'react';
+import ConfidenceBadge from './ConfidenceBadge';
+import FlagResponseButton from './FlagResponseButton';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant';
   content: string;
   citations?: Citation[];
   isLoading?: boolean;
+  verification?: {
+    confidence: 'high' | 'medium' | 'low';
+    isValid: boolean;
+    warnings: string[];
+    details: any;
+  };
+  stats?: {
+    avgSimilarity: number;
+  };
+  queryText?: string; // Original user query for flagging
 }
 
 // Helper function to render content with inline citation links
@@ -65,7 +77,15 @@ function renderContentWithCitations(content: string, citations?: Citation[]) {
   return <>{parts}</>;
 }
 
-export default function ChatMessage({ role, content, citations, isLoading }: ChatMessageProps) {
+export default function ChatMessage({
+  role,
+  content,
+  citations,
+  isLoading,
+  verification,
+  stats,
+  queryText
+}: ChatMessageProps) {
   const [showSources, setShowSources] = useState(false);
 
   if (role === 'user') {
@@ -98,6 +118,26 @@ export default function ChatMessage({ role, content, citations, isLoading }: Cha
             </div>
           )}
         </div>
+
+        {/* Confidence Badge & Actions */}
+        {!isLoading && verification && (
+          <div className="mt-3 ml-1 flex items-center gap-3 flex-wrap">
+            <ConfidenceBadge
+              confidence={verification.confidence}
+              avgSimilarity={stats?.avgSimilarity}
+              warnings={verification.warnings}
+            />
+            {queryText && (
+              <FlagResponseButton
+                queryText={queryText}
+                responseText={content}
+                citations={citations || []}
+                verificationResult={verification}
+                similarityScores={stats}
+              />
+            )}
+          </div>
+        )}
 
         {/* Citations - Collapsible */}
         {citations && citations.length > 0 && !isLoading && (
