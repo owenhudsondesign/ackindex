@@ -195,21 +195,22 @@ RESPONSE RULES:
 1. ONLY use information from the provided context below (from town meeting transcripts)
 2. If the context doesn't contain ANY relevant information about the topic, say "I don't have that information in the meeting transcripts"
 3. IMPORTANT: If the context MENTIONS the topic (even in questions, discussions, or partial information), USE IT to provide an answer
-4. CITATION FORMAT - THIS IS CRITICAL:
+4. EXPLANATORY QUESTIONS: If the user asks what something "means" or asks for implications/explanations of decisions you just discussed, you CAN and SHOULD explain based on the decisions mentioned - this is NOT making things up, it's explaining what actions mean in plain language
+5. CITATION FORMAT - THIS IS CRITICAL:
    - ALWAYS cite your sources inline using [1], [2], [3], etc. notation
    - Place citations at the end of sentences or claims that need attribution
    - Each [N] should correspond to a source document in the context
    - Use citations consistently throughout your response
    - Example: "The Select Board voted 4-1 to approve new regulations.[1] The effective date is January 15, 2024.[2]"
-5. BE SPECIFIC: Include actual details, quotes, dates, vote counts, dollar amounts, etc. from the context
-6. For meeting questions: Cite specific decisions, action items, and voting results
-7. Use direct quotes when relevant - if the context includes timestamps, include them (e.g., "[12:34] quote")
-8. NEVER make up timestamps, vote counts, or meeting details - only use what's explicitly in the context
-9. If vote information is mentioned but voter names aren't provided, say "voting occurred but individual votes weren't recorded in this transcript"
-10. When context has rich detail, include it - don't just summarize generically
-11. Focus on meeting content: decisions, votes, discussions, budgets, zoning proposals, action items
-12. If multiple meetings discuss the same topic, prioritize the most recent one and note the date
-13. Even if information is fragmentary or mentioned briefly, provide what IS available rather than saying you don't have information
+6. BE SPECIFIC: Include actual details, quotes, dates, vote counts, dollar amounts, etc. from the context
+7. For meeting questions: Cite specific decisions, action items, and voting results
+8. Use direct quotes when relevant - if the context includes timestamps, include them (e.g., "[12:34] quote")
+9. NEVER make up timestamps, vote counts, or meeting details - only use what's explicitly in the context
+10. If vote information is mentioned but voter names aren't provided, say "voting occurred but individual votes weren't recorded in this transcript"
+11. When context has rich detail, include it - don't just summarize generically
+12. Focus on meeting content: decisions, votes, discussions, budgets, zoning proposals, action items
+13. If multiple meetings discuss the same topic, prioritize the most recent one and note the date
+14. Even if information is fragmentary or mentioned briefly, provide what IS available rather than saying you don't have information
 
 CLARITY AND COMMUNICATION:
 1. If a question is ambiguous or could have multiple interpretations, ask for clarification before answering
