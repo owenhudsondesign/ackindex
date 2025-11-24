@@ -29,10 +29,10 @@ export default function StaffLoginPage() {
       if (signInError) throw signInError;
       if (!authData.user) throw new Error('Failed to sign in');
 
-      // Check if user is staff (approved or pending)
+      // Check if user is staff (approved or pending) or admin
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
-        .select('staff_approved, staff_requested_at')
+        .select('staff_approved, staff_requested_at, role')
         .eq('id', authData.user.id)
         .single();
 
@@ -41,9 +41,9 @@ export default function StaffLoginPage() {
         // Non-fatal, redirect anyway
       }
 
-      // Redirect based on staff status
-      if (profile?.staff_approved) {
-        // Approved staff → upload page
+      // Redirect based on staff status (admins always have access)
+      if (profile?.role === 'admin' || profile?.staff_approved) {
+        // Admin or approved staff → upload page
         router.push('/staff/upload');
       } else if (profile?.staff_requested_at) {
         // Pending approval
