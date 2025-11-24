@@ -21,10 +21,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
     // Get form data (multipart)
     const formData = await request.formData();
@@ -37,24 +38,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Get upload session
-    const { data: session, error: sessionError } = await supabase
+    const { data: uploadSession, error: uploadSessionError } = await supabase
       .from('video_upload_sessions')
       .select('*')
       .eq('id', sessionId)
       .eq('user_id', user.id) // Ensure user owns this session
       .single();
 
-    if (sessionError || !session) {
+    if (uploadSessionError || !uploadSession) {
       return NextResponse.json({ error: 'Invalid or expired upload session' }, { status: 404 });
     }
 
     // Check if session is still active
-    if (session.status !== 'active') {
+    if (uploadSession.status !== 'active') {
       return NextResponse.json({ error: 'Upload session is not active' }, { status: 400 });
     }
 
     // Check expiration
-    if (new Date(session.expires_at) < new Date()) {
+    if (new Date(uploadSession.expires_at) < new Date()) {
       await supabase
         .from('video_upload_sessions')
         .update({ status: 'failed', error: 'Session expired' })
@@ -79,8 +80,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Update session progress
-    const newChunksReceived = session.chunks_received + 1;
-    const newBytesUploaded = session.bytes_uploaded + chunkFile.size;
+    const newChunksReceived = uploadSession.chunks_received + 1;
+    const newBytesUploaded = uploadSession.bytes_uploaded + chunkFile.size;
 
     const { error: updateError } = await supabase
       .from('video_upload_sessions')
@@ -99,9 +100,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       chunksReceived: newChunksReceived,
-      totalChunks: session.total_chunks,
+      totalChunks: uploadSession.total_chunks,
       bytesUploaded: newBytesUploaded,
-      progress: (newChunksReceived / session.total_chunks) * 100,
+      progress: (newChunksReceived / uploadSession.total_chunks) * 100,
     });
 
   } catch (error) {

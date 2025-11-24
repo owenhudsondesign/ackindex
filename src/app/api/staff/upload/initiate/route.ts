@@ -21,10 +21,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
     // Check if user is approved staff or admin
     const { data: profile } = await supabase
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 4); // 4 hour expiry
 
-    const { data: session, error: sessionError } = await supabase
+    const { data: uploadSession, error: uploadSessionError } = await supabase
       .from('video_upload_sessions')
       .insert({
         user_id: user.id,
@@ -92,16 +93,16 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (sessionError) {
-      console.error('Session creation error:', sessionError);
+    if (uploadSessionError) {
+      console.error('Session creation error:', uploadSessionError);
       return NextResponse.json({ error: 'Failed to create upload session' }, { status: 500 });
     }
 
     return NextResponse.json({
-      sessionId: session.id,
+      sessionId: uploadSession.id,
       chunkSize,
       totalChunks,
-      expiresAt: session.expires_at,
+      expiresAt: uploadSession.expires_at,
     });
 
   } catch (error) {

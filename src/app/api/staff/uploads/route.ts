@@ -21,10 +21,11 @@ export async function GET(request: NextRequest) {
     );
 
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
     // Get user's uploads
     const { data: uploads, error: uploadsError } = await supabase

@@ -21,10 +21,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
     const body = await request.json();
     const { sessionId } = body;
@@ -34,14 +35,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Get upload session
-    const { data: session, error: sessionError } = await supabase
+    const { data: uploadSession, error: uploadSessionError } = await supabase
       .from('video_upload_sessions')
       .select('*')
       .eq('id', sessionId)
       .eq('user_id', user.id)
       .single();
 
-    if (sessionError || !session) {
+    if (uploadSessionError || !uploadSession) {
       return NextResponse.json({ error: 'Invalid upload session' }, { status: 404 });
     }
 
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // Clean up uploaded chunks
     try {
-      for (let i = 0; i < session.chunks_received; i++) {
+      for (let i = 0; i < uploadSession.chunks_received; i++) {
         const chunkPath = `uploads/${sessionId}/chunk_${i}`;
         await supabase.storage
           .from('meeting-videos')

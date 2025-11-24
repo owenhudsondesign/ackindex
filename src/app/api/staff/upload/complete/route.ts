@@ -22,10 +22,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = session.user;
 
     const body = await request.json();
     const { sessionId } = body;
@@ -35,21 +36,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Get upload session
-    const { data: session, error: sessionError } = await supabase
+    const { data: uploadSession, error: uploadSessionError } = await supabase
       .from('video_upload_sessions')
       .select('*')
       .eq('id', sessionId)
       .eq('user_id', user.id)
       .single();
 
-    if (sessionError || !session) {
+    if (uploadSessionError || !uploadSession) {
       return NextResponse.json({ error: 'Invalid upload session' }, { status: 404 });
     }
 
     // Verify all chunks received
-    if (session.chunks_received !== session.total_chunks) {
+    if (uploadSession.chunks_received !== uploadSession.total_chunks) {
       return NextResponse.json({
-        error: `Incomplete upload: ${session.chunks_received}/${session.total_chunks} chunks received`,
+        error: `Incomplete upload: ${uploadSession.chunks_received}/${uploadSession.total_chunks} chunks received`,
       }, { status: 400 });
     }
 
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Assemble chunks into final file
     // Note: This is a simplified approach - in production you might want to use a background job
     const chunks: Blob[] = [];
-    for (let i = 0; i < session.total_chunks; i++) {
+    for (let i = 0; i < uploadSession.total_chunks; i++) {
       const chunkPath = `uploads/${sessionId}/chunk_${i}`;
       const { data: chunkData, error: downloadError } = await supabase.storage
         .from('meeting-videos')
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Combine chunks into single blob
-    const finalBlob = new Blob(chunks, { type: session.mime_type });
+    const finalBlob = new Blob(chunks, { type: uploadSession.mime_type });
 
     // Convert blob to buffer for Bunny upload
     const arrayBuffer = await finalBlob.arrayBuffer();
@@ -92,9 +93,9 @@ export async function POST(request: NextRequest) {
 
     // Upload to Bunny.net
     const bunnyPath = bunnyStorage.generateMeetingPath(
-      session.organization_id || 'default', // Use organization_id if multi-tenant
+      uploadSession.organization_id || 'default', // Use organization_id if multi-tenant
       sessionId,
-      session.filename
+      uploadSession.filename
     );
 
     console.log('Uploading to Bunny.net:', bunnyPath);
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
       fileBuffer,
       bunnyPath,
       {
-        contentType: session.mime_type,
+        contentType: uploadSession.mime_type,
       }
     );
 
@@ -126,12 +127,12 @@ export async function POST(request: NextRequest) {
       .from('meeting_videos')
       .insert({
         uploaded_by: user.id,
-        original_filename: session.filename,
+        original_filename: uploadSession.filename,
         file_size_bytes: uploadResult.fileSize,
-        meeting_date: session.meeting_date,
-        meeting_type: session.meeting_type,
-        meeting_title: session.meeting_title,
-        meeting_description: session.meeting_description,
+        meeting_date: uploadSession.meeting_date,
+        meeting_type: uploadSession.meeting_type,
+        meeting_title: uploadSession.meeting_title,
+        meeting_description: uploadSession.meeting_description,
         storage_provider: 'bunny',
         storage_path: bunnyPath,
         storage_url: uploadResult.cdnUrl, // Use CDN URL for playback
@@ -165,7 +166,7 @@ export async function POST(request: NextRequest) {
       .eq('id', sessionId);
 
     // Clean up chunks (optional - could be done by background job)
-    for (let i = 0; i < session.total_chunks; i++) {
+    for (let i = 0; i < uploadSession.total_chunks; i++) {
       const chunkPath = `uploads/${sessionId}/chunk_${i}`;
       await supabase.storage
         .from('meeting-videos')
