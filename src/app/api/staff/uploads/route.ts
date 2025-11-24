@@ -21,9 +21,15 @@ export async function GET(request: NextRequest) {
     );
 
     // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('Staff uploads auth check:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      sessionError: sessionError?.message,
+      cookies: cookieStore.getAll().map(c => c.name)
+    });
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', debug: { hasSession: !!session, sessionError: sessionError?.message } }, { status: 401 });
     }
     const user = session.user;
 
