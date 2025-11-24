@@ -97,6 +97,9 @@ class BunnyStorage {
       // Full upload URL
       const uploadUrl = `${this.baseUrl}/${cleanPath}`;
 
+      // Convert Buffer to Uint8Array for fetch compatibility
+      const bodyData = Buffer.isBuffer(file) ? new Uint8Array(file) : file;
+
       // Upload file using PUT request
       const response = await fetch(uploadUrl, {
         method: 'PUT',
@@ -104,7 +107,7 @@ class BunnyStorage {
           'AccessKey': this.config!.accessKey,
           'Content-Type': options.contentType || 'video/mp4',
         },
-        body: file,
+        body: bodyData as BodyInit,
       });
 
       if (!response.ok) {
