@@ -28,25 +28,44 @@ async function getUserFromRequest() {
       return null;
     }
 
-    // The cookie value is a raw JWT token (starts with "eyJ")
+    // The cookie value could be:
+    // 1. A JSON array with JWT as first element: ["eyJ..."]
+    // 2. A raw JWT token: eyJ...
+    // 3. base64 encoded
     try {
-      let accessToken = authCookie.value;
+      let cookieValue = authCookie.value;
+      let accessToken: string;
 
-      console.log('Staff uploads - Cookie value prefix:', accessToken.substring(0, 20));
+      console.log('Staff uploads - Cookie value prefix:', cookieValue.substring(0, 20));
 
       // Handle "base64-" prefix format if present
-      if (accessToken.startsWith('base64-')) {
-        accessToken = accessToken.substring(7);
+      if (cookieValue.startsWith('base64-')) {
+        cookieValue = cookieValue.substring(7);
       }
 
-      // The cookie value IS the JWT token itself
-      // JWT tokens start with "eyJ" (base64 for '{"')
-      if (!accessToken.startsWith('eyJ')) {
-        console.log('Staff uploads - Cookie does not contain a JWT token');
+      // Check if it's a JSON array (starts with "[")
+      if (cookieValue.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(cookieValue);
+          accessToken = Array.isArray(parsed) ? parsed[0] : parsed;
+          console.log('Staff uploads - Parsed JSON array, token length:', accessToken?.length);
+        } catch (e) {
+          console.log('Staff uploads - Failed to parse as JSON array:', e);
+          return null;
+        }
+      } else if (cookieValue.startsWith('eyJ')) {
+        // Raw JWT token
+        accessToken = cookieValue;
+        console.log('Staff uploads - Using raw JWT token, length:', accessToken.length);
+      } else {
+        console.log('Staff uploads - Cookie format not recognized');
         return null;
       }
 
-      console.log('Staff uploads - Using JWT token directly, length:', accessToken.length);
+      if (!accessToken || !accessToken.startsWith('eyJ')) {
+        console.log('Staff uploads - No valid JWT token found');
+        return null;
+      }
 
       // Verify the token with Supabase
       const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
