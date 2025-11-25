@@ -2,4 +2,4 @@
 # Adds ffmpeg for video thumbnail extraction
 
 [phases.setup]
-nixPkgs = ["ffmpeg"]
+aptPkgs = ["ffmpeg"]
