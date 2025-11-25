@@ -1,26 +1,15 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createAdminSupabaseClient } from '@/lib/serverAdminAuth';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({
-      cookies
-    });
+    const supabase = await createAdminSupabaseClient();
 
     // Check authentication
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    const cookieStore = await cookies();
-    console.log('Staff uploads auth check:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      sessionError: sessionError?.message,
-      cookies: cookieStore.getAll().map(c => c.name)
-    });
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized', debug: { hasSession: !!session, sessionError: sessionError?.message } }, { status: 401 });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const user = session.user;
 
     // Get user's uploads
     const { data: uploads, error: uploadsError } = await supabase
