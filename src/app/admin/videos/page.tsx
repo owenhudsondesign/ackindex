@@ -32,6 +32,7 @@ export default function AdminVideosPage() {
   const [loading, setLoading] = useState(true);
   const [videos, setVideos] = useState<MeetingVideo[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'processing'>('pending');
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -42,6 +43,16 @@ export default function AdminVideosPage() {
       loadVideos();
     }
   }, [filter, loading]);
+
+  // Auto-refresh for processing tab every 10 seconds
+  useEffect(() => {
+    if (filter === 'processing' && autoRefresh && !loading) {
+      const interval = setInterval(() => {
+        loadVideos();
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [filter, autoRefresh, loading]);
 
   const checkAuth = async () => {
     try {
@@ -181,6 +192,32 @@ export default function AdminVideosPage() {
     );
   };
 
+  // Get processing step info based on transcription status
+  const getProcessingInfo = (video: MeetingVideo) => {
+    const steps = [
+      { key: 'pending', label: 'Queued', progress: 5 },
+      { key: 'processing', label: 'Transcribing', progress: 40 },
+      { key: 'chunking', label: 'Analyzing', progress: 70 },
+      { key: 'embedding', label: 'Indexing', progress: 85 },
+      { key: 'completed', label: 'Complete', progress: 100 },
+      { key: 'failed', label: 'Failed', progress: 0 },
+    ];
+
+    const currentStep = steps.find(s => s.key === video.transcription_status) || steps[0];
+    const stepIndex = steps.findIndex(s => s.key === video.transcription_status);
+
+    return {
+      ...currentStep,
+      stepIndex,
+      totalSteps: steps.length - 1, // Exclude 'failed'
+      estimatedTime: video.transcription_status === 'processing'
+        ? 'Usually takes 3-10 minutes depending on video length'
+        : video.transcription_status === 'pending'
+        ? 'Starting soon...'
+        : null,
+    };
+  };
+
   if (loading) {
     return (
       <PageLayout>
@@ -238,13 +275,19 @@ export default function AdminVideosPage() {
               </button>
               <button
                 onClick={() => setFilter('processing')}
-                className={`px-6 py-3 font-medium ${
+                className={`px-6 py-3 font-medium flex items-center gap-2 ${
                   filter === 'processing'
                     ? 'border-b-2 border-blue-600 text-blue-600'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 Processing
+                {filter === 'processing' && autoRefresh && (
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
               </button>
               <button
                 onClick={() => setFilter('approved')}
@@ -301,6 +344,43 @@ export default function AdminVideosPage() {
                         )}
                       </div>
                     </div>
+
+                    {/* Progress bar for processing videos */}
+                    {video.processing_status === 'processing' && (
+                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        {(() => {
+                          const info = getProcessingInfo(video);
+                          return (
+                            <>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium text-blue-900">
+                                  {info.label}...
+                                </span>
+                                <span className="text-sm text-blue-700">
+                                  {info.progress}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-blue-200 rounded-full h-2.5 mb-2">
+                                <div
+                                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                                  style={{ width: `${info.progress}%` }}
+                                />
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-blue-700">
+                                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                <span>{info.estimatedTime || 'Processing...'}</span>
+                              </div>
+                              <p className="text-xs text-blue-600 mt-2">
+                                Steps: Download → Transcribe → Chunk → Generate Embeddings → Create Blog Post
+                              </p>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
                       <div>
