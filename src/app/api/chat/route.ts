@@ -243,12 +243,14 @@ export async function POST(request: NextRequest) {
     // Use sanitized input for the rest of the processing
     const sanitizedMessage = validation.sanitizedInput;
 
-    // Step 2: Retrieve relevant chunks
+    // Step 2: Retrieve relevant chunks using hybrid search
+    // Hybrid combines semantic (vector) + keyword (text) search for better recall
+    // This helps with specific terms like legal codes (e.g., "4181L") that semantic alone might miss
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
       maxResults: 15, // Fetch enough chunks to cover multiple relevant documents
-      minSimilarity: 0.78, // Anti-hallucination requirement: high confidence threshold
+      minSimilarity: 0.75, // Slightly lower threshold for hybrid search
       includeDocumentInfo: true,
-      searchMode: 'semantic',
+      searchMode: 'hybrid',
     });
 
     log.info({ rawResultsCount: rawResults.length }, 'Retrieved relevant chunks');
