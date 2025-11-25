@@ -123,11 +123,19 @@ export default async function BlogPostPage({ params }: PageProps) {
   const sourceDoc = document as Document | null;
 
   // Fetch associated video if exists
-  const { data: videoData } = await supabase
+  const { data: videoData, error: videoError } = await supabase
     .from('meeting_videos')
     .select('id, public_url, storage_url, duration_seconds')
     .eq('document_id', blogPost.document_id)
     .single();
+
+  // Debug: log video lookup result
+  console.log('[Blog Post Video Lookup]', {
+    slug,
+    document_id: blogPost.document_id,
+    videoData,
+    videoError: videoError?.message,
+  });
 
   // Use public_url or fall back to storage_url
   const video = videoData ? {
