@@ -19,6 +19,7 @@ export async function getStaffUserFromRequest() {
   try {
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
+    console.log('Staff auth - All cookies:', allCookies.map(c => ({ name: c.name, valueLength: c.value?.length })));
 
     // Find the Supabase auth token cookie
     const authCookie = allCookies.find(c => c.name.includes('-auth-token'));
@@ -28,13 +29,14 @@ export async function getStaffUserFromRequest() {
     }
 
     // The cookie value could be:
-    // 1. A JSON array with [access_token, refresh_token]: ["eyJ...", "eyJ..."]
+    // 1. A JSON array with JWT as first element: ["eyJ..."]
     // 2. A raw JWT token: eyJ...
     // 3. base64 encoded
     try {
       let cookieValue = authCookie.value;
       let accessToken: string;
-      let refreshToken: string | undefined;
+
+      console.log('Staff auth - Cookie value prefix:', cookieValue.substring(0, 20));
 
       // Handle "base64-" prefix format if present
       if (cookieValue.startsWith('base64-')) {
@@ -45,54 +47,32 @@ export async function getStaffUserFromRequest() {
       if (cookieValue.startsWith('[')) {
         try {
           const parsed = JSON.parse(cookieValue);
-          if (Array.isArray(parsed)) {
-            accessToken = parsed[0];
-            refreshToken = parsed[1]; // Second element is refresh token
-          } else {
-            accessToken = parsed;
-          }
-        } catch {
-          console.log('Staff auth - Failed to parse JSON cookie');
+          accessToken = Array.isArray(parsed) ? parsed[0] : parsed;
+          console.log('Staff auth - Parsed JSON array, token length:', accessToken?.length);
+        } catch (e) {
+          console.log('Staff auth - Failed to parse as JSON array:', e);
           return null;
         }
       } else if (cookieValue.startsWith('eyJ')) {
         // Raw JWT token
         accessToken = cookieValue;
+        console.log('Staff auth - Using raw JWT token, length:', accessToken.length);
       } else {
-        console.log('Staff auth - Unknown cookie format');
+        console.log('Staff auth - Cookie format not recognized');
         return null;
       }
 
       if (!accessToken || !accessToken.startsWith('eyJ')) {
-        console.log('Staff auth - No valid access token');
+        console.log('Staff auth - No valid JWT token found');
         return null;
       }
 
       // Verify the token with Supabase
-      let { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
+      console.log('Staff auth - Auth result:', { hasUser: !!user, userId: user?.id, error: error?.message });
 
-      // If access token is expired/invalid but we have a refresh token, try to refresh
-      if (error && refreshToken) {
-        console.log('Staff auth - Access token failed, trying refresh token');
-        const { data: refreshData, error: refreshError } = await supabaseAdmin.auth.refreshSession({
-          refresh_token: refreshToken,
-        });
-
-        if (refreshData?.user && !refreshError) {
-          user = refreshData.user;
-          error = null;
-          console.log('Staff auth - Successfully refreshed session');
-        } else {
-          console.log('Staff auth - Refresh failed:', refreshError?.message);
-        }
-      }
-
-      if (user && !error) {
+      if (user) {
         return { user, supabase: supabaseAdmin };
-      }
-
-      if (error) {
-        console.log('Staff auth - Token verification failed:', error.message);
       }
     } catch (parseError) {
       console.error('Staff auth - Cookie parse error:', parseError);
