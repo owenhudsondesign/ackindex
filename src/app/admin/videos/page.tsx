@@ -63,7 +63,16 @@ export default function AdminVideosPage() {
       const response = await fetch(`/api/admin/videos?filter=${filter}`);
       const data = await response.json();
 
-      if (!response.ok) throw new Error(data.error);
+      console.log('Videos API response:', response.status, data);
+
+      if (!response.ok) {
+        console.error('Videos API error:', data);
+        // If unauthorized, don't redirect - just show empty
+        if (response.status === 401) {
+          console.error('Admin videos API returned 401 - session may have expired');
+        }
+        return;
+      }
       setVideos(data.videos || []);
     } catch (error) {
       console.error('Load error:', error);
