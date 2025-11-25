@@ -217,94 +217,82 @@ export default function VideoUploadForm() {
     }
 
     try {
-      setUploadState(prev => ({ ...prev, status: 'uploading', error: null }));
+      setUploadState(prev => ({ ...prev, status: 'uploading', error: null, totalBytes: selectedFile!.size }));
 
-      let sessionId = uploadState.sessionId;
-      let uploadToken: string;
-      let chunkSize: number;
-      let totalChunks: number;
-
-      // Step 1: Initiate upload (or use existing session if resuming)
-      if (!resume || !sessionId) {
-        const initiateResponse = await fetch('/api/staff/upload/initiate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filename: selectedFile!.name,
-            fileSize: selectedFile!.size,
-            mimeType: selectedFile!.type,
-            meetingDate,
-            meetingTitle,
-            meetingDescription,
-          }),
-        });
-
-        if (!initiateResponse.ok) {
-          const error = await initiateResponse.json();
-          throw new Error(error.error || 'Failed to initiate upload');
-        }
-
-        const initData = await initiateResponse.json();
-        sessionId = initData.sessionId;
-        uploadToken = initData.uploadToken;
-        chunkSize = initData.chunkSize;
-        totalChunks = initData.totalChunks;
-
-        // Save state for resume (including uploadToken for authentication)
-        saveUploadState({
-          sessionId: sessionId!,
-          uploadToken,
+      // Step 1: Get direct upload URL from server
+      const urlResponse = await fetch('/api/staff/upload/get-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           filename: selectedFile!.name,
           fileSize: selectedFile!.size,
-          mimeType: selectedFile!.type,
+          mimeType: selectedFile!.type || 'video/mp4',
           meetingDate,
           meetingTitle,
           meetingDescription,
-          chunkSize,
-          totalChunks,
-          uploadedChunks: [],
-          lastUpdated: new Date().toISOString(),
+        }),
+      });
+
+      if (!urlResponse.ok) {
+        const error = await urlResponse.json();
+        throw new Error(error.error || 'Failed to get upload URL');
+      }
+
+      const { sessionId, uploadToken, uploadUrl, accessKey, storagePath } = await urlResponse.json();
+
+      setUploadState(prev => ({
+        ...prev,
+        sessionId,
+        totalChunks: 1,
+      }));
+
+      // Step 2: Upload directly to Bunny.net (bypasses Vercel completely)
+      // This allows uploads of any size without the 4.5MB serverless limit
+      const xhr = new XMLHttpRequest();
+
+      await new Promise<void>((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            setUploadState(prev => ({
+              ...prev,
+              bytesUploaded: event.loaded,
+              progress,
+            }));
+          }
         });
 
-        setUploadState(prev => ({
-          ...prev,
-          sessionId,
-          totalChunks,
-        }));
-      } else {
-        // Resuming - get values from saved state
-        const savedState = loadUploadState();
-        if (!savedState) {
-          throw new Error('No saved upload state found');
-        }
-        uploadToken = savedState.uploadToken;
-        chunkSize = savedState.chunkSize;
-        totalChunks = savedState.totalChunks;
-      }
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+          }
+        });
 
-      // Step 2: Upload chunks (only remaining chunks if resuming)
-      const remainingChunks = resume ? getRemainingChunks(totalChunks) : Array.from({ length: totalChunks }, (_, i) => i);
+        xhr.addEventListener('error', () => {
+          reject(new Error('Upload failed - network error'));
+        });
 
-      for (const chunkIndex of remainingChunks) {
-        const start = chunkIndex * chunkSize!;
-        const end = Math.min(start + chunkSize!, selectedFile!.size);
-        const chunk = selectedFile!.slice(start, end);
+        xhr.addEventListener('abort', () => {
+          reject(new Error('Upload cancelled'));
+        });
 
-        const result = await uploadChunkWithRetry(sessionId!, uploadToken!, chunkIndex, chunk);
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('AccessKey', accessKey);
+        xhr.setRequestHeader('Content-Type', selectedFile!.type || 'video/mp4');
+        xhr.send(selectedFile);
+      });
 
-        setUploadState(prev => ({
-          ...prev,
-          chunksUploaded: result.chunksReceived,
-          bytesUploaded: result.bytesUploaded,
-          progress: result.progress,
-        }));
-      }
-
-      // Step 3: Complete upload
+      // Step 3: Complete upload (register in database)
       const completeResponse = await fetch('/api/staff/upload/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({
+          sessionId,
+          uploadToken,
+          storagePath,
+        }),
       });
 
       if (!completeResponse.ok) {
@@ -322,6 +310,7 @@ export default function VideoUploadForm() {
         status: 'completed',
         videoId,
         progress: 100,
+        chunksUploaded: 1,
         canResume: false,
       }));
 
@@ -331,7 +320,7 @@ export default function VideoUploadForm() {
         ...prev,
         status: 'error',
         error: error instanceof Error ? error.message : 'Upload failed',
-        canResume: true, // Allow retry/resume
+        canResume: false, // Direct uploads can't resume - need to start over
       }));
     }
   };

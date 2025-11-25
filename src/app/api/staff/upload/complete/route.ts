@@ -1,124 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { bunnyStorage } from '@/lib/bunnyStorage';
-import { getStaffUserFromRequest } from '@/lib/staffAuth';
+import { createClient } from '@supabase/supabase-js';
+
+// Create a supabase client with service role for database operations
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await getStaffUserFromRequest();
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const { user, supabase } = auth;
-
     const body = await request.json();
-    const { sessionId } = body;
+    const { sessionId, uploadToken, storagePath } = body;
 
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+    if (!sessionId || !uploadToken) {
+      return NextResponse.json({ error: 'Missing sessionId or uploadToken' }, { status: 400 });
     }
 
-    // Get upload session
-    const { data: uploadSession, error: uploadSessionError } = await supabase
+    // Authenticate using upload token (not cookies - allows completion after direct upload)
+    const { data: uploadSession, error: uploadSessionError } = await supabaseAdmin
       .from('video_upload_sessions')
       .select('*')
       .eq('id', sessionId)
-      .eq('user_id', user.id)
+      .eq('upload_token', uploadToken)
       .single();
 
     if (uploadSessionError || !uploadSession) {
-      return NextResponse.json({ error: 'Invalid upload session' }, { status: 404 });
+      return NextResponse.json({ error: 'Invalid upload session or token' }, { status: 404 });
     }
 
-    // Verify all chunks received
-    if (uploadSession.chunks_received !== uploadSession.total_chunks) {
-      return NextResponse.json({
-        error: `Incomplete upload: ${uploadSession.chunks_received}/${uploadSession.total_chunks} chunks received`,
-      }, { status: 400 });
-    }
+    // For direct Bunny uploads, the file is already there
+    // Just need to register it in the database
+    const pullZoneUrl = process.env.BUNNY_PULL_ZONE_URL;
+    const cdnUrl = `${pullZoneUrl}/${storagePath}`;
 
-    // Update session status
-    await supabase
-      .from('video_upload_sessions')
-      .update({ status: 'assembling' })
-      .eq('id', sessionId);
-
-    // Assemble chunks into final file
-    // Note: This is a simplified approach - in production you might want to use a background job
-    const chunks: Blob[] = [];
-    for (let i = 0; i < uploadSession.total_chunks; i++) {
-      const chunkPath = `uploads/${sessionId}/chunk_${i}`;
-      const { data: chunkData, error: downloadError } = await supabase.storage
-        .from('meeting-videos')
-        .download(chunkPath);
-
-      if (downloadError || !chunkData) {
-        console.error(`Failed to download chunk ${i}:`, downloadError);
-        await supabase
-          .from('video_upload_sessions')
-          .update({
-            status: 'failed',
-            error: `Failed to assemble chunks: chunk ${i} missing`
-          })
-          .eq('id', sessionId);
-        return NextResponse.json({ error: 'Failed to assemble video file' }, { status: 500 });
-      }
-
-      chunks.push(chunkData);
-    }
-
-    // Combine chunks into single blob
-    const finalBlob = new Blob(chunks, { type: uploadSession.mime_type });
-
-    // Convert blob to buffer for Bunny upload
-    const arrayBuffer = await finalBlob.arrayBuffer();
-    const fileBuffer = Buffer.from(arrayBuffer);
-
-    // Upload to Bunny.net
-    const bunnyPath = bunnyStorage.generateMeetingPath(
-      uploadSession.organization_id || 'default', // Use organization_id if multi-tenant
-      sessionId,
-      uploadSession.filename
-    );
-
-    console.log('Uploading to Bunny.net:', bunnyPath);
-
-    const uploadResult = await bunnyStorage.uploadVideo(
-      fileBuffer,
-      bunnyPath,
-      {
-        contentType: uploadSession.mime_type,
-      }
-    );
-
-    if (!uploadResult.success) {
-      console.error('Bunny upload error:', uploadResult.error);
-      await supabase
-        .from('video_upload_sessions')
-        .update({
-          status: 'failed',
-          error: `Failed to upload to Bunny: ${uploadResult.error}`
-        })
-        .eq('id', sessionId);
-      return NextResponse.json({ error: 'Failed to save video to storage' }, { status: 500 });
-    }
-
-    console.log('Bunny upload successful. CDN URL:', uploadResult.cdnUrl);
+    console.log('Direct upload complete. CDN URL:', cdnUrl);
 
     // Create meeting_videos record
-    const { data: video, error: videoError } = await supabase
+    const { data: video, error: videoError } = await supabaseAdmin
       .from('meeting_videos')
       .insert({
-        uploaded_by: user.id,
+        uploaded_by: uploadSession.user_id,
         original_filename: uploadSession.filename,
-        file_size_bytes: uploadResult.fileSize,
+        file_size_bytes: uploadSession.file_size_bytes,
         meeting_date: uploadSession.meeting_date,
         meeting_type: uploadSession.meeting_type,
         meeting_title: uploadSession.meeting_title,
         meeting_description: uploadSession.meeting_description,
         storage_provider: 'bunny',
-        storage_path: bunnyPath,
-        storage_url: uploadResult.cdnUrl, // Use CDN URL for playback
-        public_url: uploadResult.cdnUrl,
+        storage_path: storagePath,
+        storage_url: cdnUrl,
+        public_url: cdnUrl,
         processing_status: 'pending',
         transcription_status: 'pending',
         is_public: false, // Admin must approve
@@ -128,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     if (videoError) {
       console.error('Video record creation error:', videoError);
-      await supabase
+      await supabaseAdmin
         .from('video_upload_sessions')
         .update({
           status: 'failed',
@@ -139,46 +76,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Update session status
-    await supabase
+    await supabaseAdmin
       .from('video_upload_sessions')
       .update({
         status: 'completed',
         video_id: video.id,
+        chunks_received: 1,
+        bytes_uploaded: uploadSession.file_size_bytes,
       })
       .eq('id', sessionId);
-
-    // Clean up chunks (optional - could be done by background job)
-    for (let i = 0; i < uploadSession.total_chunks; i++) {
-      const chunkPath = `uploads/${sessionId}/chunk_${i}`;
-      await supabase.storage
-        .from('meeting-videos')
-        .remove([chunkPath]);
-    }
-
-    // Automatically trigger transcription processing
-    try {
-      const processResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/staff/video/process`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Forward auth from current request
-          ...(request.headers.get('cookie') ? { 'cookie': request.headers.get('cookie')! } : {}),
-        },
-        body: JSON.stringify({ videoId: video.id }),
-      });
-
-      if (!processResponse.ok) {
-        console.error('Failed to trigger video processing:', await processResponse.text());
-      }
-    } catch (processError) {
-      console.error('Error triggering video processing:', processError);
-      // Non-fatal - video is uploaded, processing can be triggered manually
-    }
 
     return NextResponse.json({
       success: true,
       videoId: video.id,
-      message: 'Video uploaded successfully. Transcription processing started.',
+      message: 'Video uploaded successfully.',
     });
 
   } catch (error) {
