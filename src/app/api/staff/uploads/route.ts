@@ -11,12 +11,13 @@ export async function GET(request: NextRequest) {
     const allCookies = cookieStore.getAll();
     console.log('Staff uploads - All cookies:', allCookies.map(c => ({ name: c.name, valueLength: c.value?.length })));
 
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('Staff uploads - Auth result:', { hasUser: !!user, userId: user?.id, error: authError?.message });
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized', debug: { authError: authError?.message } }, { status: 401 });
+    // Check authentication using getSession (reads cookies, more reliable than getUser)
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('Staff uploads - Auth result:', { hasSession: !!session, userId: session?.user?.id, error: sessionError?.message });
+    if (sessionError || !session?.user) {
+      return NextResponse.json({ error: 'Unauthorized', debug: { sessionError: sessionError?.message } }, { status: 401 });
     }
+    const user = session.user;
 
     // Get user's uploads
     const { data: uploads, error: uploadsError } = await supabase
