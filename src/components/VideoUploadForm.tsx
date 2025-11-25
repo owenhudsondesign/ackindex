@@ -27,6 +27,7 @@ export default function VideoUploadForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pendingResume, setPendingResume] = useState<{ filename: string; progress: number } | null>(null);
 
   // Form data
   const [meetingDate, setMeetingDate] = useState('');
@@ -52,20 +53,11 @@ export default function VideoUploadForm() {
     const savedState = loadUploadState();
     if (savedState) {
       const progress = (savedState.uploadedChunks.length / savedState.totalChunks) * 100;
-      const bytesPerChunk = savedState.fileSize / savedState.totalChunks;
-      const bytesUploaded = savedState.uploadedChunks.length * bytesPerChunk;
 
-      setUploadState({
-        status: 'idle',
+      // Show pending resume banner - user needs to re-select the file
+      setPendingResume({
+        filename: savedState.filename,
         progress,
-        chunksUploaded: savedState.uploadedChunks.length,
-        totalChunks: savedState.totalChunks,
-        bytesUploaded,
-        totalBytes: savedState.fileSize,
-        sessionId: savedState.sessionId,
-        error: null,
-        videoId: null,
-        canResume: true,
       });
 
       setMeetingDate(savedState.meetingDate);
@@ -115,19 +107,51 @@ export default function VideoUploadForm() {
       return;
     }
 
-    setSelectedFile(file);
-    setUploadState({
-      status: 'idle',
-      progress: 0,
-      chunksUploaded: 0,
-      totalChunks: 0,
-      bytesUploaded: 0,
-      totalBytes: file.size,
-      sessionId: null,
-      error: null,
-      videoId: null,
-      canResume: false,
-    });
+    // Check if this file matches a resumable upload
+    const savedState = loadUploadState();
+    if (savedState && savedState.filename === file.name && savedState.fileSize === file.size) {
+      // File matches saved state - allow resume
+      const progress = (savedState.uploadedChunks.length / savedState.totalChunks) * 100;
+      const bytesPerChunk = savedState.fileSize / savedState.totalChunks;
+      const bytesUploaded = savedState.uploadedChunks.length * bytesPerChunk;
+
+      setSelectedFile(file);
+      setPendingResume(null); // Clear pending resume banner
+      setMeetingDate(savedState.meetingDate);
+      setMeetingTitle(savedState.meetingTitle);
+      setMeetingDescription(savedState.meetingDescription || '');
+      setUploadState({
+        status: 'idle',
+        progress,
+        chunksUploaded: savedState.uploadedChunks.length,
+        totalChunks: savedState.totalChunks,
+        bytesUploaded,
+        totalBytes: file.size,
+        sessionId: savedState.sessionId,
+        error: null,
+        videoId: null,
+        canResume: true,
+      });
+    } else {
+      // New upload or different file - clear any pending resume
+      if (savedState) {
+        clearUploadState(); // Clear old saved state since we're starting fresh
+      }
+      setSelectedFile(file);
+      setPendingResume(null);
+      setUploadState({
+        status: 'idle',
+        progress: 0,
+        chunksUploaded: 0,
+        totalChunks: 0,
+        bytesUploaded: 0,
+        totalBytes: file.size,
+        sessionId: null,
+        error: null,
+        videoId: null,
+        canResume: false,
+      });
+    }
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -180,7 +204,7 @@ export default function VideoUploadForm() {
   };
 
   const handleUpload = async (resume = false) => {
-    if (!selectedFile && !resume) {
+    if (!selectedFile) {
       alert('Please select a file');
       return;
     }
@@ -328,6 +352,7 @@ export default function VideoUploadForm() {
   const handleReset = () => {
     clearUploadState();
     setSelectedFile(null);
+    setPendingResume(null);
     setMeetingDate('');
     setMeetingTitle('');
     setMeetingDescription('');
@@ -347,8 +372,34 @@ export default function VideoUploadForm() {
 
   return (
     <div className="space-y-6">
-      {/* Resume upload banner */}
-      {uploadState.canResume && uploadState.status === 'idle' && uploadState.progress > 0 && (
+      {/* Pending resume banner - shown when there's a saved upload but no file selected yet */}
+      {pendingResume && !selectedFile && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <svg className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-amber-900 mb-1">Resume Previous Upload</h3>
+              <p className="text-sm text-amber-800 mb-2">
+                You have an incomplete upload ({pendingResume.progress.toFixed(1)}% complete).
+              </p>
+              <p className="text-sm text-amber-700 mb-3">
+                To resume, please re-select the same file: <span className="font-medium">{pendingResume.filename}</span>
+              </p>
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+              >
+                Start Fresh Instead
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resume upload banner - shown when file is selected and matches saved state */}
+      {uploadState.canResume && uploadState.status === 'idle' && uploadState.progress > 0 && selectedFile && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,7 +408,7 @@ export default function VideoUploadForm() {
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-blue-900 mb-1">Resume Previous Upload?</h3>
               <p className="text-sm text-blue-800 mb-3">
-                You have an incomplete upload ({uploadState.progress.toFixed(1)}% complete). Would you like to resume it?
+                This file has an incomplete upload ({uploadState.progress.toFixed(1)}% complete). Would you like to resume it?
               </p>
               <div className="flex gap-2">
                 <button
@@ -414,13 +465,13 @@ export default function VideoUploadForm() {
             <div>
               <h3 className="text-lg font-semibold text-red-900 mb-1">Upload Failed</h3>
               <p className="text-sm text-red-800 mb-4">{uploadState.error}</p>
-              {uploadState.canResume && uploadState.progress > 0 && (
+              {uploadState.canResume && uploadState.progress > 0 && selectedFile && (
                 <p className="text-sm text-red-700 mb-4">
                   Progress saved: {uploadState.progress.toFixed(1)}% complete. You can resume this upload.
                 </p>
               )}
               <div className="flex gap-2">
-                {uploadState.canResume && uploadState.progress > 0 ? (
+                {uploadState.canResume && uploadState.progress > 0 && selectedFile ? (
                   <>
                     <button
                       onClick={() => handleUpload(true)}
