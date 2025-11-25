@@ -340,7 +340,15 @@ export default function BlogIndexPage() {
                       })
                     : null;
 
-                  const thumbnailUrl = post.og_image_url || post.thumbnail_url;
+                  // Use existing image or generate dynamic OG image
+                  let thumbnailUrl = post.og_image_url || post.thumbnail_url;
+                  if (!thumbnailUrl) {
+                    const ogParams = new URLSearchParams();
+                    ogParams.set('title', post.title);
+                    if (post.meeting_date) ogParams.set('date', post.meeting_date);
+                    if (post.meeting_type) ogParams.set('type', post.meeting_type);
+                    thumbnailUrl = `/api/og?${ogParams.toString()}`;
+                  }
 
                   return (
                     <article
@@ -348,21 +356,16 @@ export default function BlogIndexPage() {
                       className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-white/70 dark:hover:bg-gray-800/70 hover:shadow-xl hover:border-ack-blue dark:hover:border-blue-500/50 transition-all overflow-hidden flex flex-col"
                     >
                       {/* Thumbnail */}
-                      {thumbnailUrl && (
-                        <Link
-                          href={`/blog/${post.slug}`}
-                          className="block w-full h-48 overflow-hidden"
-                        >
-                          <img
-                            src={thumbnailUrl}
-                            alt={post.title}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        </Link>
-                      )}
+                      <Link
+                        href={`/blog/${post.slug}`}
+                        className="block w-full h-48 overflow-hidden bg-gray-100 dark:bg-gray-700"
+                      >
+                        <img
+                          src={thumbnailUrl}
+                          alt={post.title}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      </Link>
 
                       {/* Content */}
                       <div className="p-6 flex-1 flex flex-col">

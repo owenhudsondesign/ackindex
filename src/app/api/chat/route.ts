@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
 
     // Step 2: Retrieve relevant chunks
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
-      maxResults: 15, // Increased to allow more high-quality sources (no 3-source limit)
+      maxResults: 15, // Fetch enough chunks to cover multiple relevant documents
       minSimilarity: 0.78, // Anti-hallucination requirement: high confidence threshold
       includeDocumentInfo: true,
       searchMode: 'semantic',

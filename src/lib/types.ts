@@ -6,6 +6,8 @@ export interface Citation {
   source?: string;
   similarity?: number;
   index?: number;
+  startTime?: number; // Video timestamp in seconds
+  documentId?: string; // For linking to blog posts
 }
 
 export interface Message {

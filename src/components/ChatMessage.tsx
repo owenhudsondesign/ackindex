@@ -5,6 +5,50 @@ import { useState } from 'react';
 import ConfidenceBadge from './ConfidenceBadge';
 import FlagResponseButton from './FlagResponseButton';
 
+/**
+ * Build citation URL with optional timestamp for video sources
+ * For videos, links to blog post with #t=XXX timestamp
+ */
+function buildCitationUrl(citation: Citation): string | undefined {
+  // If there's no URL and no documentId, can't build a link
+  if (!citation.url && !citation.documentId) {
+    return undefined;
+  }
+
+  // If citation has a timestamp, append it to the URL
+  if (citation.startTime !== undefined && citation.startTime > 0) {
+    const timestamp = Math.floor(citation.startTime);
+
+    // For YouTube URLs, use ?t=XXX format
+    if (citation.url?.includes('youtube.com') || citation.url?.includes('youtu.be')) {
+      const url = new URL(citation.url);
+      url.searchParams.set('t', String(timestamp));
+      return url.toString();
+    }
+
+    // For other URLs (like blog posts with embedded videos), use #t=XXX
+    if (citation.url) {
+      return `${citation.url}#t=${timestamp}`;
+    }
+  }
+
+  return citation.url;
+}
+
+/**
+ * Format seconds as MM:SS or HH:MM:SS timestamp for display
+ */
+function formatTimestamp(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 interface ChatMessageProps {
   role: 'user' | 'assistant';
   content: string;
@@ -43,16 +87,24 @@ function renderContentWithCitations(content: string, citations?: Citation[]) {
       parts.push(content.substring(lastIndex, match.index));
     }
 
+    // Build URL with timestamp if available
+    const citationUrl = citation ? buildCitationUrl(citation) : undefined;
+
     // Add citation as clickable superscript link
-    if (citation && citation.url) {
+    if (citation && citationUrl) {
+      // Build title with timestamp if available
+      const titleWithTimestamp = citation.startTime
+        ? `${citation.title} @ ${formatTimestamp(citation.startTime)}`
+        : citation.title;
+
       parts.push(
         <a
           key={`citation-${citationNumber}-${match.index}`}
-          href={citation.url}
+          href={citationUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-baseline text-ack-blue dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 no-underline hover:underline font-semibold"
-          title={citation.title}
+          title={titleWithTimestamp}
         >
           <sup className="text-xs">[{citationNumber}]</sup>
         </a>
@@ -212,7 +264,7 @@ export default function ChatMessage({
                       )}
 
                       {/* Footer Row */}
-                      <div className="flex items-center gap-3 text-xs">
+                      <div className="flex items-center gap-3 text-xs flex-wrap">
                         {/* Relevance Score */}
                         {citation.similarity !== undefined && (
                           <div className="flex items-center gap-1">
@@ -225,15 +277,27 @@ export default function ChatMessage({
                           </div>
                         )}
 
+                        {/* Timestamp Badge (for video sources) */}
+                        {citation.startTime !== undefined && citation.startTime > 0 && (
+                          <div className="flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-medium text-purple-700 dark:text-purple-300">
+                              @ {formatTimestamp(citation.startTime)}
+                            </span>
+                          </div>
+                        )}
+
                         {/* View Source Link */}
-                        {citation.url && (
+                        {(citation.url || citation.documentId) && (
                           <a
-                            href={citation.url}
+                            href={buildCitationUrl(citation)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-ack-blue dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline font-medium transition-colors"
                           >
-                            <span>View source</span>
+                            <span>{citation.startTime ? 'Jump to timestamp' : 'View source'}</span>
                             <svg
                               className="w-3 h-3"
                               fill="none"

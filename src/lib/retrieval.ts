@@ -311,18 +311,16 @@ export function buildContext(results: RetrievalResult[]): string {
     const docId = result.document?.id;
     if (!docId) return null;
 
+    // Only include sources that meet quality threshold (78%+)
+    if (result.similarity < 0.78) {
+      return null;
+    }
+
     // Get or assign source number for this document
     let sourceNum = docToSourceNum.get(docId);
     if (!sourceNum) {
       sourceNum = sourceCounter++;
       docToSourceNum.set(docId, sourceNum);
-    }
-
-    // Only include sources that meet quality threshold (78%+)
-    // No limit on number of sources - show all high-quality sources
-    // This must match extractCitations() filtering logic
-    if (result.similarity < 0.78) {
-      return null;
     }
 
     const source = result.document?.title || result.document?.filename || 'Unknown source';
@@ -342,6 +340,8 @@ export function extractCitations(results: RetrievalResult[]): Array<{
   source?: string;
   similarity?: number;
   index?: number;
+  startTime?: number;
+  documentId?: string;
 }> {
   // Deduplicate by document ID to avoid showing same source multiple times
   const seenDocuments = new Set<string>();
@@ -359,17 +359,24 @@ export function extractCitations(results: RetrievalResult[]): Array<{
   // Minimum 78% similarity for a source to be shown (anti-hallucination requirement)
   const qualitySources = uniqueResults.filter(r => r.similarity >= 0.78);
 
-  // Show ALL quality sources (no limit) - more sources = more transparency
+  // Show all quality sources - projects may span many relevant documents
   const topResults = qualitySources;
 
-  return topResults.map((result, index) => ({
-    title: result.document?.title || result.document?.filename || 'Untitled',
-    url: result.document?.source_url,
-    snippet: result.content.slice(0, 200), // Increased snippet length
-    source: result.document?.source_type || 'unknown',
-    similarity: Math.round(result.similarity * 100), // Convert to percentage
-    index: index + 1,
-  }));
+  return topResults.map((result, index) => {
+    // Extract timestamp from chunk metadata (set by longVideoProcessor)
+    const startTime = result.metadata?.start_time as number | undefined;
+
+    return {
+      title: result.document?.title || result.document?.filename || 'Untitled',
+      url: result.document?.source_url,
+      snippet: result.content.slice(0, 200),
+      source: result.document?.source_type || 'unknown',
+      similarity: Math.round(result.similarity * 100),
+      index: index + 1,
+      startTime, // Video timestamp in seconds
+      documentId: result.document?.id, // For linking to blog posts with video
+    };
+  });
 }
 
 /**

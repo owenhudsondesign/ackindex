@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import ReactMarkdown from 'react-markdown';
 import TranscriptSection from '@/components/TranscriptSection';
 import PageLayout from '@/components/PageLayout';
+import VideoPlayer from '@/components/VideoPlayer';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -63,7 +64,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? new Date(post.meeting_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : '';
 
-  const imageUrl = post.og_image_url || post.thumbnail_url;
+  // Use existing image or generate dynamic OG image
+  let imageUrl = post.og_image_url || post.thumbnail_url;
+  if (!imageUrl) {
+    // Generate dynamic OG image URL
+    const ogParams = new URLSearchParams();
+    ogParams.set('title', post.title);
+    if (post.meeting_date) ogParams.set('date', post.meeting_date);
+    if (post.meeting_type) ogParams.set('type', post.meeting_type);
+    imageUrl = `/api/og?${ogParams.toString()}`;
+  }
 
   return {
     title: `${post.title} | AckIndex`,
@@ -74,13 +84,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: post.excerpt,
       type: 'article',
       publishedTime: meetingDate,
-      images: imageUrl ? [{ url: imageUrl }] : undefined,
+      images: [{ url: imageUrl }],
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description: post.excerpt,
-      images: imageUrl ? [imageUrl] : undefined,
+      images: [imageUrl],
     },
   };
 }
@@ -186,32 +196,11 @@ export default async function BlogPostPage({ params }: PageProps) {
       {/* Video Player or Featured Image */}
       <div className="max-w-5xl mx-auto px-4 py-8">
         {video?.public_url ? (
-          <div className="overflow-hidden rounded-xl shadow-2xl bg-black">
-            <div className="relative aspect-video">
-              <video
-                controls
-                preload="metadata"
-                className="w-full h-full"
-                poster={featuredImage || undefined}
-              >
-                <source src={video.public_url} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-            <div className="bg-gray-900 px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-white">
-                <svg className="w-5 h-5 text-ack-blue" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                <span className="text-sm font-medium">Full Meeting Recording</span>
-              </div>
-              {video.duration_seconds && (
-                <span className="text-sm text-gray-400">
-                  {Math.floor(video.duration_seconds / 3600)}h {Math.floor((video.duration_seconds % 3600) / 60)}m
-                </span>
-              )}
-            </div>
-          </div>
+          <VideoPlayer
+            src={video.public_url}
+            poster={featuredImage || undefined}
+            durationSeconds={video.duration_seconds || undefined}
+          />
         ) : featuredImage ? (
           sourceDoc?.source_url ? (
             <a
