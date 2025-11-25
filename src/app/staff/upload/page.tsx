@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import VideoUploadForm from '@/components/VideoUploadForm';
+import BatchVideoUploadForm from '@/components/BatchVideoUploadForm';
 import UploadHistory from '@/components/UploadHistory';
 
 export default function StaffUploadPage() {
@@ -13,6 +14,7 @@ export default function StaffUploadPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [uploadMode, setUploadMode] = useState<'single' | 'batch'>('single');
 
   useEffect(() => {
     checkAuth();
@@ -109,7 +111,36 @@ export default function StaffUploadPage() {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-        <VideoUploadForm />
+        {/* Upload Mode Toggle */}
+        <div className="bg-white rounded-lg shadow-md p-1 inline-flex">
+          <button
+            onClick={() => setUploadMode('single')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              uploadMode === 'single'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Single Upload
+          </button>
+          <button
+            onClick={() => setUploadMode('batch')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              uploadMode === 'batch'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Batch Upload
+          </button>
+        </div>
+
+        {uploadMode === 'single' ? (
+          <VideoUploadForm />
+        ) : (
+          <BatchVideoUploadForm />
+        )}
+
         <UploadHistory />
       </div>
     </div>
