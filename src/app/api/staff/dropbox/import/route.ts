@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
             meeting_title: file.meetingTitle,
             meeting_date: file.meetingDate,
             meeting_description: file.boardOrCommittee,
-            file_size: file.size,
+            file_size_bytes: file.size,
             processing_status: 'pending',
             storage_provider: 'dropbox', // Will be changed to bunny after download
             storage_url: '', // Will be set after download
