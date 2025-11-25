@@ -30,6 +30,7 @@ export default function UploadHistory() {
   const [loading, setLoading] = useState(true);
   const [uploads, setUploads] = useState<MeetingVideo[]>([]);
   const [activeSessions, setActiveSessions] = useState<UploadSession[]>([]);
+  const [deletingSession, setDeletingSession] = useState<string | null>(null);
 
   useEffect(() => {
     loadUploads();
@@ -47,6 +48,34 @@ export default function UploadHistory() {
       console.error('Load uploads error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteSession = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to delete this upload? This cannot be undone.')) {
+      return;
+    }
+
+    setDeletingSession(sessionId);
+    try {
+      const response = await fetch('/api/staff/upload/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete upload');
+      }
+
+      // Remove from local state
+      setActiveSessions(prev => prev.filter(s => s.id !== sessionId));
+    } catch (error) {
+      console.error('Delete session error:', error);
+      alert('Failed to delete upload. Please try again.');
+    } finally {
+      setDeletingSession(null);
     }
   };
 
@@ -101,13 +130,32 @@ export default function UploadHistory() {
             {activeSessions.map((session) => (
               <div key={session.id} className="border border-blue-200 rounded-lg p-4 bg-blue-50">
                 <div className="flex items-start justify-between mb-2">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">{session.meeting_title}</p>
-                    <p className="text-xs text-gray-600">{session.filename}</p>
+                    <p className="text-xs text-gray-600 truncate">{session.filename}</p>
                   </div>
-                  <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-blue-100 text-blue-800 border-blue-300">
-                    IN PROGRESS
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-blue-100 text-blue-800 border-blue-300">
+                      IN PROGRESS
+                    </span>
+                    <button
+                      onClick={() => deleteSession(session.id)}
+                      disabled={deletingSession === session.id}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Delete upload"
+                    >
+                      {deletingSession === session.id ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-600">
                   <span>{formatFileSize(session.file_size_bytes)}</span>
