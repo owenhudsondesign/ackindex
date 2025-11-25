@@ -57,7 +57,7 @@ export default function DropboxImportForm() {
       const response = await fetch('/api/staff/dropbox/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dropboxUrl: dropboxUrl.trim() }),
+        body: JSON.stringify({ folderPath: dropboxUrl.trim() }),
       });
 
       const data = await response.json();
@@ -130,7 +130,7 @@ export default function DropboxImportForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          dropboxUrl: dropboxUrl.trim(),
+          folderPath: dropboxUrl.trim(),
           files: selectedFiles.map(f => ({
             id: f.id,
             name: f.name,
@@ -173,22 +173,22 @@ export default function DropboxImportForm() {
 
   return (
     <div className="space-y-6">
-      {/* URL Input */}
+      {/* Folder Input */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Import from Dropbox
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Paste a shared Dropbox folder link to scan for video files. The videos will be
-          downloaded server-side and processed automatically.
+          Enter the Dropbox folder path where town meeting videos are uploaded.
+          Videos will be downloaded server-side and processed automatically.
         </p>
 
         <div className="flex gap-3">
           <input
-            type="url"
+            type="text"
             value={dropboxUrl}
             onChange={(e) => setDropboxUrl(e.target.value)}
-            placeholder="https://www.dropbox.com/sh/... or https://www.dropbox.com/scl/fo/..."
+            placeholder="/Nantucket Town Meetings/2024"
             className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={isScanning || isImporting}
           />
@@ -363,11 +363,11 @@ export default function DropboxImportForm() {
           <ol className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
             <li className="flex gap-2">
               <span className="font-medium text-blue-600 dark:text-blue-400">1.</span>
-              Get a shared folder link from Dropbox (click "Share" on the folder)
+              Town uploads videos to the shared Dropbox folder
             </li>
             <li className="flex gap-2">
               <span className="font-medium text-blue-600 dark:text-blue-400">2.</span>
-              Paste the link above and click "Scan Folder"
+              Enter the folder path above (e.g., /Nantucket Town Meetings/2024)
             </li>
             <li className="flex gap-2">
               <span className="font-medium text-blue-600 dark:text-blue-400">3.</span>
@@ -375,12 +375,11 @@ export default function DropboxImportForm() {
             </li>
             <li className="flex gap-2">
               <span className="font-medium text-blue-600 dark:text-blue-400">4.</span>
-              Click "Import" - videos will be downloaded and processed server-side
+              Click "Import" - videos download and process server-side
             </li>
           </ol>
           <p className="mt-4 text-xs text-gray-500 dark:text-gray-500">
-            Note: Large imports may take several hours to complete. You can close this page
-            and check progress in the Videos admin panel.
+            Tip: Use subfolders by year (e.g., /Nantucket Town Meetings/2024) to import one year at a time.
           </p>
         </div>
       )}

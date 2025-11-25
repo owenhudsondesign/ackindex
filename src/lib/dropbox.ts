@@ -1,8 +1,14 @@
 /**
  * Dropbox Integration Utilities
  *
- * Handles listing files from shared folders and generating download URLs
- * for server-side batch import of video archives.
+ * Handles listing files from your own Dropbox folders and shared links.
+ * Town uploads to your shared folder, you import from there.
+ *
+ * Setup:
+ * 1. Create a Dropbox app at https://www.dropbox.com/developers/apps
+ * 2. Generate access token with files.content.read permission
+ * 3. Set DROPBOX_ACCESS_TOKEN env var
+ * 4. Optionally set DROPBOX_FOLDER_PATH for default folder (e.g., "/Nantucket Archives")
  */
 
 import logger from './logger';
@@ -71,6 +77,165 @@ export function getDirectDownloadUrl(sharedUrl: string): string {
       return sharedUrl.replace('dl=0', 'dl=1');
     }
     return sharedUrl + (sharedUrl.includes('?') ? '&dl=1' : '?dl=1');
+  }
+}
+
+/**
+ * List video files in your own Dropbox folder (not shared link)
+ * This is the simpler approach - town uploads to your shared folder
+ */
+export async function listFolderFiles(folderPath: string): Promise<DropboxScanResult> {
+  const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
+
+  if (!accessToken) {
+    log.error('DROPBOX_ACCESS_TOKEN not configured');
+    return {
+      success: false,
+      files: [],
+      folderName: '',
+      totalSize: 0,
+      error: 'Dropbox integration not configured. Please set DROPBOX_ACCESS_TOKEN.',
+    };
+  }
+
+  // Normalize path - ensure it starts with /
+  const normalizedPath = folderPath.startsWith('/') ? folderPath : `/${folderPath}`;
+
+  try {
+    log.info({ folderPath: normalizedPath }, 'Scanning Dropbox folder');
+
+    const response = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        path: normalizedPath,
+        recursive: true,
+        include_media_info: true,
+        limit: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log.error({ status: response.status, error: errorText }, 'Dropbox API error');
+      return {
+        success: false,
+        files: [],
+        folderName: '',
+        totalSize: 0,
+        error: `Dropbox API error: ${response.status}. Make sure the folder path exists.`,
+      };
+    }
+
+    const data = await response.json();
+
+    // Filter for video files
+    const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
+    const videoFiles: DropboxFile[] = [];
+    let totalSize = 0;
+
+    for (const entry of data.entries || []) {
+      if (entry['.tag'] !== 'file') continue;
+
+      const ext = entry.name.toLowerCase().substring(entry.name.lastIndexOf('.'));
+      if (!videoExtensions.includes(ext)) continue;
+
+      videoFiles.push({
+        id: entry.id,
+        name: entry.name,
+        path: entry.path_display || entry.path_lower,
+        size: entry.size,
+        modified: entry.client_modified || entry.server_modified,
+        downloadUrl: '', // Will use API download, not URL
+      });
+
+      totalSize += entry.size;
+    }
+
+    // Sort by modified date (newest first)
+    videoFiles.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
+
+    const folderName = normalizedPath.split('/').pop() || 'Dropbox Folder';
+
+    log.info({
+      fileCount: videoFiles.length,
+      totalSizeGB: (totalSize / 1024 / 1024 / 1024).toFixed(2)
+    }, 'Dropbox folder scan complete');
+
+    return {
+      success: true,
+      files: videoFiles,
+      folderName,
+      totalSize,
+    };
+  } catch (error) {
+    log.error({ err: error }, 'Failed to scan Dropbox folder');
+    return {
+      success: false,
+      files: [],
+      folderName: '',
+      totalSize: 0,
+      error: error instanceof Error ? error.message : 'Unknown error scanning Dropbox',
+    };
+  }
+}
+
+/**
+ * Download a file from your own Dropbox folder
+ */
+export async function downloadFromFolder(filePath: string): Promise<{ stream: ReadableStream; size: number; filename: string } | null> {
+  const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
+
+  if (!accessToken) {
+    log.error('DROPBOX_ACCESS_TOKEN not configured');
+    return null;
+  }
+
+  try {
+    log.info({ filePath }, 'Downloading from Dropbox folder');
+
+    const response = await fetch('https://content.dropboxapi.com/2/files/download', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Dropbox-API-Arg': JSON.stringify({ path: filePath }),
+      },
+    });
+
+    if (!response.ok) {
+      log.error({ status: response.status }, 'Dropbox download failed');
+      return null;
+    }
+
+    const metadata = response.headers.get('Dropbox-API-Result');
+    let filename = filePath.split('/').pop() || 'video.mp4';
+    let size = 0;
+
+    if (metadata) {
+      try {
+        const parsed = JSON.parse(metadata);
+        filename = parsed.name || filename;
+        size = parsed.size || 0;
+      } catch {
+        // Use defaults
+      }
+    }
+
+    if (!response.body) {
+      return null;
+    }
+
+    return {
+      stream: response.body,
+      size,
+      filename,
+    };
+  } catch (error) {
+    log.error({ err: error }, 'Failed to download from Dropbox folder');
+    return null;
   }
 }
 

@@ -6,10 +6,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStaffUserFromRequest } from '@/lib/staffAuth';
-import { listSharedFolderFiles, parseMetadataFromFilename } from '@/lib/dropbox';
+import { listFolderFiles, listSharedFolderFiles, parseMetadataFromFilename } from '@/lib/dropbox';
 import logger from '@/lib/logger';
 
 const log = logger.child({ endpoint: '/api/staff/dropbox/scan' });
+
+// Default folder path for Nantucket archives (set via env var)
+const DEFAULT_FOLDER = process.env.DROPBOX_FOLDER_PATH || '/Nantucket Town Meetings';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,19 +23,25 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { dropboxUrl } = body;
+    const { folderPath, dropboxUrl } = body;
 
-    if (!dropboxUrl) {
+    // Support both folder path (your folder) and shared URL (legacy)
+    const scanPath = folderPath || dropboxUrl;
+
+    if (!scanPath) {
       return NextResponse.json(
-        { error: 'Dropbox URL is required' },
+        { error: 'Folder path or Dropbox URL is required' },
         { status: 400 }
       );
     }
 
-    log.info({ staffId: session.user.id, dropboxUrl }, 'Scanning Dropbox folder');
+    log.info({ staffId: session.user.id, scanPath }, 'Scanning Dropbox');
 
-    // Scan the Dropbox folder
-    const result = await listSharedFolderFiles(dropboxUrl);
+    // Determine if it's a folder path or shared URL
+    const isSharedLink = scanPath.startsWith('http');
+    const result = isSharedLink
+      ? await listSharedFolderFiles(scanPath)
+      : await listFolderFiles(scanPath);
 
     if (!result.success) {
       return NextResponse.json(

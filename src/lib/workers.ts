@@ -23,7 +23,7 @@ import {
 } from '@/lib/youtubeGladiaScraper';
 import { transcribeWithAssemblyAI } from '@/lib/assemblyAITranscriber';
 import { storeLongVideoTranscript } from '@/lib/longVideoProcessor';
-import { downloadFromDropbox } from '@/lib/dropbox';
+import { downloadFromDropbox, downloadFromFolder } from '@/lib/dropbox';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -592,7 +592,12 @@ async function processDropboxVideoJob(
     log.info({ dropboxPath }, 'Downloading from Dropbox');
     await job.updateProgress(10);
 
-    const downloadResult = await downloadFromDropbox(dropboxUrl, dropboxPath);
+    // Use folder download (your own folder) or shared link download
+    const isSharedLink = dropboxUrl.startsWith('http');
+    const downloadResult = isSharedLink
+      ? await downloadFromDropbox(dropboxUrl, dropboxPath)
+      : await downloadFromFolder(dropboxPath);
+
     if (!downloadResult) {
       throw new Error('Failed to download from Dropbox');
     }

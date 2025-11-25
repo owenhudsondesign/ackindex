@@ -35,6 +35,8 @@ export default function AdminBlogDashboard() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'draft' | 'published'>('draft');
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchActionLoading, setBatchActionLoading] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -112,6 +114,55 @@ export default function AdminBlogDashboard() {
     } catch (error) {
       console.error('Failed to delete post:', error);
       alert('Failed to delete post');
+    }
+  }
+
+  // Batch selection handlers
+  const toggleSelect = (postId: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(postId)) {
+      newSelected.delete(postId);
+    } else {
+      newSelected.add(postId);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const selectAllDrafts = () => {
+    const draftPosts = posts.filter(p => p.status === 'draft');
+    setSelectedIds(new Set(draftPosts.map(p => p.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  async function batchPublishPosts() {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Publish ${selectedIds.size} blog post(s)?`)) return;
+
+    setBatchActionLoading(true);
+    try {
+      const response = await fetch('/api/admin/blog/batch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postIds: Array.from(selectedIds),
+          action: 'publish',
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      setSelectedIds(new Set());
+      await fetchPosts();
+      alert(`${data.published || selectedIds.size} post(s) published!`);
+    } catch (error) {
+      console.error('Batch publish error:', error);
+      alert('Failed to publish posts');
+    } finally {
+      setBatchActionLoading(false);
     }
   }
 
@@ -208,6 +259,32 @@ export default function AdminBlogDashboard() {
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Batch Actions Bar for Drafts */}
+                {filter === 'draft' && posts.filter(p => p.status === 'draft').length > 0 && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.size === posts.filter(p => p.status === 'draft').length && selectedIds.size > 0}
+                        onChange={(e) => e.target.checked ? selectAllDrafts() : deselectAll()}
+                        className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                      />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all drafts'}
+                      </span>
+                    </div>
+                    {selectedIds.size > 0 && (
+                      <button
+                        onClick={batchPublishPosts}
+                        disabled={batchActionLoading}
+                        className="px-4 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm font-medium rounded transition-colors"
+                      >
+                        {batchActionLoading ? 'Publishing...' : `Publish ${selectedIds.size}`}
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {posts.map((post) => {
                   const meetingDate = post.meeting_date
                     ? new Date(post.meeting_date).toLocaleDateString('en-US', {
@@ -220,12 +297,28 @@ export default function AdminBlogDashboard() {
                   return (
                     <div
                       key={post.id}
-                      className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 hover:border-ack-blue dark:hover:border-blue-400 transition-colors cursor-pointer"
+                      className={`bg-white dark:bg-gray-800 rounded-lg border p-5 transition-colors cursor-pointer ${
+                        selectedIds.has(post.id)
+                          ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-ack-blue dark:hover:border-blue-400'
+                      }`}
                       onClick={() => setSelectedPost(post)}
                     >
                       {/* Header */}
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2 flex-wrap">
+                          {filter === 'draft' && post.status === 'draft' && (
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(post.id)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleSelect(post.id);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                            />
+                          )}
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[post.status]}`}>
                             {post.status}
                           </span>

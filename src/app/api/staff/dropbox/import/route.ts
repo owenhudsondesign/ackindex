@@ -37,11 +37,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { dropboxUrl, files } = body as { dropboxUrl: string; files: ImportFile[] };
+    const { folderPath, dropboxUrl, files } = body as { folderPath?: string; dropboxUrl?: string; files: ImportFile[] };
 
-    if (!dropboxUrl || !files || !Array.isArray(files) || files.length === 0) {
+    const sourcePath = folderPath || dropboxUrl;
+
+    if (!sourcePath || !files || !Array.isArray(files) || files.length === 0) {
       return NextResponse.json(
-        { error: 'Dropbox URL and files are required' },
+        { error: 'Folder path and files are required' },
         { status: 400 }
       );
     }
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
     log.info({
       staffId: session.user.id,
       fileCount: files.length,
-      dropboxUrl,
+      sourcePath,
     }, 'Starting Dropbox import');
 
     const results: Array<{ filename: string; videoId?: string; error?: string }> = [];
@@ -68,9 +70,9 @@ export async function POST(request: NextRequest) {
             file_size: file.size,
             processing_status: 'pending',
             storage_provider: 'dropbox', // Will be changed to bunny after download
-            storage_url: file.downloadUrl,
+            storage_url: '', // Will be set after download
             dropbox_path: file.path,
-            dropbox_shared_link: dropboxUrl,
+            dropbox_shared_link: sourcePath,
           })
           .select()
           .single();
@@ -86,7 +88,7 @@ export async function POST(request: NextRequest) {
           'process-dropbox-video',
           {
             videoId: video.id,
-            dropboxUrl: dropboxUrl,
+            dropboxUrl: sourcePath,
             dropboxPath: file.path,
             filename: file.name,
             meetingTitle: file.meetingTitle,

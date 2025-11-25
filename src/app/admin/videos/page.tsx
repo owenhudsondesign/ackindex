@@ -33,6 +33,8 @@ export default function AdminVideosPage() {
   const [videos, setVideos] = useState<MeetingVideo[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'processing'>('pending');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchActionLoading, setBatchActionLoading] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -151,6 +153,78 @@ export default function AdminVideosPage() {
     } catch (error) {
       console.error('Process error:', error);
       alert('Failed to start processing');
+    }
+  };
+
+  // Batch selection handlers
+  const toggleSelect = (videoId: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(videoId)) {
+      newSelected.delete(videoId);
+    } else {
+      newSelected.add(videoId);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const selectAll = () => {
+    const pendingVideos = videos.filter(v => !v.is_public && v.processing_status === 'completed');
+    setSelectedIds(new Set(pendingVideos.map(v => v.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBatchApprove = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Approve ${selectedIds.size} video(s) for public viewing?`)) return;
+
+    setBatchActionLoading(true);
+    try {
+      const response = await fetch('/api/admin/videos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoIds: Array.from(selectedIds), action: 'batch-approve' }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      setSelectedIds(new Set());
+      await loadVideos();
+      alert(`${data.approved || selectedIds.size} video(s) approved!`);
+    } catch (error) {
+      console.error('Batch approve error:', error);
+      alert('Failed to approve videos');
+    } finally {
+      setBatchActionLoading(false);
+    }
+  };
+
+  const handleBatchProcess = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Start processing ${selectedIds.size} video(s)?`)) return;
+
+    setBatchActionLoading(true);
+    try {
+      const response = await fetch('/api/admin/videos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoIds: Array.from(selectedIds), action: 'batch-process' }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      setSelectedIds(new Set());
+      await loadVideos();
+      alert(`${data.processed || selectedIds.size} video(s) queued for processing!`);
+    } catch (error) {
+      console.error('Batch process error:', error);
+      alert('Failed to process videos');
+    } finally {
+      setBatchActionLoading(false);
     }
   };
 
@@ -312,6 +386,34 @@ export default function AdminVideosPage() {
             </div>
           </div>
 
+          {/* Batch Actions Bar */}
+          {filter === 'pending' && videos.filter(v => !v.is_public && v.processing_status === 'completed').length > 0 && (
+            <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === videos.filter(v => !v.is_public && v.processing_status === 'completed').length && selectedIds.size > 0}
+                  onChange={(e) => e.target.checked ? selectAll() : deselectAll()}
+                  className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                />
+                <span className="text-sm text-gray-600">
+                  {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
+                </span>
+              </div>
+              {selectedIds.size > 0 && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleBatchApprove}
+                    disabled={batchActionLoading}
+                    className="px-4 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm font-medium rounded transition-colors"
+                  >
+                    {batchActionLoading ? 'Processing...' : `Approve ${selectedIds.size}`}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Videos List */}
           <div className="p-6">
             {videos.length === 0 ? (
@@ -323,17 +425,31 @@ export default function AdminVideosPage() {
                 {videos.map((video) => (
                   <div
                     key={video.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                    className={`border rounded-lg p-4 transition-colors ${
+                      selectedIds.has(video.id)
+                        ? 'border-blue-400 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {video.meeting_title}
-                        </h3>
-                        <p className="text-sm text-gray-600 mt-1">{video.original_filename}</p>
-                        {video.meeting_description && (
-                          <p className="text-sm text-gray-500 mt-1">{video.meeting_description}</p>
+                      <div className="flex items-start gap-3 flex-1">
+                        {filter === 'pending' && !video.is_public && video.processing_status === 'completed' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(video.id)}
+                            onChange={() => toggleSelect(video.id)}
+                            className="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300"
+                          />
                         )}
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {video.meeting_title}
+                          </h3>
+                          <p className="text-sm text-gray-600 mt-1">{video.original_filename}</p>
+                          {video.meeting_description && (
+                            <p className="text-sm text-gray-500 mt-1">{video.meeting_description}</p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         {getStatusBadge(video.processing_status)}

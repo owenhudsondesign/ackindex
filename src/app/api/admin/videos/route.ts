@@ -217,6 +217,98 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Video approved' });
     }
 
+    // Batch approve multiple videos
+    if (action === 'batch-approve') {
+      const { videoIds } = body;
+      if (!videoIds || !Array.isArray(videoIds) || videoIds.length === 0) {
+        return NextResponse.json({ error: 'videoIds array required' }, { status: 400 });
+      }
+
+      const { error, count } = await supabaseAdmin
+        .from('meeting_videos')
+        .update({
+          is_public: true,
+          approved_by: admin.id,
+          approved_at: new Date().toISOString(),
+        })
+        .in('id', videoIds);
+
+      if (error) throw error;
+      return NextResponse.json({ success: true, approved: count || videoIds.length, message: `${count || videoIds.length} videos approved` });
+    }
+
+    // Batch process multiple videos
+    if (action === 'batch-process') {
+      const { videoIds } = body;
+      if (!videoIds || !Array.isArray(videoIds) || videoIds.length === 0) {
+        return NextResponse.json({ error: 'videoIds array required' }, { status: 400 });
+      }
+
+      let processed = 0;
+      const { scrapingQueue } = await import('@/lib/queues');
+
+      for (const id of videoIds) {
+        try {
+          const { data: video } = await supabaseAdmin
+            .from('meeting_videos')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+          if (!video || video.processing_status === 'completed') continue;
+
+          // Create document if needed
+          let documentId = video.document_id;
+          if (!documentId) {
+            const { data: document } = await supabaseAdmin
+              .from('documents')
+              .insert({
+                source_type: 'url',
+                source_url: video.storage_url || video.public_url,
+                filename: video.original_filename,
+                title: video.meeting_title,
+                description: video.meeting_description || video.meeting_title,
+                status: 'pending',
+                created_by: video.uploaded_by,
+              })
+              .select()
+              .single();
+
+            if (document) {
+              documentId = document.id;
+              await supabaseAdmin
+                .from('meeting_videos')
+                .update({ document_id: documentId })
+                .eq('id', id);
+            }
+          }
+
+          // Queue processing job
+          await scrapingQueue.add(
+            'process-meeting-video',
+            {
+              videoId: id,
+              documentId,
+              storagePath: video.storage_path,
+              storageUrl: video.storage_url || video.public_url,
+            },
+            { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }
+          );
+
+          await supabaseAdmin
+            .from('meeting_videos')
+            .update({ processing_status: 'processing' })
+            .eq('id', id);
+
+          processed++;
+        } catch (err) {
+          console.error(`Failed to queue video ${id}:`, err);
+        }
+      }
+
+      return NextResponse.json({ success: true, processed, message: `${processed} videos queued for processing` });
+    }
+
     if (action === 'reject') {
       const reason = body.reason || 'Rejected by admin';
       const { error } = await supabaseAdmin
