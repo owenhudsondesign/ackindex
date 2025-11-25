@@ -12,6 +12,7 @@ import { verifyResponse, shouldBlockResponse } from '@/lib/antiHallucination';
 import logger from '@/lib/logger';
 import { logQuery } from '@/lib/analytics';
 import { createConversation, addMessage, getRecentMessages, autoGenerateTitle, updateConversationTitle } from '@/lib/conversations';
+import { checkRateLimit, checkGlobalRateLimit, getRateLimitTier, createRateLimitHeaders } from '@/lib/rateLimit';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -117,6 +118,28 @@ export async function POST(request: NextRequest) {
 
     log.info({ messageLength: message.length }, 'Received chat query');
 
+    // Get client IP for rate limiting
+    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || request.headers.get('x-real-ip')
+      || 'unknown';
+
+    // Check global IP rate limit first (abuse protection)
+    const globalRateLimit = await checkGlobalRateLimit(clientIp);
+    if (!globalRateLimit.allowed) {
+      log.warn({ clientIp, resetInSeconds: globalRateLimit.resetInSeconds }, 'Global rate limit exceeded');
+      return NextResponse.json(
+        {
+          error: 'Too many requests',
+          message: `Rate limit exceeded. Please try again in ${globalRateLimit.resetInSeconds} seconds.`,
+          retryAfter: globalRateLimit.resetInSeconds,
+        },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(globalRateLimit),
+        }
+      );
+    }
+
     // Check if user is authenticated
     const user = await getUserFromRequest(request);
 
@@ -193,7 +216,34 @@ export async function POST(request: NextRequest) {
       // Admins get premium features regardless of subscription tier
       const isAdmin = dashboard?.role === 'admin';
       isPremium = dashboard?.subscription_tier === 'premium' || isAdmin;
+    }
 
+    // Per-user/tier rate limiting (requests per minute)
+    const rateLimitIdentifier = isAnonymous ? anonymousFingerprint! : user!.id;
+    const rateLimitTier = getRateLimitTier(isAnonymous, isPremium);
+    const userRateLimit = await checkRateLimit(rateLimitIdentifier, rateLimitTier);
+
+    if (!userRateLimit.allowed) {
+      log.warn({
+        identifier: rateLimitIdentifier,
+        tier: rateLimitTier,
+        resetInSeconds: userRateLimit.resetInSeconds,
+      }, 'User rate limit exceeded');
+
+      return NextResponse.json(
+        {
+          error: 'Too many requests',
+          message: `You're sending requests too quickly. Please wait ${userRateLimit.resetInSeconds} seconds before trying again.`,
+          retryAfter: userRateLimit.resetInSeconds,
+        },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(userRateLimit),
+        }
+      );
+    }
+
+    if (!isAnonymous && user) {
       if (isPremium) {
         // Premium users get conversation history
         if (!activeConversationId) {

@@ -328,9 +328,10 @@ export function validateAIResponse(response: string): { isValid: boolean; saniti
 
 /**
  * Rate limiting check for potential abuse
+ * @deprecated Use checkRateLimit from @/lib/rateLimit instead for proper Redis-based rate limiting
  */
-export function checkRateLimit(userId: string, attempts: number, windowMs: number = 60000): boolean {
-  // This is a simple check - real implementation would use Redis
-  // For now, we rely on the token-based rate limiting in userProfile.ts
-  return attempts < 10; // Max 10 requests per minute
+export function checkRateLimitLegacy(userId: string, attempts: number, windowMs: number = 60000): boolean {
+  // DEPRECATED: This is a placeholder. Use @/lib/rateLimit for production rate limiting.
+  // The new implementation uses Redis sliding window for accurate rate limiting.
+  return attempts < 10;
 }
