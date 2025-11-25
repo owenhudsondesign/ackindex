@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
             file_size_bytes: file.size,
             processing_status: 'pending',
             storage_provider: 'dropbox', // Will be changed to bunny after download
+            storage_path: `pending/${file.id}`, // Placeholder until downloaded to Bunny
             storage_url: '', // Will be set after download
             dropbox_path: file.path,
             dropbox_shared_link: sourcePath,
