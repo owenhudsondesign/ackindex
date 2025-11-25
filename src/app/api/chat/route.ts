@@ -189,7 +189,10 @@ export async function POST(request: NextRequest) {
     if (!isAnonymous && user) {
       // Get user's subscription tier (only for authenticated users)
       dashboard = await getUserDashboard(user.id);
-      isPremium = dashboard?.subscription_tier === 'premium';
+
+      // Admins get premium features regardless of subscription tier
+      const isAdmin = dashboard?.role === 'admin';
+      isPremium = dashboard?.subscription_tier === 'premium' || isAdmin;
 
       if (isPremium) {
         // Premium users get conversation history

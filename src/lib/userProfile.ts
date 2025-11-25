@@ -53,6 +53,7 @@ export interface UserDashboard {
   queries_this_month: number;
   tokens_remaining: number;
   stripe_customer_id: string | null;
+  role?: string | null;
 }
 
 /**
@@ -167,6 +168,7 @@ export async function getUserDashboard(userId: string): Promise<UserDashboard | 
       queries_this_month: queriesThisMonth,
       tokens_remaining: tokensRemaining,
       stripe_customer_id: profile.stripe_customer_id,
+      role: profile.role,
     };
   } catch (error) {
     logger.error({ error, userId }, 'Exception in getUserDashboard');
