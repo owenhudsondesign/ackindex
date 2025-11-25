@@ -129,7 +129,11 @@ export default async function BlogPostPage({ params }: PageProps) {
     .eq('document_id', blogPost.document_id)
     .single();
 
-  const video = videoData as { id: string; public_url: string; storage_url: string; duration_seconds: number | null } | null;
+  // Use public_url or fall back to storage_url
+  const video = videoData ? {
+    ...videoData,
+    public_url: videoData.public_url || videoData.storage_url,
+  } as { id: string; public_url: string; storage_url: string; duration_seconds: number | null } : null;
 
   const meetingDate = blogPost.meeting_date
     ? new Date(blogPost.meeting_date).toLocaleDateString('en-US', {

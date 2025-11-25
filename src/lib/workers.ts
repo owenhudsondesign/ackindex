@@ -816,6 +816,20 @@ async function processMeetingVideoJob(
     fs.writeFileSync(tempVideoPath, buffer);
 
     log.info({ tempVideoPath, size: buffer.length }, 'Video downloaded to temp file');
+    await job.updateProgress(15);
+
+    // Extract thumbnail from video (non-blocking, continues even if it fails)
+    try {
+      const { extractAndSaveThumbnail } = await import('./videoThumbnail');
+      const thumbnailUrl = await extractAndSaveThumbnail(videoId, tempVideoPath, documentId);
+      if (thumbnailUrl) {
+        log.info({ thumbnailUrl }, 'Thumbnail extracted successfully');
+      } else {
+        log.warn('Thumbnail extraction skipped or failed (non-fatal)');
+      }
+    } catch (thumbError) {
+      log.warn({ err: thumbError }, 'Thumbnail extraction failed (non-fatal)');
+    }
     await job.updateProgress(20);
 
     // Upload to AssemblyAI and start transcription
