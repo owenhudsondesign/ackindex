@@ -135,15 +135,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query with service role (bypasses RLS)
+    // Note: Don't use foreign key join - fetch user profiles separately if needed
     let query = supabaseAdmin
       .from('meeting_videos')
-      .select(`
-        *,
-        user_profiles!meeting_videos_uploaded_by_fkey (
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (filter === 'pending') {
@@ -154,16 +149,39 @@ export async function GET(request: NextRequest) {
       query = query.in('processing_status', ['pending', 'processing']);
     }
 
-    const { data, error } = await query;
+    const { data: videos, error } = await query;
 
-    console.log('Admin videos API - filtered result count:', data?.length, 'error:', error?.message);
+    console.log('Admin videos API - filtered result count:', videos?.length, 'error:', error?.message);
 
     if (error) {
       console.error('Query error:', error);
       return NextResponse.json({ error: 'Failed to load videos' }, { status: 500 });
     }
 
-    return NextResponse.json({ videos: data || [] });
+    // Fetch user profiles for the uploaders
+    if (videos && videos.length > 0) {
+      const uploaderIds = [...new Set(videos.map(v => v.uploaded_by).filter(Boolean))];
+
+      if (uploaderIds.length > 0) {
+        const { data: profiles } = await supabaseAdmin
+          .from('user_profiles')
+          .select('id, full_name, email')
+          .in('id', uploaderIds);
+
+        // Create a lookup map
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+        // Merge profiles into videos
+        const videosWithProfiles = videos.map(video => ({
+          ...video,
+          user_profiles: profileMap.get(video.uploaded_by) || null
+        }));
+
+        return NextResponse.json({ videos: videosWithProfiles });
+      }
+    }
+
+    return NextResponse.json({ videos: videos || [] });
   } catch (error) {
     console.error('API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
