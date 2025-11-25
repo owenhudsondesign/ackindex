@@ -38,13 +38,21 @@ export async function getStaffUserFromRequest() {
 
       console.log('Staff auth - Cookie value prefix:', cookieValue.substring(0, 20));
 
-      // Handle "base64-" prefix format if present
+      // Handle "base64-" prefix format - the content is base64-encoded JSON
       if (cookieValue.startsWith('base64-')) {
-        cookieValue = cookieValue.substring(7);
+        const base64Content = cookieValue.substring(7);
+        try {
+          const decodedJson = Buffer.from(base64Content, 'base64').toString('utf-8');
+          const parsed = JSON.parse(decodedJson);
+          accessToken = parsed.access_token || (Array.isArray(parsed) ? parsed[0] : null);
+          console.log('Staff auth - Decoded base64 JSON, token length:', accessToken?.length);
+        } catch (e) {
+          console.log('Staff auth - Failed to decode base64 JSON:', e);
+          return null;
+        }
       }
-
       // Check if it's a JSON array (starts with "[")
-      if (cookieValue.startsWith('[')) {
+      else if (cookieValue.startsWith('[')) {
         try {
           const parsed = JSON.parse(cookieValue);
           accessToken = Array.isArray(parsed) ? parsed[0] : parsed;
