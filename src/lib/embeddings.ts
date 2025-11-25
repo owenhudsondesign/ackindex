@@ -11,21 +11,23 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// OpenAI's text-embedding-ada-002 produces 1536-dimensional vectors
+// OpenAI's text-embedding-3-large with 1536 dimensions for best quality
+// (native 3072 dims reduced to 1536 for DB compatibility, minimal quality loss)
 export const EMBEDDING_DIMENSIONS = 1536;
-export const EMBEDDING_MODEL = 'text-embedding-ada-002';
+export const EMBEDDING_MODEL = 'text-embedding-3-large';
 
 /**
  * Generate embedding for a single text
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    // Clean and truncate text if necessary (max 8191 tokens for ada-002)
+    // Clean and truncate text if necessary (max 8191 tokens)
     const cleanText = text.trim().slice(0, 32000); // ~8k tokens
 
     const response = await openai.embeddings.create({
       model: EMBEDDING_MODEL,
       input: cleanText,
+      dimensions: EMBEDDING_DIMENSIONS, // Reduce to 1536 for DB compatibility
     });
 
     return response.data[0].embedding;
@@ -58,6 +60,7 @@ export async function generateEmbeddingsBatch(
       const response = await openai.embeddings.create({
         model: EMBEDDING_MODEL,
         input: cleanBatch,
+        dimensions: EMBEDDING_DIMENSIONS, // Reduce to 1536 for DB compatibility
       });
 
       embeddings.push(...response.data.map(d => d.embedding));
@@ -125,7 +128,7 @@ export function findMostSimilar(
 
 /**
  * Estimate the cost of generating embeddings
- * OpenAI charges ~$0.0001 per 1K tokens
+ * text-embedding-3-large: $0.13 per 1M tokens
  */
 export function estimateEmbeddingCost(texts: string[]): {
   estimatedTokens: number;
@@ -134,7 +137,7 @@ export function estimateEmbeddingCost(texts: string[]): {
   // Rough estimate: 1 token ≈ 4 characters
   const totalChars = texts.reduce((sum, text) => sum + text.length, 0);
   const estimatedTokens = Math.ceil(totalChars / 4);
-  const estimatedCost = (estimatedTokens / 1000) * 0.0001;
+  const estimatedCost = (estimatedTokens / 1_000_000) * 0.13; // $0.13 per 1M tokens
 
   return {
     estimatedTokens,
