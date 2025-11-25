@@ -31,6 +31,7 @@ export default function UploadHistory() {
   const [uploads, setUploads] = useState<MeetingVideo[]>([]);
   const [activeSessions, setActiveSessions] = useState<UploadSession[]>([]);
   const [deletingSession, setDeletingSession] = useState<string | null>(null);
+  const [deletingVideo, setDeletingVideo] = useState<string | null>(null);
 
   useEffect(() => {
     loadUploads();
@@ -76,6 +77,34 @@ export default function UploadHistory() {
       alert('Failed to delete upload. Please try again.');
     } finally {
       setDeletingSession(null);
+    }
+  };
+
+  const deleteVideo = async (videoId: string) => {
+    if (!confirm('Are you sure you want to delete this video? This cannot be undone.')) {
+      return;
+    }
+
+    setDeletingVideo(videoId);
+    try {
+      const response = await fetch('/api/staff/video/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete video');
+      }
+
+      // Remove from local state
+      setUploads(prev => prev.filter(v => v.id !== videoId));
+    } catch (error) {
+      console.error('Delete video error:', error);
+      alert('Failed to delete video. Please try again.');
+    } finally {
+      setDeletingVideo(null);
     }
   };
 
@@ -191,10 +220,32 @@ export default function UploadHistory() {
                     <p className="text-xs text-gray-500 mt-1">{video.meeting_description}</p>
                   )}
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  {getStatusBadge(video.processing_status)}
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-1">
+                    {getStatusBadge(video.processing_status)}
+                    {!video.is_public && (
+                      <span className="text-xs text-gray-500">Pending Approval</span>
+                    )}
+                  </div>
+                  {/* Only allow delete if not yet approved */}
                   {!video.is_public && (
-                    <span className="text-xs text-gray-500">Pending Approval</span>
+                    <button
+                      onClick={() => deleteVideo(video.id)}
+                      disabled={deletingVideo === video.id}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Delete video"
+                    >
+                      {deletingVideo === video.id ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
                   )}
                 </div>
               </div>

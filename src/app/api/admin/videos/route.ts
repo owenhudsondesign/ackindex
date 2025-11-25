@@ -58,12 +58,31 @@ export async function GET(request: NextRequest) {
   try {
     // Verify admin
     const admin = await getAdminUserFromCookies();
+    console.log('Admin videos API - admin check:', { hasAdmin: !!admin, adminId: admin?.id });
+
     if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('filter') || 'all';
+    console.log('Admin videos API - filter:', filter);
+
+    // First, let's see ALL videos without any filter
+    const { data: allVideos, error: allError } = await supabaseAdmin
+      .from('meeting_videos')
+      .select('id, meeting_title, processing_status, is_public, uploaded_by, created_at')
+      .order('created_at', { ascending: false });
+
+    console.log('Admin videos API - ALL videos count:', allVideos?.length, 'error:', allError?.message);
+    if (allVideos && allVideos.length > 0) {
+      console.log('Admin videos API - ALL videos:', allVideos.map(v => ({
+        id: v.id.substring(0, 8),
+        title: v.meeting_title,
+        status: v.processing_status,
+        is_public: v.is_public
+      })));
+    }
 
     // Build query with service role (bypasses RLS)
     let query = supabaseAdmin
@@ -86,6 +105,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { data, error } = await query;
+
+    console.log('Admin videos API - filtered result count:', data?.length, 'error:', error?.message);
 
     if (error) {
       console.error('Query error:', error);
