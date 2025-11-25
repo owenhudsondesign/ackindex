@@ -23,6 +23,7 @@ import {
 } from '@/lib/youtubeGladiaScraper';
 import { transcribeWithAssemblyAI } from '@/lib/assemblyAITranscriber';
 import { storeLongVideoTranscript } from '@/lib/longVideoProcessor';
+import { downloadFromDropbox } from '@/lib/dropbox';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -84,6 +85,12 @@ interface ScrapingJobData {
   // Meeting video processing options
   storagePath?: string;
   storageUrl?: string;
+  // Dropbox import options
+  dropboxUrl?: string;
+  dropboxPath?: string;
+  filename?: string;
+  meetingTitle?: string;
+  meetingDate?: string | null;
 }
 
 // Interface for embedding job data
@@ -545,6 +552,153 @@ async function processYouTubePlaylistJob(
     };
   } catch (error) {
     log.error({ err: error, url }, 'YouTube playlist processing failed');
+    throw error;
+  }
+}
+
+/**
+ * Process Dropbox video import job
+ * Downloads from Dropbox, uploads to Bunny, then processes through normal pipeline
+ */
+async function processDropboxVideoJob(
+  data: {
+    videoId: string;
+    dropboxUrl: string;
+    dropboxPath: string;
+    filename: string;
+    meetingTitle: string;
+    meetingDate: string | null;
+  },
+  job: Job
+): Promise<{ documentId?: string }> {
+  const { videoId, dropboxUrl, dropboxPath, filename, meetingTitle, meetingDate } = data;
+  const log = workerLogger.child({ jobId: job.id, videoId, filename });
+
+  try {
+    log.info('Starting Dropbox video import');
+    await job.updateProgress(5);
+
+    // Update status to processing
+    await supabaseAdmin
+      .from('meeting_videos')
+      .update({
+        processing_status: 'processing',
+        processing_step: 'downloading',
+        processing_progress: 5,
+      })
+      .eq('id', videoId);
+
+    // Step 1: Download from Dropbox
+    log.info({ dropboxPath }, 'Downloading from Dropbox');
+    await job.updateProgress(10);
+
+    const downloadResult = await downloadFromDropbox(dropboxUrl, dropboxPath);
+    if (!downloadResult) {
+      throw new Error('Failed to download from Dropbox');
+    }
+
+    await supabaseAdmin
+      .from('meeting_videos')
+      .update({
+        processing_step: 'uploading',
+        processing_progress: 30,
+      })
+      .eq('id', videoId);
+
+    await job.updateProgress(30);
+
+    // Step 2: Upload to Bunny.net
+    log.info('Uploading to Bunny.net');
+
+    const bunnyStorageZone = process.env.BUNNY_STORAGE_ZONE;
+    const bunnyApiKey = process.env.BUNNY_API_KEY;
+    const bunnyPullZone = process.env.BUNNY_PULL_ZONE_URL;
+
+    if (!bunnyStorageZone || !bunnyApiKey) {
+      throw new Error('Bunny.net credentials not configured');
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const bunnyPath = `videos/${timestamp}-${safeFilename}`;
+
+    // Stream upload to Bunny
+    const bunnyUploadUrl = `https://storage.bunnycdn.com/${bunnyStorageZone}/${bunnyPath}`;
+
+    // Convert web stream to node stream for upload
+    const chunks: Uint8Array[] = [];
+    const reader = downloadResult.stream.getReader();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+
+    const buffer = Buffer.concat(chunks);
+
+    const uploadResponse = await fetch(bunnyUploadUrl, {
+      method: 'PUT',
+      headers: {
+        'AccessKey': bunnyApiKey,
+        'Content-Type': 'application/octet-stream',
+      },
+      body: buffer,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Bunny upload failed: ${uploadResponse.status}`);
+    }
+
+    const publicUrl = `${bunnyPullZone}/${bunnyPath}`;
+
+    log.info({ publicUrl, fileSize: buffer.length }, 'Uploaded to Bunny.net');
+
+    await job.updateProgress(50);
+
+    // Update video record with Bunny URL
+    await supabaseAdmin
+      .from('meeting_videos')
+      .update({
+        storage_provider: 'bunny',
+        storage_url: publicUrl,
+        storage_path: bunnyPath,
+        public_url: publicUrl,
+        file_size: buffer.length,
+        processing_step: 'transcribing',
+        processing_progress: 50,
+      })
+      .eq('id', videoId);
+
+    // Step 3: Now process through the normal meeting video pipeline
+    // This reuses the existing processMeetingVideoJob logic
+    log.info('Starting transcription pipeline');
+
+    // Create a synthetic job data object to reuse existing processing
+    const meetingVideoData: ScrapingJobData = {
+      videoId,
+      userId: '', // Already set in video record
+    };
+
+    // Call the existing meeting video processor
+    // It will pick up from where we left off (video already uploaded)
+    const result = await processMeetingVideoJob(meetingVideoData, job);
+
+    log.info({ documentId: result?.documentId }, 'Dropbox video import complete');
+
+    return { documentId: result?.documentId };
+  } catch (error) {
+    log.error({ err: error }, 'Dropbox video import failed');
+
+    await supabaseAdmin
+      .from('meeting_videos')
+      .update({
+        processing_status: 'failed',
+        processing_error: error instanceof Error ? error.message : 'Unknown error',
+      })
+      .eq('id', videoId);
+
     throw error;
   }
 }
@@ -1090,6 +1244,27 @@ export const scrapingWorker = new Worker<ScrapingJobData>(
 
       console.log(`✅ [WORKER] Long video job completed. Document ID: ${result.documentId}`);
       return { success: true, ...result };
+    } else if (job.name === 'process-dropbox-video') {
+      console.log(`✅ [WORKER] Job identified as Dropbox video import`);
+      const { videoId, dropboxUrl, dropboxPath, filename, meetingTitle, meetingDate } = job.data;
+
+      if (!videoId || !dropboxUrl || !dropboxPath || !filename) {
+        throw new Error('Missing required fields for Dropbox video import');
+      }
+
+      workerLogger.info({ jobId: job.id, videoId, filename }, 'Starting Dropbox video import');
+
+      const result = await processDropboxVideoJob({
+        videoId,
+        dropboxUrl,
+        dropboxPath,
+        filename,
+        meetingTitle: meetingTitle || 'Untitled Meeting',
+        meetingDate: meetingDate || null,
+      }, job);
+
+      console.log(`✅ [WORKER] Dropbox import job completed. Video ID: ${videoId}`);
+      return { success: true, videoId, ...result };
     } else {
       // Regular URL scraping
       if (!url) {

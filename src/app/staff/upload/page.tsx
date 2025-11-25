@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import VideoUploadForm from '@/components/VideoUploadForm';
 import BatchVideoUploadForm from '@/components/BatchVideoUploadForm';
+import DropboxImportForm from '@/components/DropboxImportForm';
 import UploadHistory from '@/components/UploadHistory';
 
 export default function StaffUploadPage() {
@@ -14,7 +15,7 @@ export default function StaffUploadPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [uploadMode, setUploadMode] = useState<'single' | 'batch'>('single');
+  const [uploadMode, setUploadMode] = useState<'single' | 'batch' | 'dropbox'>('single');
 
   useEffect(() => {
     checkAuth();
@@ -133,13 +134,21 @@ export default function StaffUploadPage() {
           >
             Batch Upload
           </button>
+          <button
+            onClick={() => setUploadMode('dropbox')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              uploadMode === 'dropbox'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Dropbox Import
+          </button>
         </div>
 
-        {uploadMode === 'single' ? (
-          <VideoUploadForm />
-        ) : (
-          <BatchVideoUploadForm />
-        )}
+        {uploadMode === 'single' && <VideoUploadForm />}
+        {uploadMode === 'batch' && <BatchVideoUploadForm />}
+        {uploadMode === 'dropbox' && <DropboxImportForm />}
 
         <UploadHistory />
       </div>
