@@ -27,13 +27,21 @@ async function getUserFromRequest() {
     let cookieValue = authCookie.value;
     let accessToken: string;
 
-    // Handle "base64-" prefix format if present
+    // Handle "base64-" prefix format - decode the base64 content
     if (cookieValue.startsWith('base64-')) {
-      cookieValue = cookieValue.substring(7);
+      const base64Content = cookieValue.substring(7);
+      try {
+        cookieValue = Buffer.from(base64Content, 'base64').toString('utf-8');
+      } catch (e) {
+        return null;
+      }
     }
 
-    // Check if it's a JSON array (starts with "[")
-    if (cookieValue.startsWith('[')) {
+    // Parse the cookie value - could be JSON object, JSON array, or raw JWT
+    if (cookieValue.startsWith('{')) {
+      const parsed = JSON.parse(cookieValue);
+      accessToken = parsed.access_token || parsed.accessToken;
+    } else if (cookieValue.startsWith('[')) {
       const parsed = JSON.parse(cookieValue);
       accessToken = Array.isArray(parsed) ? parsed[0] : parsed;
     } else if (cookieValue.startsWith('eyJ')) {

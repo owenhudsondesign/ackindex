@@ -33,13 +33,31 @@ async function getAdminUserFromCookies(): Promise<{ id: string; email: string } 
     console.log('Admin videos - Cookie name:', authCookie.name);
     console.log('Admin videos - Cookie value prefix:', cookieValue.substring(0, 30));
 
-    // Handle "base64-" prefix format if present
+    // Handle "base64-" prefix format - decode the base64 content
     if (cookieValue.startsWith('base64-')) {
-      cookieValue = cookieValue.substring(7);
+      const base64Content = cookieValue.substring(7);
+      try {
+        cookieValue = Buffer.from(base64Content, 'base64').toString('utf-8');
+        console.log('Admin videos - Decoded base64, result prefix:', cookieValue.substring(0, 30));
+      } catch (e) {
+        console.log('Admin videos - Failed to decode base64:', e);
+        return null;
+      }
     }
 
-    // Parse the cookie value - it's JSON array format ["token", "refresh_token"]
-    if (cookieValue.startsWith('[')) {
+    // Parse the cookie value - could be JSON object, JSON array, or raw JWT
+    if (cookieValue.startsWith('{')) {
+      // JSON object format: {"access_token": "...", "refresh_token": "..."}
+      try {
+        const parsed = JSON.parse(cookieValue);
+        accessToken = parsed.access_token || parsed.accessToken;
+        console.log('Admin videos - Parsed JSON object, token length:', accessToken?.length);
+      } catch (e) {
+        console.log('Admin videos - Failed to parse as JSON object:', e);
+        return null;
+      }
+    } else if (cookieValue.startsWith('[')) {
+      // JSON array format: ["access_token", "refresh_token"]
       try {
         const parsed = JSON.parse(cookieValue);
         accessToken = Array.isArray(parsed) ? parsed[0] : parsed;
@@ -49,6 +67,7 @@ async function getAdminUserFromCookies(): Promise<{ id: string; email: string } 
         return null;
       }
     } else if (cookieValue.startsWith('eyJ')) {
+      // Raw JWT token
       accessToken = cookieValue;
       console.log('Admin videos - Using raw JWT token, length:', accessToken.length);
     } else {
