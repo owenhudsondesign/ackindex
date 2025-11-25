@@ -60,8 +60,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
+  // Parse date as local timezone to avoid off-by-one day issues
   const meetingDate = post.meeting_date
-    ? new Date(post.meeting_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    ? (() => {
+        const [year, month, day] = post.meeting_date.split('-').map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      })()
     : '';
 
   // Use existing image or generate dynamic OG image
@@ -143,12 +147,16 @@ export default async function BlogPostPage({ params }: PageProps) {
     public_url: videoData.public_url || videoData.storage_url,
   } as { id: string; public_url: string; storage_url: string; duration_seconds: number | null } : null;
 
+  // Parse date as local timezone to avoid off-by-one day issues
   const meetingDate = blogPost.meeting_date
-    ? new Date(blogPost.meeting_date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+    ? (() => {
+        const [year, month, day] = blogPost.meeting_date.split('-').map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+      })()
     : null;
 
   const publishedDate = new Date(blogPost.published_at).toLocaleDateString('en-US', {

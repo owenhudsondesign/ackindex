@@ -332,12 +332,18 @@ export default function BlogIndexPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredPosts.map((post) => {
+                  // Parse date as local timezone to avoid off-by-one day issues
+                  // Date strings like "2025-11-17" are interpreted as UTC by new Date()
+                  // which can show as the previous day in local timezone
                   const meetingDate = post.meeting_date
-                    ? new Date(post.meeting_date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
+                    ? (() => {
+                        const [year, month, day] = post.meeting_date.split('-').map(Number);
+                        return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        });
+                      })()
                     : null;
 
                   // Use existing image or generate dynamic OG image
