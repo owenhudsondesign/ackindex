@@ -28,24 +28,43 @@ async function getUserFromRequest() {
       return null;
     }
 
-    // The cookie value is base64 encoded JSON with access_token
+    // The cookie value format from @supabase/auth-helpers-nextjs is "base64-{base64data}"
     try {
-      // Try to decode the cookie - it might be base64 or JSON
       let tokenData;
+      let cookieValue = authCookie.value;
+
+      console.log('Staff uploads - Cookie value prefix:', cookieValue.substring(0, 20));
+
+      // Handle "base64-" prefix format from auth-helpers-nextjs
+      if (cookieValue.startsWith('base64-')) {
+        cookieValue = cookieValue.substring(7); // Remove "base64-" prefix
+      }
+
       try {
-        // First try: it might be raw JSON
-        tokenData = JSON.parse(authCookie.value);
-      } catch {
-        // Second try: it might be base64 encoded
-        const decoded = Buffer.from(authCookie.value, 'base64').toString('utf-8');
+        // First try: decode as base64
+        const decoded = Buffer.from(cookieValue, 'base64').toString('utf-8');
+        console.log('Staff uploads - Decoded value prefix:', decoded.substring(0, 50));
         tokenData = JSON.parse(decoded);
+      } catch (e1) {
+        console.log('Staff uploads - Base64 decode failed, trying raw JSON');
+        try {
+          // Second try: it might be raw JSON
+          tokenData = JSON.parse(cookieValue);
+        } catch (e2) {
+          console.error('Staff uploads - Both parse methods failed:', e1, e2);
+          return null;
+        }
       }
 
       console.log('Staff uploads - Token data keys:', Object.keys(tokenData || {}));
+      console.log('Staff uploads - Token data sample:', JSON.stringify(tokenData).substring(0, 100));
 
-      const accessToken = tokenData?.access_token || tokenData?.[0]?.access_token;
+      // The structure might be an array with the session object as first element
+      const sessionData = Array.isArray(tokenData) ? tokenData[0] : tokenData;
+      const accessToken = sessionData?.access_token;
+
       if (!accessToken) {
-        console.log('Staff uploads - No access token in cookie data');
+        console.log('Staff uploads - No access token in cookie data. Session data keys:', Object.keys(sessionData || {}));
         return null;
       }
 
