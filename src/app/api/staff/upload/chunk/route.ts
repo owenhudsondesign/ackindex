@@ -93,11 +93,5 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Increase body size limit for chunks (default is 4MB)
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '15mb', // Allow up to 15MB chunks
-    },
-  },
-};
+// Note: Vercel serverless functions have a 4.5MB body size limit
+// Chunk size is set in initiate route to 4MB to stay under this limit

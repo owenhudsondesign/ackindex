@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       meetingDate,
       meetingTitle,
       meetingDescription,
-      chunkSize = 10 * 1024 * 1024, // 10MB default
+      chunkSize = 4 * 1024 * 1024, // 4MB default (Vercel serverless limit is 4.5MB)
     } = body;
 
     // Validation
