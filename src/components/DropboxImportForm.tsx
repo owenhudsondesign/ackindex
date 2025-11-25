@@ -40,6 +40,7 @@ export default function DropboxImportForm() {
     successful: number;
     failed: number;
     message: string;
+    errors?: Array<{ filename: string; error: string }>;
   } | null>(null);
 
   const handleScan = async () => {
@@ -150,10 +151,16 @@ export default function DropboxImportForm() {
         throw new Error(data.error || 'Failed to import videos');
       }
 
+      // Extract errors from results
+      const errors = data.results
+        ?.filter((r: { error?: string }) => r.error)
+        .map((r: { filename: string; error: string }) => ({ filename: r.filename, error: r.error }));
+
       setImportResult({
         successful: data.summary.successful,
         failed: data.summary.failed,
         message: data.message,
+        errors: errors?.length > 0 ? errors : undefined,
       });
 
       // Clear the scan result after successful import
@@ -218,8 +225,22 @@ export default function DropboxImportForm() {
         )}
 
         {importResult && (
-          <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-300 text-sm">
-            {importResult.message}
+          <div className={`mt-4 p-3 rounded-lg text-sm ${
+            importResult.failed > 0
+              ? 'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300'
+              : 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+          }`}>
+            <p>{importResult.message}</p>
+            {importResult.errors && importResult.errors.length > 0 && (
+              <div className="mt-2 text-xs">
+                <p className="font-semibold">Errors:</p>
+                <ul className="list-disc list-inside">
+                  {importResult.errors.map((e, i) => (
+                    <li key={i}>{e.filename}: {e.error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
