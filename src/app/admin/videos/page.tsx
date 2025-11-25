@@ -2,9 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
 import { getAdminUser } from '@/lib/adminAuth';
-import { supabase } from '@/lib/supabase';
 import PageLayout from '@/components/PageLayout';
 import Container from '@/components/Container';
 import Link from 'next/link';
@@ -47,15 +45,9 @@ export default function AdminVideosPage() {
 
   const checkAuth = async () => {
     try {
-      const currentUser = await getCurrentUser();
-      if (!currentUser) {
-        router.push('/admin/login');
-        return;
-      }
-
       const adminUser = await getAdminUser();
       if (!adminUser) {
-        router.push('/');
+        router.push('/admin/login');
         return;
       }
 
@@ -68,29 +60,11 @@ export default function AdminVideosPage() {
 
   const loadVideos = async () => {
     try {
-      let query = supabase
-        .from('meeting_videos')
-        .select(`
-          *,
-          user_profiles!meeting_videos_uploaded_by_fkey (
-            full_name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false });
+      const response = await fetch(`/api/admin/videos?filter=${filter}`);
+      const data = await response.json();
 
-      if (filter === 'pending') {
-        query = query.eq('is_public', false).eq('processing_status', 'completed');
-      } else if (filter === 'approved') {
-        query = query.eq('is_public', true);
-      } else if (filter === 'processing') {
-        query = query.in('processing_status', ['pending', 'processing']);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setVideos(data || []);
+      if (!response.ok) throw new Error(data.error);
+      setVideos(data.videos || []);
     } catch (error) {
       console.error('Load error:', error);
     }
@@ -100,19 +74,14 @@ export default function AdminVideosPage() {
     if (!confirm('Approve this video for public viewing?')) return;
 
     try {
-      const user = await getCurrentUser();
-      if (!user) throw new Error('Not authenticated');
+      const response = await fetch('/api/admin/videos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, action: 'approve' }),
+      });
 
-      const { error } = await supabase
-        .from('meeting_videos')
-        .update({
-          is_public: true,
-          approved_by: user.id,
-          approved_at: new Date().toISOString(),
-        })
-        .eq('id', videoId);
-
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
 
       await loadVideos();
       alert('Video approved and made public!');
@@ -127,15 +96,14 @@ export default function AdminVideosPage() {
     if (reason === null) return;
 
     try {
-      const { error } = await supabase
-        .from('meeting_videos')
-        .update({
-          is_archived: true,
-          transcription_error: reason || 'Rejected by admin',
-        })
-        .eq('id', videoId);
+      const response = await fetch('/api/admin/videos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, action: 'reject', reason }),
+      });
 
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
 
       await loadVideos();
       alert('Video archived');
