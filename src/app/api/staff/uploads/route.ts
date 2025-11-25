@@ -1,34 +1,63 @@
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Helper to get user from cookies (same pattern as conversations route)
+// Create a supabase client with service role for database operations
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
+
+// Helper to get user from cookies
 async function getUserFromRequest() {
   try {
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
     console.log('Staff uploads - All cookies:', allCookies.map(c => ({ name: c.name, valueLength: c.value?.length })));
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
+    // Find the Supabase auth token cookie
+    const authCookie = allCookies.find(c => c.name.includes('-auth-token'));
+    if (!authCookie) {
+      console.log('Staff uploads - No auth cookie found');
+      return null;
+    }
+
+    // The cookie value is base64 encoded JSON with access_token
+    try {
+      // Try to decode the cookie - it might be base64 or JSON
+      let tokenData;
+      try {
+        // First try: it might be raw JSON
+        tokenData = JSON.parse(authCookie.value);
+      } catch {
+        // Second try: it might be base64 encoded
+        const decoded = Buffer.from(authCookie.value, 'base64').toString('utf-8');
+        tokenData = JSON.parse(decoded);
       }
-    );
 
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log('Staff uploads - Auth result:', { hasSession: !!session, userId: session?.user?.id });
+      console.log('Staff uploads - Token data keys:', Object.keys(tokenData || {}));
 
-    if (session?.user) {
-      return { user: session.user, supabase };
+      const accessToken = tokenData?.access_token || tokenData?.[0]?.access_token;
+      if (!accessToken) {
+        console.log('Staff uploads - No access token in cookie data');
+        return null;
+      }
+
+      // Verify the token with Supabase
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
+      console.log('Staff uploads - Auth result:', { hasUser: !!user, userId: user?.id, error: error?.message });
+
+      if (user) {
+        return { user, supabase: supabaseAdmin };
+      }
+    } catch (parseError) {
+      console.error('Staff uploads - Cookie parse error:', parseError);
     }
   } catch (error) {
     console.error('Staff uploads - Auth error:', error);
