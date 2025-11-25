@@ -7,10 +7,10 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import ReactMarkdown from 'react-markdown';
 import TranscriptSection from '@/components/TranscriptSection';
 import PageLayout from '@/components/PageLayout';
 import VideoPlayer from '@/components/VideoPlayer';
+import BlogContent from '@/components/BlogContent';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -285,65 +285,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
       {/* Blog Content */}
       <main className="max-w-3xl mx-auto px-4 py-12">
-        <article className="prose prose-lg dark:prose-invert prose-ack-blue max-w-none">
-          <ReactMarkdown
-            components={{
-              // Customize markdown rendering
-              h1: ({ children }) => (
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-8 mb-4">
-                  {children}
-                </h1>
-              ),
-              h2: ({ children }) => (
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-6 mb-3">
-                  {children}
-                </h2>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-5 mb-2">
-                  {children}
-                </h3>
-              ),
-              p: ({ children }) => (
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                  {children}
-                </p>
-              ),
-              ul: ({ children }) => (
-                <ul className="list-disc list-inside space-y-2 mb-4 text-gray-700 dark:text-gray-300">
-                  {children}
-                </ul>
-              ),
-              ol: ({ children }) => (
-                <ol className="list-decimal list-inside space-y-2 mb-4 text-gray-700 dark:text-gray-300">
-                  {children}
-                </ol>
-              ),
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-4 border-ack-blue dark:border-blue-400 pl-4 italic text-gray-600 dark:text-gray-400 my-4">
-                  {children}
-                </blockquote>
-              ),
-              strong: ({ children }) => (
-                <strong className="font-semibold text-gray-900 dark:text-white">
-                  {children}
-                </strong>
-              ),
-              a: ({ href, children }) => (
-                <a
-                  href={href}
-                  className="text-ack-blue dark:text-blue-400 hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {children}
-                </a>
-              ),
-            }}
-          >
-            {blogPost.content}
-          </ReactMarkdown>
-        </article>
+        <BlogContent content={blogPost.content} />
 
         {/* Full Transcript Section */}
         {sourceDoc && (
