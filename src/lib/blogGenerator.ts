@@ -107,17 +107,41 @@ function extractMeetingInfo(title: string): { meetingType: string | null; meetin
   return { meetingType, meetingDate };
 }
 
+interface ChunkWithTimestamp {
+  content: string;
+  startTime: number | null;
+}
+
+/**
+ * Format seconds as HH:MM:SS or MM:SS for display
+ */
+function formatTimestampDisplay(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 /**
  * Generate blog post content from meeting transcript chunks
  */
 async function generateBlogContent(
   documentTitle: string,
-  transcriptChunks: string[],
+  transcriptChunks: ChunkWithTimestamp[],
   meetingType: string | null,
   meetingDate: Date | null
 ): Promise<Omit<BlogPostData, 'meetingType' | 'meetingDate'>> {
-  // Sample transcript (use first 10 chunks, ~5000 tokens)
-  const sampleTranscript = transcriptChunks.slice(0, 10).join('\n\n');
+  // Sample transcript with timestamps (use first 15 chunks for more context)
+  const chunksWithTimestamps = transcriptChunks.slice(0, 15).map((chunk, idx) => {
+    const timestamp = chunk.startTime
+      ? `[Timestamp: ${formatTimestampDisplay(chunk.startTime)} | #t=${Math.floor(chunk.startTime)}]`
+      : `[Chunk ${idx + 1}]`;
+    return `${timestamp}\n${chunk.content}`;
+  }).join('\n\n---\n\n');
 
   const meetingDateStr = meetingDate
     ? meetingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -131,28 +155,32 @@ Meeting: ${documentTitle}
 Type: ${meetingTypeStr}
 Date: ${meetingDateStr}
 
-Transcript Sample:
-${sampleTranscript}
+Transcript Chunks (with video timestamps):
+${chunksWithTimestamps}
 
 Write a blog post that:
 1. Has an engaging, SEO-friendly title (include "Nantucket", meeting type, and key topics)
 2. Includes a compelling 160-character excerpt (meta description)
 3. Summarizes key decisions, votes, and discussions
-4. Highlights important quotes from officials
-5. Uses proper markdown formatting (headings, lists, bold for emphasis)
-6. Includes relevant keywords naturally: "Nantucket", meeting type, key topics, official names
-7. Is 400-800 words long
-8. Ends with a call-to-action to search AckIndex for more details
+4. **IMPORTANT: For each key decision or topic, include a "Watch" link using the timestamp from the relevant chunk**
+   - Format: [▶ Watch discussion](#t=SECONDS) where SECONDS is from the #t= value in the transcript
+   - Example: "The board voted to approve the zoning change. [▶ Watch vote](#t=1847)"
+   - Place these links at the end of each key point or after important quotes
+5. Highlights important quotes from officials with video links
+6. Uses proper markdown formatting (headings, lists, bold for emphasis)
+7. Includes relevant keywords naturally: "Nantucket", meeting type, key topics, official names
+8. Is 500-900 words long
+9. Ends with a call-to-action to search AckIndex for more details
 
 Provide response in JSON format:
 {
   "title": "SEO-optimized title here",
   "excerpt": "160-char meta description",
-  "content": "Full markdown blog post here",
+  "content": "Full markdown blog post with [▶ Watch](#t=SECONDS) links",
   "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
 }
 
-Focus on factual reporting. Include specific details about votes, proposals, and public comments.`;
+Focus on factual reporting. Include specific details about votes, proposals, and public comments. Make sure each major topic has a video timestamp link!`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -233,20 +261,24 @@ export async function createBlogPostForDocument(documentId: string): Promise<str
       return existingPost.id;
     }
 
-    // 3. Fetch transcript chunks (ordered by chunk_index)
+    // 3. Fetch transcript chunks with timestamp metadata (ordered by chunk_index)
     const { data: chunks, error: chunksError } = await supabaseAdmin
       .from('document_chunks')
-      .select('content, chunk_index')
+      .select('content, chunk_index, metadata')
       .eq('document_id', documentId)
       .order('chunk_index', { ascending: true })
-      .limit(20); // Get first 20 chunks for context
+      .limit(25); // Get first 25 chunks for more context
 
     if (chunksError || !chunks || chunks.length === 0) {
       log.error({ error: chunksError, documentId }, 'Failed to fetch document chunks');
       return null;
     }
 
-    const transcriptChunks = chunks.map(c => c.content);
+    // Extract content and timestamps from chunks
+    const transcriptChunks: ChunkWithTimestamp[] = chunks.map(c => ({
+      content: c.content,
+      startTime: (c.metadata as any)?.start_time ?? null,
+    }));
 
     // 4. Extract meeting metadata
     const { meetingType, meetingDate } = extractMeetingInfo(document.title);
