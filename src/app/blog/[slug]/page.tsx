@@ -112,6 +112,15 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   const sourceDoc = document as Document | null;
 
+  // Fetch associated video if exists
+  const { data: videoData } = await supabase
+    .from('meeting_videos')
+    .select('id, public_url, storage_url, duration_seconds')
+    .eq('document_id', blogPost.document_id)
+    .single();
+
+  const video = videoData as { id: string; public_url: string; storage_url: string; duration_seconds: number | null } | null;
+
   const meetingDate = blogPost.meeting_date
     ? new Date(blogPost.meeting_date).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -174,10 +183,37 @@ export default async function BlogPostPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* Featured Image - Hero */}
-      {featuredImage && (
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          {sourceDoc?.source_url ? (
+      {/* Video Player or Featured Image */}
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        {video?.public_url ? (
+          <div className="overflow-hidden rounded-xl shadow-2xl bg-black">
+            <div className="relative aspect-video">
+              <video
+                controls
+                preload="metadata"
+                className="w-full h-full"
+                poster={featuredImage || undefined}
+              >
+                <source src={video.public_url} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            <div className="bg-gray-900 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white">
+                <svg className="w-5 h-5 text-ack-blue" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                <span className="text-sm font-medium">Full Meeting Recording</span>
+              </div>
+              {video.duration_seconds && (
+                <span className="text-sm text-gray-400">
+                  {Math.floor(video.duration_seconds / 3600)}h {Math.floor((video.duration_seconds % 3600) / 60)}m
+                </span>
+              )}
+            </div>
+          </div>
+        ) : featuredImage ? (
+          sourceDoc?.source_url ? (
             <a
               href={sourceDoc.source_url}
               target="_blank"
@@ -234,9 +270,9 @@ export default async function BlogPostPage({ params }: PageProps) {
                 className="w-full h-auto object-cover"
               />
             </div>
-          )}
-        </div>
-      )}
+          )
+        ) : null}
+      </div>
 
       {/* Blog Content */}
       <main className="max-w-3xl mx-auto px-4 py-12">
