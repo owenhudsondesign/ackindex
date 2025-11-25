@@ -122,6 +122,27 @@ export default function AdminVideosPage() {
     }
   };
 
+  const handleStartProcessing = async (videoId: string) => {
+    if (!confirm('Start processing this video? This will trigger transcription.')) return;
+
+    try {
+      const response = await fetch('/api/admin/videos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, action: 'process' }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      await loadVideos();
+      alert('Video processing started!');
+    } catch (error) {
+      console.error('Process error:', error);
+      alert('Failed to start processing');
+    }
+  };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
@@ -308,6 +329,25 @@ export default function AdminVideosPage() {
                       </div>
                     </div>
 
+                    {/* Actions for pending processing */}
+                    {video.processing_status === 'pending' && (
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => handleStartProcessing(video.id)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                        >
+                          Start Processing
+                        </button>
+                        <button
+                          onClick={() => handleReject(video.id)}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition-colors"
+                        >
+                          Archive
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Actions for completed processing, pending approval */}
                     {!video.is_public && video.processing_status === 'completed' && (
                       <div className="mt-4 flex gap-2">
                         <button

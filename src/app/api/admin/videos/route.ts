@@ -231,6 +231,82 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Video archived' });
     }
 
+    if (action === 'process') {
+      // Get the video details
+      const { data: video, error: videoError } = await supabaseAdmin
+        .from('meeting_videos')
+        .select('*')
+        .eq('id', videoId)
+        .single();
+
+      if (videoError || !video) {
+        return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+      }
+
+      // Import and use the queue to process the video
+      const { scrapingQueue } = await import('@/lib/queues');
+
+      // Create document record if it doesn't exist
+      let documentId = video.document_id;
+      if (!documentId) {
+        const { data: document, error: docError } = await supabaseAdmin
+          .from('documents')
+          .insert({
+            source_type: 'video',
+            source_url: video.storage_url || video.public_url,
+            filename: video.original_filename,
+            title: video.meeting_title,
+            description: video.meeting_description || `${video.meeting_title} - ${new Date(video.meeting_date).toLocaleDateString()}`,
+            status: 'pending',
+            created_by: video.uploaded_by,
+          })
+          .select()
+          .single();
+
+        if (docError || !document) {
+          console.error('Document creation error:', docError);
+          return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 });
+        }
+        documentId = document.id;
+
+        // Link video to document
+        await supabaseAdmin
+          .from('meeting_videos')
+          .update({ document_id: documentId })
+          .eq('id', videoId);
+      }
+
+      // Update processing status
+      await supabaseAdmin
+        .from('meeting_videos')
+        .update({ processing_status: 'processing' })
+        .eq('id', videoId);
+
+      // Queue the processing job
+      const job = await scrapingQueue.add(
+        'process-meeting-video',
+        {
+          videoId,
+          documentId,
+          storagePath: video.storage_path,
+          storageUrl: video.storage_url || video.public_url,
+        },
+        {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2000 },
+          removeOnComplete: 100,
+          removeOnFail: 200,
+        }
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: 'Video processing started',
+        jobId: job.id,
+        documentId,
+      });
+    }
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('API error:', error);
