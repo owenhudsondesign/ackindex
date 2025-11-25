@@ -1,17 +1,44 @@
-import { createAdminSupabaseClient } from '@/lib/serverAdminAuth';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { bunnyStorage } from '@/lib/bunnyStorage';
 
+// Helper to get user from cookies
+async function getUserFromRequest() {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      return { user: session.user, supabase };
+    }
+  } catch (error) {
+    console.error('Staff complete - Auth error:', error);
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createAdminSupabaseClient();
-
-    // Check authentication using getSession (reads cookies)
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
+    const auth = await getUserFromRequest();
+    if (!auth) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const user = session.user;
+    const { user, supabase } = auth;
 
     const body = await request.json();
     const { sessionId } = body;

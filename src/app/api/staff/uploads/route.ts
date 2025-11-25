@@ -1,23 +1,48 @@
-import { createAdminSupabaseClient } from '@/lib/serverAdminAuth';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+// Helper to get user from cookies (same pattern as conversations route)
+async function getUserFromRequest() {
   try {
-    const supabase = await createAdminSupabaseClient();
-
-    // Debug: log all cookies
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
     console.log('Staff uploads - All cookies:', allCookies.map(c => ({ name: c.name, valueLength: c.value?.length })));
 
-    // Check authentication using getSession (reads cookies, more reliable than getUser)
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('Staff uploads - Auth result:', { hasSession: !!session, userId: session?.user?.id, error: sessionError?.message });
-    if (sessionError || !session?.user) {
-      return NextResponse.json({ error: 'Unauthorized', debug: { sessionError: sessionError?.message } }, { status: 401 });
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Staff uploads - Auth result:', { hasSession: !!session, userId: session?.user?.id });
+
+    if (session?.user) {
+      return { user: session.user, supabase };
     }
-    const user = session.user;
+  } catch (error) {
+    console.error('Staff uploads - Auth error:', error);
+  }
+  return null;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await getUserFromRequest();
+    if (!auth) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { user, supabase } = auth;
 
     // Get user's uploads
     const { data: uploads, error: uploadsError } = await supabase
