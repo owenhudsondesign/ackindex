@@ -18,24 +18,53 @@ async function getAdminUserFromCookies(): Promise<{ id: string; email: string } 
   try {
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
+    console.log('Admin videos - All cookies:', allCookies.map(c => ({ name: c.name, valueLength: c.value?.length })));
 
     // Find the Supabase auth cookie
     const authCookie = allCookies.find(c => c.name.includes('-auth-token'));
-    if (!authCookie) return null;
+    if (!authCookie) {
+      console.log('Admin videos - No auth cookie found');
+      return null;
+    }
 
+    let cookieValue = authCookie.value;
     let accessToken: string;
-    const cookieValue = authCookie.value;
+
+    console.log('Admin videos - Cookie name:', authCookie.name);
+    console.log('Admin videos - Cookie value prefix:', cookieValue.substring(0, 30));
+
+    // Handle "base64-" prefix format if present
+    if (cookieValue.startsWith('base64-')) {
+      cookieValue = cookieValue.substring(7);
+    }
 
     // Parse the cookie value - it's JSON array format ["token", "refresh_token"]
     if (cookieValue.startsWith('[')) {
-      const parsed = JSON.parse(cookieValue);
-      accessToken = Array.isArray(parsed) ? parsed[0] : parsed;
-    } else {
+      try {
+        const parsed = JSON.parse(cookieValue);
+        accessToken = Array.isArray(parsed) ? parsed[0] : parsed;
+        console.log('Admin videos - Parsed JSON array, token length:', accessToken?.length);
+      } catch (e) {
+        console.log('Admin videos - Failed to parse as JSON array:', e);
+        return null;
+      }
+    } else if (cookieValue.startsWith('eyJ')) {
       accessToken = cookieValue;
+      console.log('Admin videos - Using raw JWT token, length:', accessToken.length);
+    } else {
+      console.log('Admin videos - Cookie format not recognized, starts with:', cookieValue.substring(0, 10));
+      return null;
+    }
+
+    if (!accessToken || !accessToken.startsWith('eyJ')) {
+      console.log('Admin videos - No valid JWT token found');
+      return null;
     }
 
     // Verify the token and get user
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
+    console.log('Admin videos - Auth result:', { hasUser: !!user, userId: user?.id, error: error?.message });
+
     if (error || !user) return null;
 
     // Check if user is admin
@@ -44,6 +73,8 @@ async function getAdminUserFromCookies(): Promise<{ id: string; email: string } 
       .select('role')
       .eq('id', user.id)
       .single();
+
+    console.log('Admin videos - Profile role:', profile?.role);
 
     if (profile?.role !== 'admin') return null;
 
