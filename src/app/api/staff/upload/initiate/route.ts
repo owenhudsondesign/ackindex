@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStaffUserFromRequest } from '@/lib/staffAuth';
+import crypto from 'crypto';
+
+// Generate a secure upload token
+function generateUploadToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,6 +56,9 @@ export async function POST(request: NextRequest) {
     // Calculate total chunks
     const totalChunks = Math.ceil(fileSize / chunkSize);
 
+    // Generate upload token for chunk authentication
+    const uploadToken = generateUploadToken();
+
     // Create upload session
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 4); // 4 hour expiry
@@ -71,6 +80,7 @@ export async function POST(request: NextRequest) {
         meeting_description: meetingDescription || null,
         status: 'active',
         expires_at: expiresAt.toISOString(),
+        upload_token: uploadToken, // Store token for chunk auth
       })
       .select()
       .single();
@@ -82,6 +92,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       sessionId: uploadSession.id,
+      uploadToken, // Return token for chunk uploads
       chunkSize,
       totalChunks,
       expiresAt: uploadSession.expires_at,

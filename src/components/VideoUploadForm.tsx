@@ -163,6 +163,7 @@ export default function VideoUploadForm() {
 
   const uploadChunkWithRetry = async (
     sessionId: string,
+    uploadToken: string,
     chunkIndex: number,
     chunk: Blob,
     maxRetries = 3
@@ -173,6 +174,7 @@ export default function VideoUploadForm() {
       try {
         const formData = new FormData();
         formData.append('sessionId', sessionId);
+        formData.append('uploadToken', uploadToken);
         formData.append('chunkIndex', chunkIndex.toString());
         formData.append('chunk', chunk);
 
@@ -218,6 +220,7 @@ export default function VideoUploadForm() {
       setUploadState(prev => ({ ...prev, status: 'uploading', error: null }));
 
       let sessionId = uploadState.sessionId;
+      let uploadToken: string;
       let chunkSize: number;
       let totalChunks: number;
 
@@ -243,12 +246,14 @@ export default function VideoUploadForm() {
 
         const initData = await initiateResponse.json();
         sessionId = initData.sessionId;
+        uploadToken = initData.uploadToken;
         chunkSize = initData.chunkSize;
         totalChunks = initData.totalChunks;
 
-        // Save state for resume
+        // Save state for resume (including uploadToken for authentication)
         saveUploadState({
           sessionId: sessionId!,
+          uploadToken,
           filename: selectedFile!.name,
           fileSize: selectedFile!.size,
           mimeType: selectedFile!.type,
@@ -272,6 +277,7 @@ export default function VideoUploadForm() {
         if (!savedState) {
           throw new Error('No saved upload state found');
         }
+        uploadToken = savedState.uploadToken;
         chunkSize = savedState.chunkSize;
         totalChunks = savedState.totalChunks;
       }
@@ -284,7 +290,7 @@ export default function VideoUploadForm() {
         const end = Math.min(start + chunkSize!, selectedFile!.size);
         const chunk = selectedFile!.slice(start, end);
 
-        const result = await uploadChunkWithRetry(sessionId!, chunkIndex, chunk);
+        const result = await uploadChunkWithRetry(sessionId!, uploadToken!, chunkIndex, chunk);
 
         setUploadState(prev => ({
           ...prev,

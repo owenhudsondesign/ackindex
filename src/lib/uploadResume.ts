@@ -5,6 +5,7 @@
 
 export interface SavedUploadState {
   sessionId: string;
+  uploadToken: string; // Token for authenticating chunk uploads
   filename: string;
   fileSize: number;
   mimeType: string;

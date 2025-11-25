@@ -1,30 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStaffUserFromRequest } from '@/lib/staffAuth';
+import { createClient } from '@supabase/supabase-js';
+
+// Create a supabase client with service role for database operations
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await getStaffUserFromRequest();
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const { user, supabase } = auth;
-
     // Get form data (multipart)
     const formData = await request.formData();
     const sessionId = formData.get('sessionId') as string;
+    const uploadToken = formData.get('uploadToken') as string;
     const chunkIndex = parseInt(formData.get('chunkIndex') as string);
     const chunkFile = formData.get('chunk') as File;
 
-    if (!sessionId || chunkIndex === undefined || !chunkFile) {
+    if (!sessionId || !uploadToken || chunkIndex === undefined || !chunkFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Get upload session
-    const { data: uploadSession, error: uploadSessionError } = await supabase
+    // Authenticate using upload token instead of cookies
+    // This avoids cookie expiration issues during long uploads
+    const { data: uploadSession, error: uploadSessionError } = await supabaseAdmin
       .from('video_upload_sessions')
       .select('*')
       .eq('id', sessionId)
-      .eq('user_id', user.id) // Ensure user owns this session
+      .eq('upload_token', uploadToken) // Verify token matches
       .single();
 
     if (uploadSessionError || !uploadSession) {
@@ -38,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Check expiration
     if (new Date(uploadSession.expires_at) < new Date()) {
-      await supabase
+      await supabaseAdmin
         .from('video_upload_sessions')
         .update({ status: 'failed', error: 'Session expired' })
         .eq('id', sessionId);
@@ -49,7 +57,7 @@ export async function POST(request: NextRequest) {
     const chunkPath = `uploads/${sessionId}/chunk_${chunkIndex}`;
     const chunkBuffer = await chunkFile.arrayBuffer();
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('meeting-videos')
       .upload(chunkPath, chunkBuffer, {
         contentType: 'application/octet-stream',
@@ -65,7 +73,7 @@ export async function POST(request: NextRequest) {
     const newChunksReceived = uploadSession.chunks_received + 1;
     const newBytesUploaded = uploadSession.bytes_uploaded + chunkFile.size;
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('video_upload_sessions')
       .update({
         chunks_received: newChunksReceived,
