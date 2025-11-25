@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import VideoUploadForm from '@/components/VideoUploadForm';
 import BatchVideoUploadForm from '@/components/BatchVideoUploadForm';
 import UploadHistory from '@/components/UploadHistory';
 
 export default function StaffUploadPage() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);

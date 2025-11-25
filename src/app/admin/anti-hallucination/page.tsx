@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import PageLayout from '@/components/PageLayout';
 import Container from '@/components/Container';
 import Link from 'next/link';
@@ -67,7 +67,7 @@ export default function AntiHallucinationDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'metrics' | 'flags' | 'blocked'>('overview');
   const [timeRange, setTimeRange] = useState<'today' | '7days' | '30days'>('7days');
 
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   useEffect(() => {
     loadData();
