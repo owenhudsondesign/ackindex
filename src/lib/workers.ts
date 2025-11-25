@@ -616,11 +616,11 @@ async function processDropboxVideoJob(
     log.info('Uploading to Bunny.net');
 
     const bunnyStorageZone = process.env.BUNNY_STORAGE_ZONE;
-    const bunnyApiKey = process.env.BUNNY_API_KEY;
+    const bunnyAccessKey = process.env.BUNNY_ACCESS_KEY;
     const bunnyPullZone = process.env.BUNNY_PULL_ZONE_URL;
 
-    if (!bunnyStorageZone || !bunnyApiKey) {
-      throw new Error('Bunny.net credentials not configured');
+    if (!bunnyStorageZone || !bunnyAccessKey) {
+      throw new Error('Bunny.net credentials not configured. Check BUNNY_STORAGE_ZONE and BUNNY_ACCESS_KEY env variables.');
     }
 
     // Generate unique filename
@@ -646,7 +646,7 @@ async function processDropboxVideoJob(
     const uploadResponse = await fetch(bunnyUploadUrl, {
       method: 'PUT',
       headers: {
-        'AccessKey': bunnyApiKey,
+        'AccessKey': bunnyAccessKey,
         'Content-Type': 'application/octet-stream',
       },
       body: buffer,
