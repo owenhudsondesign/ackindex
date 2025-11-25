@@ -1,28 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapingQueue } from '@/lib/queues';
 import { getStaffUserFromRequest } from '@/lib/staffAuth';
+import { createClient } from '@supabase/supabase-js';
+
+// Create a supabase client with service role for database operations
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await getStaffUserFromRequest();
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const { user, supabase } = auth;
-
     const body = await request.json();
-    const { videoId } = body;
+    const { videoId, uploadToken } = body;
 
     if (!videoId) {
       return NextResponse.json({ error: 'Missing videoId' }, { status: 400 });
     }
 
+    let userId: string;
+
+    // Two auth methods:
+    // 1. Upload token (for internal calls from complete endpoint)
+    // 2. Cookie-based auth (for manual triggers from UI)
+    if (uploadToken) {
+      // Verify the upload token matches a session for this video
+      const { data: session } = await supabaseAdmin
+        .from('video_upload_sessions')
+        .select('user_id, video_id')
+        .eq('upload_token', uploadToken)
+        .eq('video_id', videoId)
+        .single();
+
+      if (!session) {
+        return NextResponse.json({ error: 'Invalid upload token' }, { status: 401 });
+      }
+      userId = session.user_id;
+    } else {
+      // Fall back to cookie auth
+      const auth = await getStaffUserFromRequest();
+      if (!auth) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      userId = auth.user.id;
+    }
+
     // Get video record
-    const { data: video, error: videoError } = await supabase
+    const { data: video, error: videoError } = await supabaseAdmin
       .from('meeting_videos')
       .select('*')
       .eq('id', videoId)
-      .eq('uploaded_by', user.id) // Ensure user owns this video
+      .eq('uploaded_by', userId) // Ensure user owns this video
       .single();
 
     if (videoError || !video) {
@@ -37,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create document record for this video
-    const { data: document, error: docError } = await supabase
+    const { data: document, error: docError } = await supabaseAdmin
       .from('documents')
       .insert({
         source_type: 'video',
@@ -46,7 +80,7 @@ export async function POST(request: NextRequest) {
         title: video.meeting_title,
         description: video.meeting_description || `${video.meeting_title} - ${new Date(video.meeting_date).toLocaleDateString()}`,
         status: 'pending',
-        created_by: user.id,
+        created_by: userId,
       })
       .select()
       .single();
@@ -57,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Link video to document
-    await supabase
+    await supabaseAdmin
       .from('meeting_videos')
       .update({
         document_id: document.id,

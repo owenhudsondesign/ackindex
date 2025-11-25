@@ -86,10 +86,36 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', sessionId);
 
+    // Trigger transcription processing
+    // This sends the video to AssemblyAI for transcription, then chunks and embeds it
+    try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ackindex.com';
+      const processResponse = await fetch(`${siteUrl}/api/staff/video/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          videoId: video.id,
+          uploadToken, // Use the same token for auth
+        }),
+      });
+
+      if (!processResponse.ok) {
+        console.error('Failed to trigger video processing:', await processResponse.text());
+        // Non-fatal - video is uploaded, can trigger processing manually
+      } else {
+        console.log('Video processing triggered successfully');
+      }
+    } catch (processError) {
+      console.error('Error triggering video processing:', processError);
+      // Non-fatal - video is uploaded, processing can be triggered manually
+    }
+
     return NextResponse.json({
       success: true,
       videoId: video.id,
-      message: 'Video uploaded successfully.',
+      message: 'Video uploaded successfully. Transcription processing started.',
     });
 
   } catch (error) {
