@@ -954,6 +954,17 @@ async function processMeetingVideoJob(
       log.info({ chunkCount: chunks.length }, 'Queued embedding generation');
     }
 
+    // Generate blog post draft
+    try {
+      const { createBlogPostForDocument } = await import('./blogGenerator');
+      const blogPostId = await createBlogPostForDocument(documentId);
+      if (blogPostId) {
+        log.info({ blogPostId }, 'Blog post draft created');
+      }
+    } catch (blogError) {
+      log.warn({ err: blogError }, 'Failed to create blog post draft (non-fatal)');
+    }
+
     // Cleanup temp file
     try {
       fs.unlinkSync(tempVideoPath);

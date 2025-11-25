@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import PageLayout from '@/components/PageLayout';
+import Container from '@/components/Container';
+import Link from 'next/link';
 
 interface HallucinationMetrics {
   date: string;
@@ -137,8 +140,8 @@ export default function AntiHallucinationDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
+      <PageLayout>
+        <Container className="py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-8"></div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -147,8 +150,8 @@ export default function AntiHallucinationDashboard() {
               ))}
             </div>
           </div>
-        </div>
-      </div>
+        </Container>
+      </PageLayout>
     );
   }
 
@@ -166,8 +169,19 @@ export default function AntiHallucinationDashboard() {
   const hallucinationRate = latestMetrics.hallucination_rate || 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
+    <PageLayout>
+      <Container className="py-8">
+        {/* Back Link */}
+        <Link
+          href="/admin"
+          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Admin Panel
+        </Link>
+
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Anti-Hallucination Dashboard</h1>
@@ -311,8 +325,8 @@ export default function AntiHallucinationDashboard() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </Container>
+    </PageLayout>
   );
 }
 

@@ -1,8 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth';
+import { getAdminUser } from '@/lib/adminAuth';
+import { supabase } from '@/lib/supabase';
+import PageLayout from '@/components/PageLayout';
+import Container from '@/components/Container';
+import Link from 'next/link';
 
 interface MeetingVideo {
   id: string;
@@ -25,7 +30,6 @@ interface MeetingVideo {
 
 export default function AdminVideosPage() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
 
   const [loading, setLoading] = useState(true);
   const [videos, setVideos] = useState<MeetingVideo[]>([]);
@@ -43,20 +47,14 @@ export default function AdminVideosPage() {
 
   const checkAuth = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
+      const currentUser = await getCurrentUser();
+      if (!currentUser) {
         router.push('/admin/login');
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.role !== 'admin') {
+      const adminUser = await getAdminUser();
+      if (!adminUser) {
         router.push('/');
         return;
       }
@@ -102,7 +100,7 @@ export default function AdminVideosPage() {
     if (!confirm('Approve this video for public viewing?')) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase
@@ -187,18 +185,31 @@ export default function AdminVideosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
+      <PageLayout>
+        <Container className="py-16">
+          <div className="flex items-center justify-center">
+            <div className="text-gray-600">Loading...</div>
+          </div>
+        </Container>
+      </PageLayout>
     );
   }
 
   const pendingCount = videos.filter(v => !v.is_public && v.processing_status === 'completed').length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+    <PageLayout>
+      <Container className="py-8">
+        <div className="mb-6">
+          <Link
+            href="/admin"
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Admin Panel
+          </Link>
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Video Management</h1>
@@ -206,17 +217,8 @@ export default function AdminVideosPage() {
                 Review and approve uploaded meeting videos
               </p>
             </div>
-            <a
-              href="/admin"
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Back to Admin
-            </a>
           </div>
         </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Filter Tabs */}
         <div className="bg-white rounded-lg shadow mb-6">
           <div className="border-b border-gray-200">
@@ -351,7 +353,7 @@ export default function AdminVideosPage() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </Container>
+    </PageLayout>
   );
 }
