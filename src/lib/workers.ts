@@ -628,8 +628,10 @@ async function processDropboxVideoJob(
     const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
     const bunnyPath = `videos/${timestamp}-${safeFilename}`;
 
-    // Stream upload to Bunny
-    const bunnyUploadUrl = `https://storage.bunnycdn.com/${bunnyStorageZone}/${bunnyPath}`;
+    // Stream upload to Bunny (use region-specific endpoint)
+    const bunnyRegion = process.env.BUNNY_STORAGE_REGION || 'ny';
+    const regionPrefix = bunnyRegion !== 'de' ? `${bunnyRegion}.` : '';
+    const bunnyUploadUrl = `https://${regionPrefix}storage.bunnycdn.com/${bunnyStorageZone}/${bunnyPath}`;
 
     // Convert web stream to node stream for upload
     const chunks: Uint8Array[] = [];
