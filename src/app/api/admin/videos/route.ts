@@ -278,7 +278,7 @@ export async function PATCH(request: NextRequest) {
         const { data: document, error: docError } = await supabaseAdmin
           .from('documents')
           .insert({
-            source_type: 'video',
+            source_type: 'url', // Database constraint only allows 'url' or 'pdf'
             source_url: video.storage_url || video.public_url,
             filename: video.original_filename,
             title: video.meeting_title,
