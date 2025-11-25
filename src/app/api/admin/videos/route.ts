@@ -243,15 +243,37 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Video not found' }, { status: 404 });
       }
 
-      // Check if already processing
-      if (video.processing_status === 'processing' || video.processing_status === 'completed') {
+      // Check if already completed (allow re-processing of stuck "processing" videos)
+      if (video.processing_status === 'completed') {
         return NextResponse.json({
-          error: `Video is already ${video.processing_status}`,
+          error: 'Video is already completed',
         }, { status: 400 });
       }
 
-      // Create document record if it doesn't exist
+      // Get or create document record
       let documentId = video.document_id;
+
+      if (documentId) {
+        // Document exists, check if we need to reset its status
+        const { data: existingDoc } = await supabaseAdmin
+          .from('documents')
+          .select('id, status')
+          .eq('id', documentId)
+          .single();
+
+        if (existingDoc) {
+          // Reset document status to pending for reprocessing
+          await supabaseAdmin
+            .from('documents')
+            .update({ status: 'pending' })
+            .eq('id', documentId);
+          console.log('Reusing existing document:', documentId);
+        } else {
+          // Document ID exists in video but document was deleted - clear it
+          documentId = null;
+        }
+      }
+
       if (!documentId) {
         const { data: document, error: docError } = await supabaseAdmin
           .from('documents')
