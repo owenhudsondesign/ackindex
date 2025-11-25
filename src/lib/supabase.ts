@@ -1,22 +1,26 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
+// Singleton browser client to prevent multiple GoTrueClient instances
+let browserClient: ReturnType<typeof createBrowserClient> | null = null;
+
 export function createClient() {
-  return createBrowserClient(
+  if (browserClient) {
+    return browserClient;
+  }
+
+  browserClient = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  return browserClient;
 }
 
-// Lazy-load the browser client (only create when accessed, not at module load time)
-// This prevents errors in worker/server contexts where NEXT_PUBLIC_* vars may not be set
-let _supabase: ReturnType<typeof createClient> | null = null;
+// Lazy-load alias for backwards compatibility
 export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
   get(target, prop) {
-    if (!_supabase) {
-      _supabase = createClient();
-    }
-    return (_supabase as any)[prop];
+    return (createClient() as any)[prop];
   }
 });
 
