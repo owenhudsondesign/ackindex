@@ -152,12 +152,16 @@ async function generateBlogContent(
   meetingType: string | null,
   meetingDate: Date | null
 ): Promise<Omit<BlogPostData, 'meetingType' | 'meetingDate'>> {
-  // Sample transcript with timestamps (use first 15 chunks for more context)
-  const chunksWithTimestamps = transcriptChunks.slice(0, 15).map((chunk, idx) => {
+  // Sample transcript with timestamps (use first 8 chunks, truncated to avoid token limits)
+  const MAX_CHUNK_LENGTH = 1500; // Truncate each chunk to avoid 429 errors
+  const chunksWithTimestamps = transcriptChunks.slice(0, 8).map((chunk, idx) => {
     const timestamp = chunk.startTime
       ? `[Timestamp: ${formatTimestampDisplay(chunk.startTime)} | #t=${Math.floor(chunk.startTime)}]`
       : `[Chunk ${idx + 1}]`;
-    return `${timestamp}\n${chunk.content}`;
+    const truncatedContent = chunk.content.length > MAX_CHUNK_LENGTH
+      ? chunk.content.slice(0, MAX_CHUNK_LENGTH) + '...'
+      : chunk.content;
+    return `${timestamp}\n${truncatedContent}`;
   }).join('\n\n---\n\n');
 
   const meetingDateStr = meetingDate
@@ -284,7 +288,7 @@ export async function createBlogPostForDocument(documentId: string): Promise<str
       .select('content, chunk_index, metadata')
       .eq('document_id', documentId)
       .order('chunk_index', { ascending: true })
-      .limit(25); // Get first 25 chunks for more context
+      .limit(10); // Get first 10 chunks (will use ~8, truncated to avoid OpenAI token limits)
 
     if (chunksError || !chunks || chunks.length === 0) {
       log.error({ error: chunksError, documentId }, 'Failed to fetch document chunks');
