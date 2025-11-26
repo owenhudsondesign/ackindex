@@ -20,6 +20,7 @@ interface MeetingVideo {
   transcription_status: string;
   is_public: boolean;
   created_at: string;
+  document_id: string | null;
   user_profiles: {
     full_name: string;
     email: string;
@@ -172,6 +173,26 @@ export default function AdminVideosPage() {
     } catch (error) {
       console.error('Delete error:', error);
       alert('Failed to delete video');
+    }
+  };
+
+  const handleGenerateBlogPost = async (documentId: string) => {
+    if (!confirm('Generate a blog post for this video?')) return;
+
+    try {
+      const response = await fetch('/api/admin/blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      alert('Blog post generated! Check the Blog Posts page to review and publish.');
+    } catch (error) {
+      console.error('Generate blog post error:', error);
+      alert('Failed to generate blog post: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -577,6 +598,14 @@ export default function AdminVideosPage() {
                         >
                           Approve & Make Public
                         </button>
+                        {video.document_id && (
+                          <button
+                            onClick={() => handleGenerateBlogPost(video.document_id!)}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors"
+                          >
+                            Generate Blog Post
+                          </button>
+                        )}
                         <button
                           onClick={() => handleReject(video.id)}
                           className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition-colors"
