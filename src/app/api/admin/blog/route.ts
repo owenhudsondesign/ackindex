@@ -82,12 +82,47 @@ export async function POST(request: NextRequest) {
 
     log.info({ documentId }, 'Generating blog post for document');
 
+    // Check document status first for better error messages
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('id, title, status')
+      .eq('id', documentId)
+      .single();
+
+    if (docError || !document) {
+      return NextResponse.json(
+        { error: `Document not found: ${documentId}` },
+        { status: 404 }
+      );
+    }
+
+    if (document.status !== 'completed') {
+      return NextResponse.json(
+        { error: `Document status is "${document.status}", must be "completed" to generate blog post` },
+        { status: 400 }
+      );
+    }
+
+    // Check if blog post already exists
+    const { data: existingPost } = await supabase
+      .from('blog_posts')
+      .select('id, title')
+      .eq('document_id', documentId)
+      .single();
+
+    if (existingPost) {
+      return NextResponse.json(
+        { error: `Blog post already exists for this document: "${existingPost.title}"`, existingPostId: existingPost.id },
+        { status: 400 }
+      );
+    }
+
     const blogPostId = await createBlogPostForDocument(documentId);
 
     if (!blogPostId) {
       return NextResponse.json(
-        { error: 'Failed to generate blog post. Document may not be completed or already has a blog post.' },
-        { status: 400 }
+        { error: 'Failed to generate blog post. Check server logs for details.' },
+        { status: 500 }
       );
     }
 
@@ -106,7 +141,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ blogPost });
+    return NextResponse.json({ blogPost, message: 'Blog post generated successfully!' });
   } catch (error) {
     log.error({ error }, 'Blog POST error');
     return NextResponse.json(
