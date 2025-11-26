@@ -127,6 +127,15 @@ function extractMeetingInfo(title: string): { meetingType: string | null; meetin
 interface ChunkWithTimestamp {
   content: string;
   startTime: number | null;
+  chunkIndex: number;
+}
+
+interface SectionSummary {
+  section: string;
+  timestamp: number | null;
+  keyPoints: string[];
+  quotes: string[];
+  decisions: string[];
 }
 
 /**
@@ -144,7 +153,171 @@ function formatTimestampDisplay(seconds: number): string {
 }
 
 /**
- * Generate blog post content from meeting transcript chunks
+ * Pass 1: Summarize a batch of chunks to extract key points
+ * Uses gpt-4o-mini for efficiency
+ */
+async function summarizeChunkBatch(
+  chunks: ChunkWithTimestamp[],
+  batchNumber: number,
+  totalBatches: number,
+  meetingTitle: string
+): Promise<SectionSummary[]> {
+  const chunksText = chunks.map((chunk) => {
+    const timestamp = chunk.startTime
+      ? `[${formatTimestampDisplay(chunk.startTime)} | t=${Math.floor(chunk.startTime)}s]`
+      : `[Chunk ${chunk.chunkIndex}]`;
+    return `${timestamp}\n${chunk.content}`;
+  }).join('\n\n---\n\n');
+
+  const prompt = `Analyze this section of a Nantucket town meeting transcript (batch ${batchNumber}/${totalBatches}).
+
+Meeting: ${meetingTitle}
+
+Transcript Section:
+${chunksText}
+
+Extract the most important information from this section. For each distinct topic or agenda item discussed, provide:
+1. A brief topic/section label
+2. The timestamp (in seconds) where this topic starts
+3. Key points discussed (2-4 bullet points)
+4. Notable quotes from officials or public (with speaker name if mentioned)
+5. Any votes, decisions, or action items
+
+Respond in JSON format:
+{
+  "summaries": [
+    {
+      "section": "Topic label",
+      "timestamp": 1234,
+      "keyPoints": ["Point 1", "Point 2"],
+      "quotes": ["Quote with speaker name"],
+      "decisions": ["Any votes or decisions made"]
+    }
+  ]
+}
+
+Focus on substantive content - skip procedural matters like roll call unless something notable happens. If this section has no significant content, return an empty summaries array.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert at analyzing government meeting transcripts and extracting key information. Be concise but thorough.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 1500,
+      response_format: { type: 'json_object' },
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{}');
+    return result.summaries || [];
+  } catch (error) {
+    log.error({ error, batchNumber }, 'Failed to summarize chunk batch');
+    return [];
+  }
+}
+
+/**
+ * Pass 2: Generate final blog post from all section summaries
+ * Uses gpt-4o-mini for the final synthesis
+ */
+async function generateBlogFromSummaries(
+  documentTitle: string,
+  summaries: SectionSummary[],
+  meetingType: string | null,
+  meetingDate: Date | null
+): Promise<Omit<BlogPostData, 'meetingType' | 'meetingDate'>> {
+  const meetingDateStr = meetingDate
+    ? meetingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : 'Recent';
+
+  const meetingTypeStr = meetingType || 'Town Meeting';
+
+  // Format summaries for the prompt
+  const summariesText = summaries.map((s, idx) => {
+    const timestamp = s.timestamp ? `[t=${s.timestamp}s]` : '';
+    return `
+### ${idx + 1}. ${s.section} ${timestamp}
+Key Points:
+${s.keyPoints.map(p => `- ${p}`).join('\n')}
+${s.quotes.length > 0 ? `\nQuotes:\n${s.quotes.map(q => `- "${q}"`).join('\n')}` : ''}
+${s.decisions.length > 0 ? `\nDecisions:\n${s.decisions.map(d => `- ${d}`).join('\n')}` : ''}`;
+  }).join('\n');
+
+  const prompt = `Write an SEO-optimized blog post for AckIndex.com summarizing this Nantucket town meeting.
+
+Meeting: ${documentTitle}
+Type: ${meetingTypeStr}
+Date: ${meetingDateStr}
+
+Summary of All Topics Discussed:
+${summariesText}
+
+Write a comprehensive blog post that:
+1. Has an engaging, SEO-friendly title (include "Nantucket", meeting type, and 1-2 key topics)
+2. Includes a compelling 160-character excerpt (meta description)
+3. Covers ALL the important topics from the summaries above - don't skip any significant decisions or discussions
+4. **CRITICAL: Include video timestamp links for each major topic**
+   - Format: [▶ Watch](#t=SECONDS) where SECONDS comes from the [t=XXXs] markers above
+   - Example: "The board approved the zoning variance. [▶ Watch vote](#t=1847)"
+5. Uses proper markdown: ## headings for major sections, **bold** for emphasis, bullet lists
+6. Includes relevant keywords naturally throughout
+7. Is 600-1000 words to cover all topics adequately
+8. Ends with a call-to-action to search AckIndex for more meeting details
+
+Respond in JSON format:
+{
+  "title": "SEO title here",
+  "excerpt": "160-char meta description",
+  "content": "Full markdown blog post",
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are a professional civic journalist writing SEO-optimized summaries of Nantucket town meetings. Your writing is clear, factual, comprehensive, and optimized for search engines.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+    temperature: 0.7,
+    max_tokens: 2500,
+    response_format: { type: 'json_object' },
+  });
+
+  const result = JSON.parse(response.choices[0].message.content || '{}');
+
+  if (!result.title || !result.excerpt || !result.content || !result.keywords) {
+    throw new Error('Incomplete blog post generation response');
+  }
+
+  const slug = generateSlug(result.title, meetingDate);
+
+  return {
+    title: result.title,
+    slug,
+    excerpt: result.excerpt.slice(0, 160),
+    content: result.content,
+    keywords: result.keywords.slice(0, 10),
+  };
+}
+
+/**
+ * Generate blog post content using two-pass approach
+ * Pass 1: Summarize chunks in batches (covers entire transcript)
+ * Pass 2: Generate blog from all summaries
  */
 async function generateBlogContent(
   documentTitle: string,
@@ -152,95 +325,48 @@ async function generateBlogContent(
   meetingType: string | null,
   meetingDate: Date | null
 ): Promise<Omit<BlogPostData, 'meetingType' | 'meetingDate'>> {
-  // Sample transcript with timestamps (use first 8 chunks, truncated to avoid token limits)
-  const MAX_CHUNK_LENGTH = 1500; // Truncate each chunk to avoid 429 errors
-  const chunksWithTimestamps = transcriptChunks.slice(0, 8).map((chunk, idx) => {
-    const timestamp = chunk.startTime
-      ? `[Timestamp: ${formatTimestampDisplay(chunk.startTime)} | #t=${Math.floor(chunk.startTime)}]`
-      : `[Chunk ${idx + 1}]`;
-    const truncatedContent = chunk.content.length > MAX_CHUNK_LENGTH
-      ? chunk.content.slice(0, MAX_CHUNK_LENGTH) + '...'
-      : chunk.content;
-    return `${timestamp}\n${truncatedContent}`;
-  }).join('\n\n---\n\n');
+  log.info({ documentTitle, totalChunks: transcriptChunks.length }, 'Starting two-pass blog generation');
 
-  const meetingDateStr = meetingDate
-    ? meetingDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-    : 'Recent';
+  // Process chunks in batches of 10
+  const BATCH_SIZE = 10;
+  const batches: ChunkWithTimestamp[][] = [];
 
-  const meetingTypeStr = meetingType || 'Town Meeting';
-
-  const prompt = `You are writing an SEO-optimized blog post summarizing a Nantucket town meeting for AckIndex.com.
-
-Meeting: ${documentTitle}
-Type: ${meetingTypeStr}
-Date: ${meetingDateStr}
-
-Transcript Chunks (with video timestamps):
-${chunksWithTimestamps}
-
-Write a blog post that:
-1. Has an engaging, SEO-friendly title (include "Nantucket", meeting type, and key topics)
-2. Includes a compelling 160-character excerpt (meta description)
-3. Summarizes key decisions, votes, and discussions
-4. **IMPORTANT: For each key decision or topic, include a "Watch" link using the timestamp from the relevant chunk**
-   - Format: [▶ Watch discussion](#t=SECONDS) where SECONDS is from the #t= value in the transcript
-   - Example: "The board voted to approve the zoning change. [▶ Watch vote](#t=1847)"
-   - Place these links at the end of each key point or after important quotes
-5. Highlights important quotes from officials with video links
-6. Uses proper markdown formatting (headings, lists, bold for emphasis)
-7. Includes relevant keywords naturally: "Nantucket", meeting type, key topics, official names
-8. Is 500-900 words long
-9. Ends with a call-to-action to search AckIndex for more details
-
-Provide response in JSON format:
-{
-  "title": "SEO-optimized title here",
-  "excerpt": "160-char meta description",
-  "content": "Full markdown blog post with [▶ Watch](#t=SECONDS) links",
-  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
-}
-
-Focus on factual reporting. Include specific details about votes, proposals, and public comments. Make sure each major topic has a video timestamp link!`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a professional civic journalist writing SEO-optimized summaries of Nantucket town meetings. Your writing is clear, factual, and optimized for search engines.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' },
-    });
-
-    const result = JSON.parse(response.choices[0].message.content || '{}');
-
-    // Validate response
-    if (!result.title || !result.excerpt || !result.content || !result.keywords) {
-      throw new Error('Incomplete blog post generation response');
-    }
-
-    const slug = generateSlug(result.title, meetingDate);
-
-    return {
-      title: result.title,
-      slug,
-      excerpt: result.excerpt.slice(0, 160), // Ensure max 160 chars
-      content: result.content,
-      keywords: result.keywords.slice(0, 10), // Max 10 keywords
-    };
-  } catch (error) {
-    log.error({ error, documentTitle }, 'Failed to generate blog content with OpenAI');
-    throw error;
+  for (let i = 0; i < transcriptChunks.length; i += BATCH_SIZE) {
+    batches.push(transcriptChunks.slice(i, i + BATCH_SIZE));
   }
+
+  log.info({ batchCount: batches.length }, 'Processing transcript in batches');
+
+  // Pass 1: Summarize each batch in parallel (up to 5 concurrent)
+  const allSummaries: SectionSummary[] = [];
+  const CONCURRENT_LIMIT = 5;
+
+  for (let i = 0; i < batches.length; i += CONCURRENT_LIMIT) {
+    const batchPromises = batches.slice(i, i + CONCURRENT_LIMIT).map((batch, idx) =>
+      summarizeChunkBatch(batch, i + idx + 1, batches.length, documentTitle)
+    );
+
+    const results = await Promise.all(batchPromises);
+    results.forEach(summaries => allSummaries.push(...summaries));
+  }
+
+  log.info({ summaryCount: allSummaries.length }, 'Pass 1 complete - summaries extracted');
+
+  if (allSummaries.length === 0) {
+    throw new Error('No summaries extracted from transcript');
+  }
+
+  // Pass 2: Generate final blog post from all summaries
+  const blogData = await generateBlogFromSummaries(
+    documentTitle,
+    allSummaries,
+    meetingType,
+    meetingDate
+  );
+
+  log.info({ title: blogData.title }, 'Pass 2 complete - blog post generated');
+
+  return blogData;
 }
 
 /**
@@ -282,23 +408,26 @@ export async function createBlogPostForDocument(documentId: string): Promise<str
       return existingPost.id;
     }
 
-    // 3. Fetch transcript chunks with timestamp metadata (ordered by chunk_index)
+    // 3. Fetch ALL transcript chunks with timestamp metadata (ordered by chunk_index)
+    // Two-pass approach processes entire transcript in batches
     const { data: chunks, error: chunksError } = await supabaseAdmin
       .from('document_chunks')
       .select('content, chunk_index, metadata')
       .eq('document_id', documentId)
-      .order('chunk_index', { ascending: true })
-      .limit(10); // Get first 10 chunks (will use ~8, truncated to avoid OpenAI token limits)
+      .order('chunk_index', { ascending: true });
 
     if (chunksError || !chunks || chunks.length === 0) {
       log.error({ error: chunksError, documentId }, 'Failed to fetch document chunks');
       return null;
     }
 
-    // Extract content and timestamps from chunks
+    log.info({ documentId, chunkCount: chunks.length }, 'Fetched all transcript chunks');
+
+    // Extract content, timestamps, and chunk index
     const transcriptChunks: ChunkWithTimestamp[] = chunks.map(c => ({
       content: c.content,
       startTime: (c.metadata as any)?.start_time ?? null,
+      chunkIndex: c.chunk_index,
     }));
 
     // 4. Extract meeting metadata
