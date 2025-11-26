@@ -442,3 +442,66 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Check if user is admin
+    const adminUser = await getAdminUserFromCookies();
+    if (!adminUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is staff
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', adminUser.id)
+      .single();
+
+    if (!profile || (profile.role !== 'admin' && profile.role !== 'staff')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const videoId = searchParams.get('id');
+
+    if (!videoId) {
+      return NextResponse.json({ error: 'Video ID required' }, { status: 400 });
+    }
+
+    // Get the video to check for associated document
+    const { data: video } = await supabaseAdmin
+      .from('meeting_videos')
+      .select('document_id, storage_path')
+      .eq('id', videoId)
+      .single();
+
+    if (!video) {
+      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+    }
+
+    // Delete associated document if exists (this will cascade delete chunks)
+    if (video.document_id) {
+      await supabaseAdmin
+        .from('documents')
+        .delete()
+        .eq('id', video.document_id);
+    }
+
+    // Delete the video record
+    const { error: deleteError } = await supabaseAdmin
+      .from('meeting_videos')
+      .delete()
+      .eq('id', videoId);
+
+    if (deleteError) {
+      console.error('Delete error:', deleteError);
+      return NextResponse.json({ error: 'Failed to delete video' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Video deleted' });
+  } catch (error) {
+    console.error('Delete API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

@@ -156,6 +156,25 @@ export default function AdminVideosPage() {
     }
   };
 
+  const handleDelete = async (videoId: string) => {
+    if (!confirm('Are you sure you want to delete this video? This cannot be undone.')) return;
+
+    try {
+      const response = await fetch(`/api/admin/videos?id=${videoId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      await loadVideos();
+      alert('Video deleted');
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete video');
+    }
+  };
+
   // Batch selection handlers
   const toggleSelect = (videoId: string) => {
     const newSelected = new Set(selectedIds);
@@ -492,6 +511,12 @@ export default function AdminVideosPage() {
                               <p className="text-xs text-blue-600 mt-2">
                                 Steps: Download → Transcribe → Chunk → Generate Embeddings → Create Blog Post
                               </p>
+                              <button
+                                onClick={() => handleDelete(video.id)}
+                                className="mt-3 px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition-colors"
+                              >
+                                Delete Video
+                              </button>
                             </>
                           );
                         })()}
