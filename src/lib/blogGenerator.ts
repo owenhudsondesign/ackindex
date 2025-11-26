@@ -79,20 +79,37 @@ function extractMeetingInfo(title: string): { meetingType: string | null; meetin
     /(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}),?\s+(\d{4})/i,
   ];
 
+  const monthNameToNum: Record<string, number> = {
+    'january': 0, 'february': 1, 'march': 2, 'april': 3,
+    'may': 4, 'june': 5, 'july': 6, 'august': 7,
+    'september': 8, 'october': 9, 'november': 10, 'december': 11,
+  };
+
   for (const pattern of datePatterns) {
     const match = title.match(pattern);
     if (match) {
       try {
+        let year: number, month: number, day: number;
+
         if (pattern.source.includes('january|february')) {
-          // Month name format
-          meetingDate = new Date(`${match[1]} ${match[2]}, ${match[3]}`);
+          // Month name format: "November 20, 2025"
+          year = parseInt(match[3]);
+          month = monthNameToNum[match[1].toLowerCase()];
+          day = parseInt(match[2]);
         } else if (pattern.source.includes('\\d{4}-')) {
           // YYYY-MM-DD format
-          meetingDate = new Date(match[0]);
+          year = parseInt(match[1]);
+          month = parseInt(match[2]) - 1; // JS months are 0-indexed
+          day = parseInt(match[3]);
         } else {
           // MM/DD/YYYY format
-          meetingDate = new Date(`${match[3]}-${match[1]}-${match[2]}`);
+          year = parseInt(match[3]);
+          month = parseInt(match[1]) - 1;
+          day = parseInt(match[2]);
         }
+
+        // Create date at noon UTC to avoid timezone shifting issues
+        meetingDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
 
         if (isNaN(meetingDate.getTime())) {
           meetingDate = null;
