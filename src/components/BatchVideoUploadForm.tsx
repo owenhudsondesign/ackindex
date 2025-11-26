@@ -14,6 +14,28 @@ interface QueuedFile {
   videoId?: string;
 }
 
+/**
+ * Clean technical suffixes from video filenames
+ * Strips resolution, codec info, etc.
+ * Example: "Meeting - Nov 17, 2025-1920×1080-avc1-mp4a.mp4" → "Meeting - Nov 17, 2025"
+ */
+function cleanFilename(filename: string): string {
+  // Remove file extension first
+  let clean = filename.replace(/\.[^/.]+$/, '');
+
+  // Remove common technical suffixes (resolution, codecs)
+  // Pattern matches: -1920×1080, -1920x1080, -avc1, -hevc, -mp4a, -h264, etc.
+  clean = clean.replace(/-\d{3,4}[×x]\d{3,4}(-[a-zA-Z0-9]+)*$/, '');
+
+  // Also handle underscore variants
+  clean = clean.replace(/_\d{3,4}[×x]\d{3,4}(_[a-zA-Z0-9]+)*$/, '');
+
+  // Remove trailing dashes/underscores
+  clean = clean.replace(/[-_]+$/, '');
+
+  return clean.trim();
+}
+
 interface ParsedMetadata {
   meetingTitle: string;
   meetingDate: string | null;
@@ -132,10 +154,13 @@ export default function BatchVideoUploadForm() {
         const parsed = parsedData[index];
         const today = new Date().toISOString().split('T')[0];
 
+        // Use parsed title if available, otherwise clean the filename
+        const title = parsed?.meetingTitle || cleanFilename(file.name);
+
         return {
           id: generateId(),
           file,
-          meetingTitle: parsed?.meetingTitle || file.name.replace(/\.[^/.]+$/, ''),
+          meetingTitle: title,
           meetingDate: parsed?.meetingDate || today,
           boardOrCommittee: parsed?.boardOrCommittee || '',
           status: 'queued' as const,
@@ -146,11 +171,11 @@ export default function BatchVideoUploadForm() {
       setQueue(prev => [...prev, ...newItems]);
     } catch (error) {
       console.error('Failed to parse filenames:', error);
-      // Add files anyway with basic defaults
+      // Add files anyway with basic defaults (using cleaned filename)
       const newItems: QueuedFile[] = files.map((file) => ({
         id: generateId(),
         file,
-        meetingTitle: file.name.replace(/\.[^/.]+$/, ''),
+        meetingTitle: cleanFilename(file.name),
         meetingDate: new Date().toISOString().split('T')[0],
         boardOrCommittee: '',
         status: 'queued' as const,

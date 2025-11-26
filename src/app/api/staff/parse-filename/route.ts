@@ -25,13 +25,20 @@ export async function POST(request: NextRequest) {
 
     const prompt = `Parse these video filenames and extract meeting information. These are recordings of government meetings (town boards, committees, etc.) from Nantucket, Massachusetts.
 
+IMPORTANT: Filenames often contain technical suffixes that should be stripped:
+- Resolution info like "-1920×1080", "-1280x720", "-3840×2160"
+- Codec info like "-avc1", "-hevc", "-h264"
+- Audio codec like "-mp4a", "-aac"
+- Example: "Select Board Meeting - November 13, 2025-1920×1080-avc1-mp4a.mp4"
+  → Title should be "Select Board Meeting - November 13, 2025" (strip everything from the resolution onwards)
+
 For each filename, extract:
-1. meetingTitle: Full official name (e.g., "Select Board Meeting - November 13, 2025")
-2. meetingDate: In YYYY-MM-DD format
+1. meetingTitle: The clean title WITH the date (e.g., "Select Board Meeting - November 13, 2025"). Remove any technical suffixes (resolution, codecs).
+2. meetingDate: In YYYY-MM-DD format (extract from the title)
 3. boardOrCommittee: Just the board/committee name (e.g., "Select Board", "Planning Board", "Zoning Board of Appeals")
 4. confidence: "high" if date and board are clear, "medium" if somewhat ambiguous, "low" if guessing
 
-Common boards include: Select Board, Planning Board, Zoning Board of Appeals, Finance Committee, Conservation Commission, Historic District Commission, Board of Health, School Committee, Airport Commission, Sewer Commission, etc.
+Common boards/sessions include: Select Board, Planning Board, Zoning Board of Appeals, Finance Committee, Conservation Commission, Historic District Commission, Board of Health, School Committee, Airport Commission, Sewer Commission, Town Meeting, Public Info Session, Public Hearing, etc.
 
 Filenames to parse:
 ${batch.map((f, i) => `${i + 1}. "${f}"`).join('\n')}

@@ -23,6 +23,62 @@ interface UploadState {
   canResume: boolean;
 }
 
+/**
+ * Clean technical suffixes from video filenames
+ * Strips resolution, codec info, etc.
+ * Example: "Meeting - Nov 17, 2025-1920×1080-avc1-mp4a.mp4" → "Meeting - Nov 17, 2025"
+ */
+function cleanFilename(filename: string): string {
+  // Remove file extension first
+  let clean = filename.replace(/\.[^/.]+$/, '');
+
+  // Remove common technical suffixes (resolution, codecs)
+  // Pattern matches: -1920×1080, -1920x1080, -avc1, -hevc, -mp4a, -h264, etc.
+  clean = clean.replace(/-\d{3,4}[×x]\d{3,4}(-[a-zA-Z0-9]+)*$/, '');
+
+  // Also handle underscore variants
+  clean = clean.replace(/_\d{3,4}[×x]\d{3,4}(_[a-zA-Z0-9]+)*$/, '');
+
+  // Remove trailing dashes/underscores
+  clean = clean.replace(/[-_]+$/, '');
+
+  return clean.trim();
+}
+
+/**
+ * Extract date from filename if present
+ * Handles formats like "November 17, 2025" or "Nov 17, 2025" or "2025-11-17"
+ */
+function extractDateFromFilename(filename: string): string | null {
+  // Try "Month Day, Year" format
+  const monthDayYear = filename.match(/(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}),?\s+(\d{4})/i);
+  if (monthDayYear) {
+    const monthNames: Record<string, string> = {
+      'january': '01', 'february': '02', 'march': '03', 'april': '04',
+      'may': '05', 'june': '06', 'july': '07', 'august': '08',
+      'september': '09', 'october': '10', 'november': '11', 'december': '12',
+      'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+      'jun': '06', 'jul': '07', 'aug': '08', 'sep': '09',
+      'oct': '10', 'nov': '11', 'dec': '12'
+    };
+    const monthMatch = filename.match(/(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+    if (monthMatch) {
+      const month = monthNames[monthMatch[1].toLowerCase()];
+      const day = monthDayYear[1].padStart(2, '0');
+      const year = monthDayYear[2];
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // Try YYYY-MM-DD format
+  const isoDate = filename.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoDate) {
+    return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
+  }
+
+  return null;
+}
+
 export default function VideoUploadForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -151,6 +207,15 @@ export default function VideoUploadForm() {
         videoId: null,
         canResume: false,
       });
+
+      // Auto-populate title and date from filename
+      const cleanedTitle = cleanFilename(file.name);
+      const extractedDate = extractDateFromFilename(file.name);
+
+      setMeetingTitle(cleanedTitle);
+      if (extractedDate) {
+        setMeetingDate(extractedDate);
+      }
     }
   };
 
