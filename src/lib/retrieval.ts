@@ -30,7 +30,31 @@ export interface RetrievalOptions {
   maxResults?: number;
   minSimilarity?: number;
   includeDocumentInfo?: boolean;
-  searchMode?: 'semantic' | 'keyword' | 'hybrid';
+  searchMode?: 'semantic' | 'keyword' | 'hybrid' | 'recent';
+}
+
+/**
+ * Patterns that indicate user wants recent/current information
+ */
+const RECENCY_PATTERNS = [
+  /what('?s| is) (going on|happening)/i,
+  /right now/i,
+  /currently/i,
+  /this (week|month)/i,
+  /recent(ly)?/i,
+  /latest/i,
+  /last (few )?(meetings?|weeks?|months?)/i,
+  /new(est)? (updates?|news|developments?)/i,
+  /what('?s| is) new/i,
+  /any updates?/i,
+  /current (events?|issues?|topics?)/i,
+];
+
+/**
+ * Check if query is asking for recent/current information
+ */
+export function isRecencyQuery(query: string): boolean {
+  return RECENCY_PATTERNS.some(pattern => pattern.test(query));
 }
 
 /**
@@ -50,6 +74,27 @@ export async function retrieveRelevantChunks(
   logger.info({ query, mode: searchMode }, '[Retrieval] Searching');
 
   try {
+    // Check if this is a recency query - if so, also fetch recent content
+    const isRecent = isRecencyQuery(query);
+
+    if (isRecent) {
+      logger.info({ query }, '[Retrieval] Detected recency query, fetching recent content');
+
+      // For recency queries, combine recent documents with semantic search
+      const [recentResults, semanticResults] = await Promise.all([
+        fetchRecentContent(maxResults),
+        searchMode === 'hybrid'
+          ? hybridSearch(query, maxResults, minSimilarity)
+          : semanticSearch(query, maxResults, minSimilarity, includeDocumentInfo)
+      ]);
+
+      // Merge results, prioritizing recent content for recency queries
+      // but still including semantically relevant older content
+      const merged = mergeRecentAndSemantic(recentResults, semanticResults, maxResults);
+      logger.info({ recentCount: recentResults.length, semanticCount: semanticResults.length, mergedCount: merged.length }, '[Retrieval] Merged recent and semantic results');
+      return merged;
+    }
+
     if (searchMode === 'keyword') {
       return await keywordSearch(query, maxResults);
     } else if (searchMode === 'hybrid') {
@@ -61,6 +106,89 @@ export async function retrieveRelevantChunks(
     logger.error({ error, query }, '[Retrieval] Search failed');
     throw new Error('Failed to retrieve relevant content');
   }
+}
+
+/**
+ * Fetch recent content by date (for recency queries)
+ */
+async function fetchRecentContent(maxResults: number): Promise<RetrievalResult[]> {
+  // Fetch chunks from the most recent documents (last 30 days)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const { data: recentDocs, error: docError } = await supabaseAdmin
+    .from('documents')
+    .select('id, title, source_url, filename, source_type, created_at')
+    .gte('created_at', thirtyDaysAgo.toISOString())
+    .eq('status', 'indexed')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (docError || !recentDocs || recentDocs.length === 0) {
+    logger.debug({ error: docError }, '[Retrieval] No recent documents found');
+    return [];
+  }
+
+  const docIds = recentDocs.map(d => d.id);
+
+  // Get summary chunks from recent documents (prioritize summaries over raw transcripts)
+  const { data: chunks, error: chunkError } = await supabaseAdmin
+    .from('document_chunks')
+    .select('id, document_id, content, chunk_index, metadata')
+    .in('document_id', docIds)
+    .order('chunk_index', { ascending: true })
+    .limit(maxResults * 2);
+
+  if (chunkError || !chunks) {
+    logger.debug({ error: chunkError }, '[Retrieval] Failed to fetch recent chunks');
+    return [];
+  }
+
+  // Create a map for document info
+  const docMap = new Map(recentDocs.map(doc => [doc.id, doc]));
+
+  // Convert to RetrievalResult format with high similarity score
+  // (since these are explicitly requested recent content)
+  return chunks.slice(0, maxResults).map((chunk, index) => ({
+    id: chunk.id,
+    document_id: chunk.document_id,
+    content: chunk.content,
+    chunk_index: chunk.chunk_index,
+    metadata: chunk.metadata || {},
+    similarity: 0.85 - (index * 0.01), // Give recent content good scores (0.85 down)
+    document: docMap.get(chunk.document_id),
+  }));
+}
+
+/**
+ * Merge recent and semantic results, avoiding duplicates
+ */
+function mergeRecentAndSemantic(
+  recent: RetrievalResult[],
+  semantic: RetrievalResult[],
+  maxResults: number
+): RetrievalResult[] {
+  const seen = new Set<string>();
+  const merged: RetrievalResult[] = [];
+
+  // Add recent results first (for recency queries, prioritize recent)
+  for (const result of recent) {
+    if (!seen.has(result.id)) {
+      seen.add(result.id);
+      merged.push(result);
+    }
+  }
+
+  // Add semantic results that aren't duplicates
+  for (const result of semantic) {
+    if (!seen.has(result.id) && merged.length < maxResults) {
+      seen.add(result.id);
+      merged.push(result);
+    }
+  }
+
+  // Sort by similarity (recent results already have good similarity scores)
+  return merged.sort((a, b) => b.similarity - a.similarity).slice(0, maxResults);
 }
 
 /**
