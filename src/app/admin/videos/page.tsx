@@ -276,6 +276,18 @@ export default function AdminVideosPage() {
   };
 
   const formatDate = (dateString: string): string => {
+    // For date-only strings (YYYY-MM-DD), parse directly to avoid timezone shifts
+    // For datetime strings, use Date parsing
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day); // Local timezone
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    // For full datetime strings, parse normally
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -611,6 +623,18 @@ export default function AdminVideosPage() {
                           className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition-colors"
                         >
                           Archive
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Actions for approved/public videos */}
+                    {video.is_public && video.processing_status === 'completed' && video.document_id && (
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => handleGenerateBlogPost(video.document_id!)}
+                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors"
+                        >
+                          Generate Blog Post
                         </button>
                       </div>
                     )}
