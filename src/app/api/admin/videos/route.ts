@@ -445,21 +445,10 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Check if user is admin
-    const adminUser = await getAdminUserFromCookies();
-    if (!adminUser) {
+    // Verify admin (same check as GET/PATCH)
+    const admin = await getAdminUserFromCookies();
+    if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is staff
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', adminUser.id)
-      .single();
-
-    if (!profile || (profile.role !== 'admin' && profile.role !== 'staff')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
