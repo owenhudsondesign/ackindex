@@ -36,6 +36,40 @@ function cleanFilename(filename: string): string {
   return clean.trim();
 }
 
+/**
+ * Extract date from filename if present
+ * Handles formats like "November 17, 2025" or "Nov 17, 2025" or "2025-11-17"
+ */
+function extractDateFromFilename(filename: string): string | null {
+  // Try "Month Day, Year" format
+  const monthDayYear = filename.match(/(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}),?\s+(\d{4})/i);
+  if (monthDayYear) {
+    const monthNames: Record<string, string> = {
+      'january': '01', 'february': '02', 'march': '03', 'april': '04',
+      'may': '05', 'june': '06', 'july': '07', 'august': '08',
+      'september': '09', 'october': '10', 'november': '11', 'december': '12',
+      'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+      'jun': '06', 'jul': '07', 'aug': '08', 'sep': '09',
+      'oct': '10', 'nov': '11', 'dec': '12'
+    };
+    const monthMatch = filename.match(/(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+    if (monthMatch) {
+      const month = monthNames[monthMatch[1].toLowerCase()];
+      const day = monthDayYear[1].padStart(2, '0');
+      const year = monthDayYear[2];
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // Try YYYY-MM-DD format
+  const isoDate = filename.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoDate) {
+    return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
+  }
+
+  return null;
+}
+
 interface ParsedMetadata {
   meetingTitle: string;
   meetingDate: string | null;
@@ -157,11 +191,15 @@ export default function BatchVideoUploadForm() {
         // Use parsed title if available, otherwise clean the filename
         const title = parsed?.meetingTitle || cleanFilename(file.name);
 
+        // Use parsed date, or extract from filename, or fallback to today
+        const extractedDate = extractDateFromFilename(file.name);
+        const meetingDate = parsed?.meetingDate || extractedDate || today;
+
         return {
           id: generateId(),
           file,
           meetingTitle: title,
-          meetingDate: parsed?.meetingDate || today,
+          meetingDate,
           boardOrCommittee: parsed?.boardOrCommittee || '',
           status: 'queued' as const,
           progress: 0,
@@ -171,12 +209,13 @@ export default function BatchVideoUploadForm() {
       setQueue(prev => [...prev, ...newItems]);
     } catch (error) {
       console.error('Failed to parse filenames:', error);
-      // Add files anyway with basic defaults (using cleaned filename)
+      // Add files anyway with basic defaults (using cleaned filename and extracted date)
+      const today = new Date().toISOString().split('T')[0];
       const newItems: QueuedFile[] = files.map((file) => ({
         id: generateId(),
         file,
         meetingTitle: cleanFilename(file.name),
-        meetingDate: new Date().toISOString().split('T')[0],
+        meetingDate: extractDateFromFilename(file.name) || today,
         boardOrCommittee: '',
         status: 'queued' as const,
         progress: 0,
