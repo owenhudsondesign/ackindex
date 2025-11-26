@@ -918,19 +918,70 @@ async function processMeetingVideoJob(
       throw new Error('Transcription timed out');
     }
 
-    log.info({ duration: finalTranscript.audio_duration }, 'Transcription completed');
+    log.info({
+      duration: finalTranscript.audio_duration,
+      utteranceCount: finalTranscript.utterances?.length || 0,
+      wordCount: finalTranscript.words?.length || 0,
+    }, 'Transcription completed');
     await job.updateProgress(85);
 
-    // Convert to our format
-    const transcription = {
-      fullText: finalTranscript.text || '',
-      segments: (finalTranscript.utterances || []).map((utterance: any) => ({
+    // Convert to our format - prefer utterances, fall back to words
+    let segments: any[] = [];
+
+    if (finalTranscript.utterances && finalTranscript.utterances.length > 0) {
+      // Use utterances (speaker-diarized segments)
+      log.info({ count: finalTranscript.utterances.length }, 'Using utterances for segments');
+      segments = finalTranscript.utterances.map((utterance: any) => ({
         text: utterance.text,
         start: utterance.start / 1000, // ms to seconds
         end: utterance.end / 1000,
-        speaker: parseInt(utterance.speaker.replace('Speaker ', '')) || undefined,
+        speaker: utterance.speaker ? parseInt(utterance.speaker.replace('Speaker ', '')) : undefined,
         confidence: utterance.confidence,
-      })),
+      }));
+    } else if (finalTranscript.words && finalTranscript.words.length > 0) {
+      // Fall back to words - group into ~30 second segments
+      log.info({ count: finalTranscript.words.length }, 'Falling back to words for segments');
+      const SEGMENT_DURATION = 30000; // 30 seconds in ms
+      let currentSegment: any = { text: '', start: 0, end: 0, words: [] };
+
+      for (const word of finalTranscript.words) {
+        if (currentSegment.words.length === 0) {
+          currentSegment.start = word.start;
+        }
+        currentSegment.words.push(word.text);
+        currentSegment.end = word.end;
+
+        // Create segment every ~30 seconds
+        if (word.end - currentSegment.start >= SEGMENT_DURATION) {
+          segments.push({
+            text: currentSegment.words.join(' '),
+            start: currentSegment.start / 1000,
+            end: currentSegment.end / 1000,
+            speaker: undefined,
+            confidence: word.confidence,
+          });
+          currentSegment = { text: '', start: 0, end: 0, words: [] };
+        }
+      }
+
+      // Don't forget the last segment
+      if (currentSegment.words.length > 0) {
+        segments.push({
+          text: currentSegment.words.join(' '),
+          start: currentSegment.start / 1000,
+          end: currentSegment.end / 1000,
+          speaker: undefined,
+          confidence: 0.9,
+        });
+      }
+      log.info({ segmentCount: segments.length }, 'Created segments from words');
+    } else {
+      log.warn('No utterances or words in transcription - will only have summary chunks');
+    }
+
+    const transcription = {
+      fullText: finalTranscript.text || '',
+      segments,
       totalDuration: (finalTranscript.audio_duration || 0) / 1000,
     };
 
