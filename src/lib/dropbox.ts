@@ -121,12 +121,27 @@ export async function listFolderFiles(folderPath: string): Promise<DropboxScanRe
     if (!response.ok) {
       const errorText = await response.text();
       log.error({ status: response.status, error: errorText }, 'Dropbox API error');
+
+      // Parse Dropbox error for better messaging
+      let errorMessage = `Dropbox API error: ${response.status}. Make sure the folder path exists.`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error_summary) {
+          errorMessage = `Dropbox error: ${errorJson.error_summary}`;
+        }
+        if (errorJson.error?.['.tag'] === 'path' && errorJson.error?.path?.['.tag'] === 'not_found') {
+          errorMessage = `Folder not found: "${normalizedPath}". Check the path exists in your Dropbox.`;
+        }
+      } catch {
+        // Use default message
+      }
+
       return {
         success: false,
         files: [],
         folderName: '',
         totalSize: 0,
-        error: `Dropbox API error: ${response.status}. Make sure the folder path exists.`,
+        error: errorMessage,
       };
     }
 
