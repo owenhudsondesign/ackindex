@@ -14,6 +14,90 @@ import { logQuery } from '@/lib/analytics';
 import { createConversation, addMessage, getRecentMessages, autoGenerateTitle, updateConversationTitle } from '@/lib/conversations';
 import { checkRateLimit, checkGlobalRateLimit, getRateLimitTier, createRateLimitHeaders } from '@/lib/rateLimit';
 
+/**
+ * Follow-up query patterns that indicate user is referencing previous context
+ */
+const FOLLOW_UP_PATTERNS = [
+  /^(?:what|how|when|where|who)\s+(?:about|did)\s+(?:they|that|it|this)/i,
+  /^(?:and|but|also|furthermore)/i,
+  /^(?:can you|could you)\s+(?:tell me more|elaborate|explain)/i,
+  /^(?:more|further)\s+(?:details?|information)/i,
+  /\b(?:that|this|it|they|them|those|these)\b.*\?$/i,
+  /^(?:why|how come)/i,
+  /^what else/i,
+  /^tell me more/i,
+  /^expand on/i,
+  /^go into detail/i,
+];
+
+/**
+ * Detect if query is a follow-up that needs context resolution
+ */
+function isFollowUpQuery(query: string): boolean {
+  return FOLLOW_UP_PATTERNS.some(p => p.test(query));
+}
+
+/**
+ * Resolve follow-up query using conversation history
+ * Extracts topics from previous exchange and appends context
+ */
+function resolveFollowUpQuery(
+  query: string,
+  conversationHistory: Array<{ role: string; content: string }>
+): string {
+  if (!isFollowUpQuery(query) || conversationHistory.length === 0) {
+    return query;
+  }
+
+  // Get the last assistant response and user query for context
+  const lastAssistant = conversationHistory
+    .filter(m => m.role === 'assistant')
+    .slice(-1)[0];
+
+  const lastUser = conversationHistory
+    .filter(m => m.role === 'user')
+    .slice(-1)[0];
+
+  if (!lastAssistant || !lastUser) {
+    return query;
+  }
+
+  // Extract key topics from previous exchange
+  const topics: string[] = [];
+  const combinedPrevious = `${lastUser.content} ${lastAssistant.content}`;
+
+  // Look for proper nouns (capitalized sequences of 2+ words)
+  const properNouns = combinedPrevious.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g);
+  if (properNouns) {
+    topics.push(...properNouns.slice(0, 2));
+  }
+
+  // Look for quoted terms
+  const quotedTerms = combinedPrevious.match(/"([^"]+)"/g);
+  if (quotedTerms) {
+    topics.push(...quotedTerms.map(t => t.replace(/"/g, '')).slice(0, 2));
+  }
+
+  // Look for "about X" or "regarding X" patterns
+  const aboutPattern = /(?:about|regarding|concerning)\s+(?:the\s+)?([^.,]+)/gi;
+  let match;
+  while ((match = aboutPattern.exec(combinedPrevious)) !== null) {
+    const topic = match[1].trim();
+    if (topic.length > 3 && topic.length < 50) {
+      topics.push(topic);
+    }
+  }
+
+  // If we found topics, prepend them to the query for better retrieval
+  const uniqueTopics = [...new Set(topics)].slice(0, 2);
+  if (uniqueTopics.length > 0) {
+    const context = uniqueTopics.join(' and ');
+    return `${query} (regarding ${context})`;
+  }
+
+  return query;
+}
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -267,8 +351,21 @@ export async function POST(request: NextRequest) {
       log.info('Anonymous user - stateless query mode');
     }
 
+    // Resolve follow-up queries using conversation context (premium users only)
+    let resolvedMessage = message;
+    if (conversationHistory.length > 0) {
+      resolvedMessage = resolveFollowUpQuery(message, conversationHistory);
+      if (resolvedMessage !== message) {
+        log.info({
+          original: message,
+          resolved: resolvedMessage,
+        }, 'Resolved follow-up query with conversation context');
+      }
+    }
+
     // Step 1: Validate and sanitize user input (prevent prompt injection)
-    const validation = validateUserInput(message, user?.id || anonymousFingerprint || 'anonymous');
+    // Use resolved message (which may include context from follow-up resolution)
+    const validation = validateUserInput(resolvedMessage, user?.id || anonymousFingerprint || 'anonymous');
 
     if (!validation.isValid || validation.blocked) {
       logger.warn(

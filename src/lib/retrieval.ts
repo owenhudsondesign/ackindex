@@ -9,6 +9,8 @@ import { supabaseAdmin } from './supabase';
 import { generateEmbedding } from './embeddings';
 import { getCachedSearchQuery, setCachedSearchQuery } from './cache';
 import logger from './logger';
+import { expandQuery, detectBroadQuery, type QueryExpansionResult, type BroadQueryResult } from './queryExpansion';
+import { analyzeQuery, needsMultiPassRetrieval, multiPassRetrieval, type QueryAnalysis } from './queryAnalysis';
 
 export interface RetrievalResult {
   id: string;
@@ -58,6 +60,15 @@ export function isRecencyQuery(query: string): boolean {
 }
 
 /**
+ * Extended retrieval result with query analysis info
+ */
+export interface ExtendedRetrievalResult {
+  results: RetrievalResult[];
+  queryExpansion?: QueryExpansionResult;
+  broadQueryAnalysis?: BroadQueryResult;
+}
+
+/**
  * Retrieve relevant chunks for a query using semantic search
  */
 export async function retrieveRelevantChunks(
@@ -74,8 +85,33 @@ export async function retrieveRelevantChunks(
   logger.info({ query, mode: searchMode }, '[Retrieval] Searching');
 
   try {
-    // Check if this is a recency query - if so, also fetch recent content
-    const isRecent = isRecencyQuery(query);
+    // Step 1: Expand query with synonyms and acronyms
+    const queryExpansion = expandQuery(query);
+    const searchQuery = queryExpansion.expansions.length > 0 ? queryExpansion.expandedQuery : query;
+
+    if (queryExpansion.expansions.length > 0) {
+      logger.info({
+        original: query,
+        expanded: searchQuery,
+        expansions: queryExpansion.expansions,
+      }, '[Retrieval] Query expanded with synonyms/acronyms');
+    }
+
+    // Step 2: Check for broad queries that may need recency constraint
+    const broadAnalysis = detectBroadQuery(query);
+    let effectiveQuery = searchQuery;
+
+    if (broadAnalysis.isBroad && broadAnalysis.defaultConstraint === 'recent') {
+      // Add recency hint to the query if it's broad
+      effectiveQuery = `${searchQuery} recent`;
+      logger.info({
+        broadTerm: broadAnalysis.broadTerm,
+        refinements: broadAnalysis.suggestedRefinements,
+      }, '[Retrieval] Detected broad query, adding recency constraint');
+    }
+
+    // Step 3: Check if this is a recency query - if so, also fetch recent content
+    const isRecent = isRecencyQuery(query) || (broadAnalysis.isBroad && broadAnalysis.defaultConstraint === 'recent');
 
     if (isRecent) {
       logger.info({ query }, '[Retrieval] Detected recency query, fetching recent content');
@@ -84,8 +120,8 @@ export async function retrieveRelevantChunks(
       const [recentResults, semanticResults] = await Promise.all([
         fetchRecentContent(maxResults),
         searchMode === 'hybrid'
-          ? hybridSearch(query, maxResults, minSimilarity)
-          : semanticSearch(query, maxResults, minSimilarity, includeDocumentInfo)
+          ? hybridSearch(effectiveQuery, maxResults, minSimilarity)
+          : semanticSearch(effectiveQuery, maxResults, minSimilarity, includeDocumentInfo, query)
       ]);
 
       // Merge results, prioritizing recent content for recency queries
@@ -95,12 +131,41 @@ export async function retrieveRelevantChunks(
       return merged;
     }
 
+    // Step 4: Analyze query for compound/comparative patterns
+    const queryAnalysis = analyzeQuery(query);
+
+    // Use multi-pass retrieval for complex queries
+    if (needsMultiPassRetrieval(queryAnalysis)) {
+      logger.info({
+        type: queryAnalysis.type,
+        subQueries: queryAnalysis.subQueries,
+      }, '[Retrieval] Using multi-pass retrieval for complex query');
+
+      // Create a retrieval function that applies query expansion
+      const retrieveWithExpansion = async (subQuery: string, subMaxResults: number) => {
+        const expansion = expandQuery(subQuery);
+        const expandedSubQuery = expansion.expansions.length > 0 ? expansion.expandedQuery : subQuery;
+
+        if (searchMode === 'keyword') {
+          return await keywordSearch(expandedSubQuery, subMaxResults);
+        } else if (searchMode === 'hybrid') {
+          return await hybridSearch(expandedSubQuery, subMaxResults, minSimilarity);
+        } else {
+          return await semanticSearch(expandedSubQuery, subMaxResults, minSimilarity, includeDocumentInfo, subQuery);
+        }
+      };
+
+      return await multiPassRetrieval(queryAnalysis, retrieveWithExpansion, { maxResults });
+    }
+
+    // Standard single-pass retrieval
     if (searchMode === 'keyword') {
-      return await keywordSearch(query, maxResults);
+      return await keywordSearch(effectiveQuery, maxResults);
     } else if (searchMode === 'hybrid') {
-      return await hybridSearch(query, maxResults, minSimilarity);
+      return await hybridSearch(effectiveQuery, maxResults, minSimilarity);
     } else {
-      return await semanticSearch(query, maxResults, minSimilarity, includeDocumentInfo);
+      // Pass original query for metadata boost to use correct entity matching
+      return await semanticSearch(effectiveQuery, maxResults, minSimilarity, includeDocumentInfo, query);
     }
   } catch (error) {
     logger.error({ error, query }, '[Retrieval] Search failed');
@@ -198,7 +263,8 @@ async function semanticSearch(
   query: string,
   maxResults: number,
   minSimilarity: number,
-  includeDocumentInfo: boolean
+  includeDocumentInfo: boolean,
+  originalQuery?: string // Original query before expansion (for metadata boost)
 ): Promise<RetrievalResult[]> {
   // Try cache first - cache key includes params to ensure correct results
   const cacheKey = `${query}|${maxResults}|${minSimilarity}|${includeDocumentInfo}`;
@@ -211,7 +277,7 @@ async function semanticSearch(
 
   logger.debug({ query, cached: false }, '[Retrieval] Search cache miss');
 
-  // Generate embedding for the query
+  // Generate embedding for the query (may be expanded query)
   logger.info({ query }, '[Retrieval] Generating query embedding');
   const queryEmbedding = await generateEmbedding(query);
   logger.debug({
@@ -251,6 +317,11 @@ async function semanticSearch(
   if (includeDocumentInfo && results.length > 0) {
     logger.debug('[Retrieval] Enriching with document info');
     results = await enrichWithDocumentInfo(results);
+
+    // Apply metadata boost: boost results that match query entities in metadata
+    // Uses original query (before expansion) for accurate entity matching
+    const queryForMetadata = originalQuery || query;
+    results = applyMetadataBoost(results, queryForMetadata);
 
     // Apply recency boost: newer documents get a slight similarity boost
     // This helps prioritize recent meetings over old reports
@@ -417,6 +488,133 @@ function applyRecencyBoost(results: RetrievalResult[]): RetrievalResult[] {
     }
 
     return result;
+  });
+}
+
+/**
+ * Entity patterns for extracting specific entities from queries
+ */
+const ENTITY_PATTERNS = {
+  // Warrant article references
+  article: /\b(?:article|art\.?)\s*(\d+)/gi,
+  // Proper names (capitalized sequences)
+  properName: /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g,
+  // Street addresses
+  address: /\b(\d+\s+[A-Z][a-z]+(?:\s+(?:Street|St|Avenue|Ave|Road|Rd|Lane|Ln|Way|Drive|Dr))?)\b/gi,
+  // Dollar amounts
+  dollar: /\$[\d,]+(?:\.\d{2})?(?:\s*(?:million|M|thousand|K))?/gi,
+  // Dates
+  date: /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b/gi,
+};
+
+/**
+ * Extract entities from query for targeted matching
+ */
+function extractQueryEntities(query: string): {
+  articles: string[];
+  names: string[];
+  addresses: string[];
+  amounts: string[];
+  dates: string[];
+} {
+  return {
+    articles: (query.match(ENTITY_PATTERNS.article) || []).map(m => m.toLowerCase()),
+    names: query.match(ENTITY_PATTERNS.properName) || [],
+    addresses: query.match(ENTITY_PATTERNS.address) || [],
+    amounts: query.match(ENTITY_PATTERNS.dollar) || [],
+    dates: query.match(ENTITY_PATTERNS.date) || [],
+  };
+}
+
+/**
+ * Apply metadata-based boost to search results
+ * This helps surface relevant content that may have lower semantic similarity
+ * but contains exact entity matches in content or metadata
+ *
+ * Boost caps at +0.15 to prevent low-quality content from exceeding threshold
+ */
+function applyMetadataBoost(
+  results: RetrievalResult[],
+  query: string
+): RetrievalResult[] {
+  const entities = extractQueryEntities(query);
+  const queryLower = query.toLowerCase();
+  const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2);
+
+  return results.map(result => {
+    let boost = 0;
+    const metadata = result.metadata || {};
+    const content = result.content.toLowerCase();
+
+    // Boost for article number matches (high confidence)
+    for (const article of entities.articles) {
+      if (content.includes(article)) {
+        boost += 0.08; // Significant boost for exact article match
+      }
+    }
+
+    // Boost for meeting_type match in metadata
+    if (metadata.meeting_type) {
+      const meetingType = String(metadata.meeting_type).toLowerCase();
+      if (queryLower.includes(meetingType) ||
+          meetingType.includes(queryTerms.find(t => meetingType.includes(t)) || '')) {
+        boost += 0.05;
+      }
+    }
+
+    // Boost for topic/keyword matches in metadata
+    const topics = metadata.topics || metadata.categories || [];
+    const keywords = metadata.keywords || [];
+
+    for (const topic of [...topics, ...keywords]) {
+      if (typeof topic === 'string' && queryLower.includes(topic.toLowerCase())) {
+        boost += 0.03;
+        break; // Only apply once
+      }
+    }
+
+    // Boost for speaker name matches
+    const speakers = metadata.attendees || metadata.speakers || [];
+    for (const speaker of speakers) {
+      if (typeof speaker === 'string') {
+        for (const name of entities.names) {
+          if (speaker.toLowerCase().includes(name.toLowerCase())) {
+            boost += 0.05;
+            break;
+          }
+        }
+      }
+    }
+
+    // Boost for exact dollar amount matches (anti-hallucination friendly)
+    for (const amount of entities.amounts) {
+      const normalizedAmount = amount.toLowerCase().replace(/\s/g, '');
+      if (content.includes(normalizedAmount)) {
+        boost += 0.04;
+        break;
+      }
+    }
+
+    // Cap total metadata boost at 0.15 to prevent over-boosting
+    boost = Math.min(boost, 0.15);
+
+    if (boost > 0) {
+      logger.debug({
+        chunkId: result.id,
+        originalSimilarity: result.similarity,
+        boost,
+        newSimilarity: Math.min(1.0, result.similarity + boost),
+      }, '[Retrieval] Applied metadata boost');
+    }
+
+    return {
+      ...result,
+      similarity: Math.min(1.0, result.similarity + boost),
+      metadata: {
+        ...metadata,
+        _metadataBoost: boost, // Track for debugging
+      }
+    };
   });
 }
 
