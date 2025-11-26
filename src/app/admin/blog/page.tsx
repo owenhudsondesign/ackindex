@@ -286,13 +286,26 @@ export default function AdminBlogDashboard() {
                 )}
 
                 {posts.map((post) => {
-                  const meetingDate = post.meeting_date
-                    ? new Date(post.meeting_date).toLocaleDateString('en-US', {
+                  // Parse YYYY-MM-DD without timezone conversion
+                  let meetingDate: string | null = null;
+                  if (post.meeting_date) {
+                    const dateStr = post.meeting_date;
+                    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+                      const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+                      const date = new Date(year, month - 1, day);
+                      meetingDate = date.toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
-                      })
-                    : null;
+                      });
+                    } else {
+                      meetingDate = new Date(dateStr).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      });
+                    }
+                  }
 
                   return (
                     <div
