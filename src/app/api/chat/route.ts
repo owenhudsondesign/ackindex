@@ -472,7 +472,7 @@ export async function POST(request: NextRequest) {
     const isTopicExploration = isTopicExplorationQuery(sanitizedMessage);
 
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
-      maxResults: 15,
+      maxResults: 10, // Balanced: captures relevant content without wasting tokens on noise
       minSimilarity: 0.0, // No threshold - always return top results
       includeDocumentInfo: true,
       searchMode: 'hybrid',
