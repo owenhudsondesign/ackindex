@@ -702,7 +702,7 @@ function applyMetadataBoost(
  * Combines multiple chunks into a single context string for the LLM
  * IMPORTANT: Source numbering must match extractCitations to avoid referencing non-existent sources
  */
-export function buildContext(results: RetrievalResult[]): string {
+export function buildContext(results: RetrievalResult[], minSimilarity: number = 0.35): string {
   if (results.length === 0) {
     return 'No relevant information found.';
   }
@@ -717,9 +717,8 @@ export function buildContext(results: RetrievalResult[]): string {
     if (!docId) return null;
 
     // Only include sources that meet quality threshold
-    // Voyage AI voyage-3-large typically returns 50-70% for relevant content
-    // Threshold calibrated based on testing: 45%+ indicates relevant content
-    if (result.similarity < 0.45) {
+    // Use the passed threshold (defaults to 0.35 for topic exploration)
+    if (result.similarity < minSimilarity) {
       return null;
     }
 

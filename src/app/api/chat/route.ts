@@ -562,7 +562,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 4: Build context from retrieved chunks
-    let context = buildContext(results);
+    // Use lower threshold for topic exploration queries to include more results
+    const contextMinSimilarity = isTopicExploration ? 0.35 : 0.45;
+    let context = buildContext(results, contextMinSimilarity);
     const citations = await extractCitations(results);
 
     // Add full conversation history to context for proper follow-up contextualization
