@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateClaudeResponseWithUsage, CLAUDE_MODEL, CLAUDE_COSTS, type ClaudeMessage } from '@/lib/anthropic';
+import { generateClaudeResponseWithUsage, CLAUDE_MODEL, CLAUDE_COSTS, ClaudeRateLimitError, type ClaudeMessage } from '@/lib/anthropic';
 import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults, deduplicateResults, isRecencyQuery } from '@/lib/retrieval';
 import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
 import { generateFingerprint, getOrCreateAnonymousSession, recordAnonymousUsage, ANONYMOUS_QUERY_LIMIT } from '@/lib/anonymousSession';
@@ -891,6 +891,24 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error({ err: error }, 'Chat API error occurred');
+
+    // Handle Claude API rate limit errors with a friendly message
+    if (error instanceof ClaudeRateLimitError) {
+      log.warn({ retryAfter: error.retryAfter }, 'Claude API rate limit hit');
+      return NextResponse.json(
+        {
+          error: 'Service temporarily busy',
+          message: 'Our AI service is experiencing high demand. Please wait a moment and try again.',
+          retryAfter: error.retryAfter || 60,
+        },
+        {
+          status: 503,
+          headers: {
+            'Retry-After': String(error.retryAfter || 60),
+          },
+        }
+      );
+    }
 
     // Capture error in Sentry
     captureException(error, {

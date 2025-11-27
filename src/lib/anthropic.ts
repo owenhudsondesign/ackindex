@@ -52,6 +52,16 @@ export async function generateClaudeResponse(
 }
 
 /**
+ * Custom error class for Claude API rate limits
+ */
+export class ClaudeRateLimitError extends Error {
+  constructor(message: string, public retryAfter?: number) {
+    super(message);
+    this.name = 'ClaudeRateLimitError';
+  }
+}
+
+/**
  * Generate a response using Claude 4.5 Sonnet with usage statistics
  */
 export async function generateClaudeResponseWithUsage(
@@ -64,27 +74,38 @@ export async function generateClaudeResponseWithUsage(
     system,
   } = options;
 
-  const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: maxTokens,
-    temperature,
-    system,
-    messages: messages.map(m => ({
-      role: m.role,
-      content: m.content,
-    })),
-  });
+  try {
+    const response = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      temperature,
+      system,
+      messages: messages.map(m => ({
+        role: m.role,
+        content: m.content,
+      })),
+    });
 
-  // Extract text from response
-  const textContent = response.content.find(block => block.type === 'text');
+    // Extract text from response
+    const textContent = response.content.find(block => block.type === 'text');
 
-  return {
-    text: textContent?.text || '',
-    usage: {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-    },
-  };
+    return {
+      text: textContent?.text || '',
+      usage: {
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+      },
+    };
+  } catch (error: any) {
+    // Handle rate limit errors specifically
+    if (error?.status === 429 || error?.message?.includes('rate_limit_error')) {
+      throw new ClaudeRateLimitError(
+        'Claude API rate limit exceeded. Please try again in a moment.',
+        60 // Default retry after 60 seconds
+      );
+    }
+    throw error;
+  }
 }
 
 /**
