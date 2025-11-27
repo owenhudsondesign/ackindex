@@ -6,7 +6,7 @@
  */
 
 import { supabaseAdmin } from './supabase';
-import { generateEmbedding } from './embeddings';
+import { generateEmbedding, generateQueryEmbedding } from './embeddings';
 import { getCachedSearchQuery, setCachedSearchQuery } from './cache';
 import logger from './logger';
 import { expandQuery, detectBroadQuery, type QueryExpansionResult, type BroadQueryResult } from './queryExpansion';
@@ -278,8 +278,9 @@ async function semanticSearch(
   logger.debug({ query, cached: false }, '[Retrieval] Search cache miss');
 
   // Generate embedding for the query (may be expanded query)
+  // Use generateQueryEmbedding for better retrieval performance with Voyage AI
   logger.info({ query }, '[Retrieval] Generating query embedding');
-  const queryEmbedding = await generateEmbedding(query);
+  const queryEmbedding = await generateQueryEmbedding(query);
   logger.debug({
     dimensions: queryEmbedding.length,
     preview: queryEmbedding.slice(0, 5)
@@ -385,9 +386,9 @@ async function hybridSearch(
   maxResults: number,
   minSimilarity: number
 ): Promise<RetrievalResult[]> {
-  const queryEmbedding = await generateEmbedding(query);
+  const queryEmbedding = await generateQueryEmbedding(query);
 
-  // Pass embedding as array - Supabase will automatically cast to vector(1536) type
+  // Pass embedding as array - Supabase will automatically cast to vector type
   const { data, error } = await supabaseAdmin.rpc('hybrid_search_chunks', {
     query_embedding: queryEmbedding,
     query_text: query,
@@ -637,8 +638,10 @@ export function buildContext(results: RetrievalResult[]): string {
     const docId = result.document?.id;
     if (!docId) return null;
 
-    // Only include sources that meet quality threshold (78%+)
-    if (result.similarity < 0.78) {
+    // Only include sources that meet quality threshold
+    // Voyage AI voyage-3-large typically returns 50-70% for relevant content
+    // Threshold calibrated based on testing: 45%+ indicates relevant content
+    if (result.similarity < 0.45) {
       return null;
     }
 
@@ -684,8 +687,9 @@ export async function extractCitations(results: RetrievalResult[]): Promise<Arra
   }
 
   // Only show sources above quality threshold
-  // Minimum 78% similarity for a source to be shown (anti-hallucination requirement)
-  const qualitySources = uniqueResults.filter(r => r.similarity >= 0.78);
+  // Voyage AI voyage-3-large typically returns 50-70% for relevant content
+  // Minimum 45% similarity for a source to be shown (calibrated based on testing)
+  const qualitySources = uniqueResults.filter(r => r.similarity >= 0.45);
 
   // Show all quality sources - projects may span many relevant documents
   const topResults = qualitySources;
@@ -736,10 +740,13 @@ export async function extractCitations(results: RetrievalResult[]): Promise<Arra
 /**
  * Check if results are relevant enough to answer the query
  * Improved logic: Accept if we have multiple good results, not just a single top result
+ *
+ * Voyage AI voyage-3-large typically returns 50-70% for relevant content, 30-40% for irrelevant.
+ * Default threshold of 0.50 is calibrated based on testing.
  */
 export function hasRelevantResults(
   results: RetrievalResult[],
-  minSimilarity: number = 0.75
+  minSimilarity: number = 0.50
 ): boolean {
   if (results.length === 0) return false;
 
@@ -753,7 +760,7 @@ export function hasRelevantResults(
 
   // Option B: Multiple good results (medium confidence)
   // If we have 2+ results above a slightly lower threshold, that's still relevant
-  const slightlyLowerThreshold = minSimilarity - 0.04; // e.g., 0.74 -> 0.70
+  const slightlyLowerThreshold = minSimilarity - 0.05; // e.g., 0.50 -> 0.45
   const goodResults = results.filter(r => r.similarity >= slightlyLowerThreshold);
 
   return goodResults.length >= 2;

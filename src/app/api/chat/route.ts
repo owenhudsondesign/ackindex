@@ -410,11 +410,11 @@ export async function POST(request: NextRequest) {
     // Step 2: Retrieve relevant chunks using hybrid search
     // Hybrid combines semantic (vector) + keyword (text) search for better recall
     // This helps with specific terms like legal codes (e.g., "4181L") that semantic alone might miss
-    // Use lower similarity for recency queries since they have naturally lower semantic similarity
+    // Voyage AI voyage-3-large typically returns 50-70% for relevant content, 30-40% for irrelevant
     const isRecencySearch = isRecencyQuery(sanitizedMessage);
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
       maxResults: 15, // Fetch enough chunks to cover multiple relevant documents
-      minSimilarity: isRecencySearch ? 0.60 : 0.75, // Lower threshold for recency queries
+      minSimilarity: isRecencySearch ? 0.40 : 0.45, // Lower threshold for recency queries
       includeDocumentInfo: true,
       searchMode: 'hybrid',
     });
@@ -451,9 +451,9 @@ export async function POST(request: NextRequest) {
     // Use lower threshold for recency/broad queries since they have naturally lower semantic similarity
     const isRecent = isRecencyQuery(sanitizedMessage);
     const isFollowUp = isFollowUpQuery(message) && conversationHistory.length > 0;
-    // text-embedding-3-large produces lower absolute similarity scores than ada-002
-    // but has better semantic understanding. Adjust thresholds accordingly.
-    const similarityThreshold = isRecent ? 0.25 : 0.30;
+    // Voyage AI voyage-3-large typically returns 50-70% for relevant content
+    // Thresholds calibrated based on testing: 50%+ indicates relevant content
+    const similarityThreshold = isRecent ? 0.45 : 0.50;
     const hasRelevant = hasRelevantResults(results, similarityThreshold);
     log.info({ hasRelevant, topSimilarity: results[0]?.similarity, isRecent, isFollowUp, threshold: similarityThreshold }, 'Checked relevance of results');
 

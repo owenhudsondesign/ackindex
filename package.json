@@ -49,6 +49,7 @@
     "resend": "^6.3.0",
     "stripe": "^19.1.0",
     "typescript": "^5.9.3",
+    "voyageai": "^0.0.8",
     "youtubei.js": "^16.0.1"
   },
   "devDependencies": {

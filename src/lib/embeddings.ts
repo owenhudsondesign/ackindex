@@ -1,40 +1,63 @@
 /**
  * Embeddings Utilities
- * 
- * Generate vector embeddings for text chunks using OpenAI's API
+ *
+ * Generate vector embeddings for text chunks using Voyage AI
  * for semantic search and retrieval.
+ *
+ * Voyage AI is Anthropic's recommended embedding provider and
+ * outperforms OpenAI's text-embedding-3-large by ~10% on benchmarks.
  */
 
-import OpenAI from 'openai';
+import { VoyageAIClient } from 'voyageai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const voyage = new VoyageAIClient({
+  apiKey: process.env.VOYAGE_API_KEY,
 });
 
-// OpenAI's text-embedding-3-large with 1536 dimensions
-// NOTE: All embeddings in the database must use the same model!
-// Migration completed on 2025-11-27
-export const EMBEDDING_DIMENSIONS = 1536;
-export const EMBEDDING_MODEL = 'text-embedding-3-large';
+// Voyage AI voyage-3-large produces 1024-dimensional vectors by default
+// Can also use 256, 512, or 2048 dimensions with Matryoshka support
+export const EMBEDDING_DIMENSIONS = 1024;
+export const EMBEDDING_MODEL = 'voyage-3-large';
 
 /**
  * Generate embedding for a single text
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    // Clean and truncate text if necessary (max 8191 tokens)
-    const cleanText = text.trim().slice(0, 32000); // ~8k tokens
+    // Clean and truncate text if necessary (Voyage supports up to 32K tokens)
+    const cleanText = text.trim().slice(0, 120000); // ~32k tokens
 
-    const response = await openai.embeddings.create({
-      model: EMBEDDING_MODEL,
+    const response = await voyage.embed({
       input: cleanText,
-      dimensions: EMBEDDING_DIMENSIONS,
+      model: EMBEDDING_MODEL,
+      inputType: 'document', // Use 'query' for search queries
     });
 
-    return response.data[0].embedding;
+    return response.data![0].embedding!;
   } catch (error) {
     console.error('[Embeddings] Failed to generate embedding:', error);
     throw new Error('Failed to generate embedding');
+  }
+}
+
+/**
+ * Generate embedding for a search query
+ * Uses inputType: 'query' for better retrieval performance
+ */
+export async function generateQueryEmbedding(text: string): Promise<number[]> {
+  try {
+    const cleanText = text.trim().slice(0, 120000);
+
+    const response = await voyage.embed({
+      input: cleanText,
+      model: EMBEDDING_MODEL,
+      inputType: 'query', // Optimized for search queries
+    });
+
+    return response.data![0].embedding!;
+  } catch (error) {
+    console.error('[Embeddings] Failed to generate query embedding:', error);
+    throw new Error('Failed to generate query embedding');
   }
 }
 
@@ -43,28 +66,29 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  * More efficient than calling generateEmbedding() multiple times
  */
 export async function generateEmbeddingsBatch(
-  texts: string[]
+  texts: string[],
+  inputType: 'document' | 'query' = 'document'
 ): Promise<number[][]> {
   try {
-    // OpenAI API supports up to 2048 inputs per request
-    const batchSize = 100; // Use conservative batch size
+    // Voyage AI supports up to 128 inputs per request
+    const batchSize = 128;
     const embeddings: number[][] = [];
 
     for (let i = 0; i < texts.length; i += batchSize) {
       const batch = texts.slice(i, i + batchSize);
-      const cleanBatch = batch.map(text => text.trim().slice(0, 32000));
+      const cleanBatch = batch.map(text => text.trim().slice(0, 120000));
 
       console.log(
         `[Embeddings] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(texts.length / batchSize)}`
       );
 
-      const response = await openai.embeddings.create({
-        model: EMBEDDING_MODEL,
+      const response = await voyage.embed({
         input: cleanBatch,
-        dimensions: EMBEDDING_DIMENSIONS,
+        model: EMBEDDING_MODEL,
+        inputType,
       });
 
-      embeddings.push(...response.data.map(d => d.embedding));
+      embeddings.push(...response.data!.map(d => d.embedding!));
 
       // Small delay to avoid rate limits
       if (i + batchSize < texts.length) {
@@ -129,7 +153,7 @@ export function findMostSimilar(
 
 /**
  * Estimate the cost of generating embeddings
- * text-embedding-3-large: $0.13 per 1M tokens
+ * voyage-3-large: $0.06 per 1M tokens
  */
 export function estimateEmbeddingCost(texts: string[]): {
   estimatedTokens: number;
@@ -138,7 +162,7 @@ export function estimateEmbeddingCost(texts: string[]): {
   // Rough estimate: 1 token ≈ 4 characters
   const totalChars = texts.reduce((sum, text) => sum + text.length, 0);
   const estimatedTokens = Math.ceil(totalChars / 4);
-  const estimatedCost = (estimatedTokens / 1_000_000) * 0.13; // $0.13 per 1M tokens
+  const estimatedCost = (estimatedTokens / 1_000_000) * 0.06; // $0.06 per 1M tokens
 
   return {
     estimatedTokens,
