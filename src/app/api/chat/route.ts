@@ -476,18 +476,39 @@ export async function POST(request: NextRequest) {
     let context = buildContext(results);
     const citations = await extractCitations(results);
 
-    // Add previous assistant message citations to context for follow-up questions
+    // Add previous assistant message content to context for follow-up questions
+    // This helps when users ask about specific items mentioned in previous responses
+    const previousAssistantMessages = conversationHistory
+      .filter((m: any) => m.role === 'assistant')
+      .slice(-1); // Get last assistant message
+
+    if (previousAssistantMessages.length > 0 && isFollowUpQuery(message)) {
+      const previousContent = previousAssistantMessages
+        .map((m: any) => m.content)
+        .join('\n\n');
+
+      // Truncate to avoid context overflow (keep first 2000 chars of previous response)
+      const truncatedPrevious = previousContent.slice(0, 2000);
+
+      context = `${context}\n\n--- Previous Response (for reference) ---\n${truncatedPrevious}`;
+
+      log.info({
+        previousContentLength: truncatedPrevious.length
+      }, 'Added previous assistant response to context for follow-up');
+    }
+
+    // Also try to use citations if available (for premium users with server-side history)
     const previousCitations = conversationHistory
       .filter((m: any) => m.role === 'assistant' && m.citations && m.citations.length > 0)
-      .slice(-2) // Get last 2 assistant messages
+      .slice(-2)
       .flatMap((m: any) => m.citations);
 
     if (previousCitations.length > 0) {
-      const previousContext = previousCitations
+      const previousCitationsContext = previousCitations
         .map((cite: any, idx: number) => `[Previous Source ${idx + 1}] ${cite.title}: ${cite.snippet || ''}`)
         .join('\n\n');
 
-      context = `${context}\n\n--- Previous Sources from Conversation History ---\n${previousContext}`;
+      context = `${context}\n\n--- Previous Sources ---\n${previousCitationsContext}`;
 
       log.info({
         previousCitationsCount: previousCitations.length
