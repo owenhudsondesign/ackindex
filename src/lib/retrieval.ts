@@ -62,6 +62,31 @@ export function isRecencyQuery(query: string): boolean {
 }
 
 /**
+ * Patterns that indicate user wants to explore/browse a topic across meetings
+ * These are broad searches where user wants ALL mentions of a topic
+ */
+const TOPIC_EXPLORATION_PATTERNS = [
+  /discussions?\s+(about|on|regarding)/i, // "discussions about X"
+  /any\s+(time|instance|mention|discussion)/i, // "any time X was discussed"
+  /(when|where)\s+(was|were|has|have)\s+.+\s+(discussed|mentioned|talked|brought up)/i,
+  /return\s+(all\s+)?(relevant\s+)?(information|results|mentions)/i, // "return relevant information"
+  /(find|show|list)\s+(all\s+)?(mentions?|discussions?|instances?)/i,
+  /every\s+(time|instance|mention)/i, // "every time X was mentioned"
+  /all\s+(discussions?|mentions?|references?)/i, // "all discussions about"
+  /has\s+.+\s+been\s+(discussed|mentioned|addressed)/i, // "has X been discussed"
+  /what\s+has\s+been\s+said\s+about/i, // "what has been said about"
+  /times?\s+.+\s+(was|were)\s+(discussed|mentioned)/i, // "times X was discussed"
+];
+
+/**
+ * Check if query is a topic exploration/browsing query
+ * These need lower similarity thresholds to catch all relevant content
+ */
+export function isTopicExplorationQuery(query: string): boolean {
+  return TOPIC_EXPLORATION_PATTERNS.some(pattern => pattern.test(query));
+}
+
+/**
  * Extended retrieval result with query analysis info
  */
 export interface ExtendedRetrievalResult {

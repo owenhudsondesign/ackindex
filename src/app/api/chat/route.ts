@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateClaudeResponseWithUsage, CLAUDE_MODEL, CLAUDE_COSTS, SONNET_COSTS, ClaudeRateLimitError, selectModelForQuery, type ClaudeMessage } from '@/lib/anthropic';
-import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults, deduplicateResults, isRecencyQuery } from '@/lib/retrieval';
+import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults, deduplicateResults, isRecencyQuery, isTopicExplorationQuery } from '@/lib/retrieval';
 import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
 import { generateFingerprint, getOrCreateAnonymousSession, recordAnonymousUsage, ANONYMOUS_QUERY_LIMIT } from '@/lib/anonymousSession';
 import { createClient } from '@supabase/supabase-js';
@@ -469,9 +469,17 @@ export async function POST(request: NextRequest) {
     // This helps with specific terms like legal codes (e.g., "4181L") that semantic alone might miss
     // Voyage AI voyage-3-large typically returns 50-70% for relevant content, 30-40% for irrelevant
     const isRecencySearch = isRecencyQuery(sanitizedMessage);
+    const isTopicExploration = isTopicExplorationQuery(sanitizedMessage);
+
+    // Determine minimum similarity based on query type:
+    // - Topic exploration: 0.35 (very broad, want ALL mentions)
+    // - Recency: 0.40 (broad, recent context)
+    // - Standard: 0.45 (normal threshold)
+    const retrievalMinSimilarity = isTopicExploration ? 0.35 : (isRecencySearch ? 0.40 : 0.45);
+
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
-      maxResults: 15, // Fetch enough chunks to cover multiple relevant documents
-      minSimilarity: isRecencySearch ? 0.40 : 0.45, // Lower threshold for recency queries
+      maxResults: isTopicExploration ? 20 : 15, // More results for topic exploration
+      minSimilarity: retrievalMinSimilarity,
       includeDocumentInfo: true,
       searchMode: 'hybrid',
     });
@@ -480,6 +488,7 @@ export async function POST(request: NextRequest) {
       rawResultsCount: rawResults.length,
       topSimilarity: rawResults[0]?.similarity,
       query: sanitizedMessage.substring(0, 50),
+      isTopicExploration,
     }, 'Retrieved relevant chunks');
 
     // Debug: Log raw results details
@@ -505,14 +514,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 3: Check if we have relevant information
-    // Use lower threshold for recency/broad queries since they have naturally lower semantic similarity
+    // Use lower threshold for recency/broad/topic exploration queries
     const isRecent = isRecencyQuery(sanitizedMessage);
     // Note: isFollowUp is already defined above for cache check
     // Voyage AI voyage-3-large typically returns 50-70% for relevant content
-    // Thresholds calibrated based on testing: 50%+ indicates relevant content
-    const similarityThreshold = isRecent ? 0.45 : 0.50;
+    // Thresholds calibrated based on testing:
+    // - Topic exploration: 0.40 (broad searches for all mentions)
+    // - Recency: 0.45 (time-based queries)
+    // - Standard: 0.50 (normal factual queries)
+    const similarityThreshold = isTopicExploration ? 0.40 : (isRecent ? 0.45 : 0.50);
     const hasRelevant = hasRelevantResults(results, similarityThreshold);
-    log.info({ hasRelevant, topSimilarity: results[0]?.similarity, isRecent, isFollowUp, threshold: similarityThreshold }, 'Checked relevance of results');
+    log.info({ hasRelevant, topSimilarity: results[0]?.similarity, isRecent, isTopicExploration, isFollowUp, threshold: similarityThreshold }, 'Checked relevance of results');
 
     // For follow-up questions with conversation history, we can answer based on
     // the previous context even if new document retrieval doesn't find highly relevant results
