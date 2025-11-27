@@ -1,14 +1,44 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
 interface EmptyStateProps {
   onQuestionClick?: (question: string) => void;
 }
 
+// Default questions as fallback
+const defaultQueries = [
+  "What decisions were made at the last Select Board meeting?",
+  "Show me recent Planning Board discussions about zoning",
+  "What are the latest updates on town budget?",
+  "How do recent board decisions affect residents?"
+];
+
 export default function EmptyState({ onQuestionClick }: EmptyStateProps) {
-  const exampleQueries = [
-    "What decisions were made at the last Select Board meeting?",
-    "Show me Planning Board discussions about zoning",
-    "What did the Town Council vote on this month?",
-    "Find public hearing comments about the stadium project"
-  ];
+  const [exampleQueries, setExampleQueries] = useState<string[]>(defaultQueries);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch dynamic suggested questions based on recent content
+    async function fetchSuggestedQuestions() {
+      try {
+        const response = await fetch('/api/suggested-questions');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.questions && data.questions.length > 0) {
+            setExampleQueries(data.questions);
+          }
+        }
+      } catch (error) {
+        // Silently fail - use default questions
+        console.debug('Failed to fetch suggested questions, using defaults');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchSuggestedQuestions();
+  }, []);
 
   return (
     <div className="mt-8 text-center">
