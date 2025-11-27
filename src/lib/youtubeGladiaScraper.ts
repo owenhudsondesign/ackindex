@@ -14,7 +14,7 @@ import { transcribeAudio, GladiaTranscriptionSegment } from '@/lib/gladiaTranscr
 import logger from '@/lib/logger';
 import { chunkText } from '@/lib/chunking';
 import { createHash } from 'crypto';
-import OpenAI from 'openai';
+import { claudeComplete } from '@/lib/anthropic';
 import { createBlogPostForDocument } from '@/lib/blogGenerator';
 
 // Server-side Supabase client with service role key
@@ -28,11 +28,6 @@ const supabase = createClient(
     },
   }
 );
-
-// OpenAI client for enrichment
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export interface YouTubeVideoInfo {
   videoId: string;
@@ -301,7 +296,7 @@ function getAudioUrl(videoId: string): string {
 }
 
 /**
- * Enrich transcript with OpenAI to extract meeting information
+ * Enrich transcript with Claude to extract meeting information
  */
 export async function enrichTranscriptWithAI(
   videoInfo: YouTubeVideoInfo,
@@ -335,30 +330,19 @@ Extract the following as JSON:
 
 Return ONLY valid JSON, no other text.`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an AI that extracts structured information from meeting transcripts. Always return valid JSON.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+    const response = await claudeComplete(prompt, {
+      system: 'You are an AI that extracts structured information from meeting transcripts. Always return valid JSON only, no markdown formatting or explanation.',
       temperature: 0.3,
-      max_tokens: 2000,
+      maxTokens: 2000,
     });
 
-    const content = response.choices[0].message.content || '{}';
-    const enrichedData = JSON.parse(content);
+    const enrichedData = JSON.parse(response || '{}');
 
-    logger.info({ videoId: videoInfo.videoId }, 'Successfully enriched transcript with AI');
+    logger.info({ videoId: videoInfo.videoId }, 'Successfully enriched transcript with Claude');
 
     return enrichedData;
   } catch (error) {
-    logger.error({ error, videoId: videoInfo.videoId }, 'Failed to enrich transcript with AI');
+    logger.error({ error, videoId: videoInfo.videoId }, 'Failed to enrich transcript with Claude');
 
     // Return minimal enrichment
     return {
@@ -553,9 +537,9 @@ Options:
       'Gladia transcription completed'
     );
 
-    // Enrich transcript with OpenAI
-    console.log(`\n🤖 Enriching transcript with OpenAI...`);
-    logger.info({ videoId }, 'Enriching transcript with OpenAI');
+    // Enrich transcript with Claude
+    console.log(`\n🤖 Enriching transcript with Claude...`);
+    logger.info({ videoId }, 'Enriching transcript with Claude');
     const enrichedData = await enrichTranscriptWithAI(
       videoInfo,
       transcriptionResult.fullText

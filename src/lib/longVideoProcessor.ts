@@ -10,6 +10,7 @@ import logger from '@/lib/logger';
 import { chunkText, estimateTokens } from '@/lib/chunking';
 import { storeChunks, markDocumentCompleted } from '@/lib/database';
 import { enrichTranscriptWithAI, buildMeetingContent } from './youtubeGladiaScraper';
+import { claudeComplete } from './anthropic';
 import type { GladiaTranscriptionSegment } from './gladiaTranscriber';
 
 const supabase = createClient(
@@ -335,12 +336,8 @@ export async function storeLongVideoTranscript(
 ): Promise<void> {
   console.log(`\n💾 Storing transcript for document ${documentId}...`);
 
-  // Import enrichment function
-  const OpenAI = (await import('openai')).default;
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-  // Enrich transcript with OpenAI
-  console.log(`\n🤖 Enriching transcript with AI...`);
+  // Enrich transcript with Claude
+  console.log(`\n🤖 Enriching transcript with Claude AI...`);
 
   const enrichmentPrompt = `Analyze this meeting transcript and extract structured information.
 
@@ -369,23 +366,13 @@ Extract the following as JSON:
 
 Return ONLY valid JSON, no other text.`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are an AI that extracts structured information from meeting transcripts. Always return valid JSON.',
-      },
-      {
-        role: 'user',
-        content: enrichmentPrompt,
-      },
-    ],
+  const response = await claudeComplete(enrichmentPrompt, {
+    system: 'You are an AI that extracts structured information from meeting transcripts. Always return valid JSON only, no markdown formatting or explanation.',
     temperature: 0.3,
-    max_tokens: 2000,
+    maxTokens: 2000,
   });
 
-  const enrichedData = JSON.parse(response.choices[0].message.content || '{}');
+  const enrichedData = JSON.parse(response || '{}');
   console.log(`✅ Enrichment complete`);
 
   // Build searchable summary content

@@ -5,12 +5,8 @@
  * Implements the CivicRAG Anti-Hallucination System requirements.
  */
 
-import OpenAI from 'openai';
+import { claudeComplete } from './anthropic';
 import logger from './logger';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export interface VerificationResult {
   isValid: boolean;
@@ -165,7 +161,7 @@ INSTRUCTIONS:
 3. Check if the answer makes ANY claims not supported by sources
 4. Ignore stylistic differences - focus on factual accuracy
 
-Respond in this exact JSON format:
+Respond in this exact JSON format only:
 {
   "isGrounded": true/false,
   "confidence": 0-100,
@@ -173,14 +169,12 @@ Respond in this exact JSON format:
   "unsupportedClaims": ["list any claims not in sources"]
 }`;
 
-    const verification = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Fast and cost-effective for verification
-      messages: [{ role: 'user', content: verificationPrompt }],
+    const verificationResponse = await claudeComplete(verificationPrompt, {
       temperature: 0, // Deterministic
-      response_format: { type: 'json_object' },
+      maxTokens: 500,
     });
 
-    const result = JSON.parse(verification.choices[0].message.content || '{}');
+    const result = JSON.parse(verificationResponse || '{}');
 
     return {
       isValid: result.isGrounded === true && result.confidence >= 80,

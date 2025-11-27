@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { generateClaudeResponseWithUsage, CLAUDE_MODEL, CLAUDE_COSTS, type ClaudeMessage } from '@/lib/anthropic';
 import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults, deduplicateResults, isRecencyQuery } from '@/lib/retrieval';
 import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
 import { generateFingerprint, getOrCreateAnonymousSession, recordAnonymousUsage, ANONYMOUS_QUERY_LIMIT } from '@/lib/anonymousSession';
@@ -97,10 +97,6 @@ function resolveFollowUpQuery(
 
   return query;
 }
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // Server-side Supabase client for API routes
 const supabase = createClient(
@@ -528,17 +524,16 @@ export async function POST(request: NextRequest) {
       }))
     }, 'Detailed results information');
 
-    // Step 4: Generate response with LLM using secure system prompt
+    // Step 4: Generate response with Claude 4.5 Sonnet using secure system prompt
     const systemPrompt = createSecureSystemPrompt(context);
 
-    // Map conversation history to valid OpenAI message params and drop legacy roles
-    const mappedHistory: OpenAI.Chat.ChatCompletionMessageParam[] = conversationHistory
+    // Map conversation history to Claude message format
+    const mappedHistory: ClaudeMessage[] = conversationHistory
       .slice(-6)
-      .filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'system')
-      .map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content }));
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: 'system', content: systemPrompt },
+    const claudeMessages: ClaudeMessage[] = [
       ...mappedHistory, // Include last 6 messages for context (3 turns)
       { role: 'user', content: sanitizedMessage },
     ];
@@ -546,17 +541,16 @@ export async function POST(request: NextRequest) {
     // Debug: Log system prompt details
     log.debug({
       systemPromptLength: systemPrompt.length,
-      contextLength: context.length
-    }, 'Sending query to LLM');
+      contextLength: context.length,
+      model: CLAUDE_MODEL
+    }, 'Sending query to Claude');
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages,
+    const claudeResult = await generateClaudeResponseWithUsage(claudeMessages, {
+      system: systemPrompt,
       temperature: 0.3, // Low temperature for more factual responses
-      max_tokens: 800, // Increased from 500 to allow for specific, detailed answers with quotes
+      maxTokens: 1024, // Allow detailed answers with quotes
     });
-
-    const rawResponse = completion.choices[0].message.content || 'I apologize, but I was unable to generate a response.';
+    const rawResponse = claudeResult.text;
 
     // Validate AI response for potential system prompt leaks
     const responseValidation = validateAIResponse(rawResponse);
@@ -669,15 +663,16 @@ export async function POST(request: NextRequest) {
       p_verification_issues: verification.issues,
     })).catch(err => log.error({ err }, 'Failed to record query metrics'));
 
-    // Track usage
-    const inputTokens = completion.usage?.prompt_tokens || 0;
-    const outputTokens = completion.usage?.completion_tokens || 0;
-    const totalTokens = completion.usage?.total_tokens || 0;
+    // Track usage from Claude response
+    const inputTokens = claudeResult.usage.inputTokens;
+    const outputTokens = claudeResult.usage.outputTokens;
+    const totalTokens = inputTokens + outputTokens;
 
-    // Calculate cost (approximate)
-    // GPT-4o-mini: $0.15 per 1M input tokens, $0.60 per 1M output tokens
+    // Calculate cost (Claude 4.5 Sonnet pricing)
+    // $3.00 per 1M input tokens, $15.00 per 1M output tokens
     const costCents = Math.ceil(
-      (inputTokens / 1_000_000) * 15 + (outputTokens / 1_000_000) * 60
+      (inputTokens / 1_000_000) * CLAUDE_COSTS.input * 100 +
+      (outputTokens / 1_000_000) * CLAUDE_COSTS.output * 100
     );
 
     // Record usage in database

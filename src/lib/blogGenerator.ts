@@ -6,7 +6,7 @@
  */
 
 import { supabaseAdmin } from './supabase';
-import { openai } from './openai';
+import { generateClaudeResponse, claudeComplete } from './anthropic';
 import logger from './logger';
 
 const log = logger.child({ module: 'blogGenerator' });
@@ -199,24 +199,15 @@ Respond in JSON format:
 Focus on substantive content - skip procedural matters like roll call unless something notable happens. If this section has no significant content, return an empty summaries array.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert at analyzing government meeting transcripts and extracting key information. Be concise but thorough.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+    const systemPrompt = 'You are an expert at analyzing government meeting transcripts and extracting key information. Be concise but thorough. Always respond with valid JSON only.';
+
+    const response = await claudeComplete(prompt, {
+      system: systemPrompt,
       temperature: 0.3,
-      max_tokens: 1500,
-      response_format: { type: 'json_object' },
+      maxTokens: 1500,
     });
 
-    const result = JSON.parse(response.choices[0].message.content || '{}');
+    const result = JSON.parse(response || '{}');
     return result.summaries || [];
   } catch (error) {
     log.error({ error, batchNumber }, 'Failed to summarize chunk batch');
@@ -226,7 +217,7 @@ Focus on substantive content - skip procedural matters like roll call unless som
 
 /**
  * Pass 2: Generate final blog post from all section summaries
- * Uses gpt-4o-mini for the final synthesis
+ * Uses Claude 4.5 Sonnet for the final synthesis
  */
 async function generateBlogFromSummaries(
   documentTitle: string,
@@ -280,24 +271,15 @@ Respond in JSON format:
   "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
 }`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a professional civic journalist writing SEO-optimized summaries of Nantucket town meetings. Your writing is clear, factual, comprehensive, and optimized for search engines.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
+  const systemPrompt = 'You are a professional civic journalist writing SEO-optimized summaries of Nantucket town meetings. Your writing is clear, factual, comprehensive, and optimized for search engines. Always respond with valid JSON only.';
+
+  const response = await claudeComplete(prompt, {
+    system: systemPrompt,
     temperature: 0.7,
-    max_tokens: 2500,
-    response_format: { type: 'json_object' },
+    maxTokens: 2500,
   });
 
-  const result = JSON.parse(response.choices[0].message.content || '{}');
+  const result = JSON.parse(response || '{}');
 
   if (!result.title || !result.excerpt || !result.content || !result.keywords) {
     throw new Error('Incomplete blog post generation response');
