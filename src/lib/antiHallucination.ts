@@ -172,6 +172,7 @@ Respond in this exact JSON format only:
     const verificationResponse = await claudeComplete(verificationPrompt, {
       temperature: 0, // Deterministic
       maxTokens: 500,
+      model: 'sonnet', // Always use Sonnet for verification - better judgment
     });
 
     const result = JSON.parse(verificationResponse || '{}');

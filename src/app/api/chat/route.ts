@@ -466,20 +466,14 @@ export async function POST(request: NextRequest) {
 
     // Step 2: Retrieve relevant chunks using hybrid search
     // Hybrid combines semantic (vector) + keyword (text) search for better recall
-    // This helps with specific terms like legal codes (e.g., "4181L") that semantic alone might miss
-    // Voyage AI voyage-3-large typically returns 50-70% for relevant content, 30-40% for irrelevant
+    // SIMPLIFIED APPROACH: Always return top results, let Claude assess relevance
+    // This avoids brittle threshold logic that was causing false negatives
     const isRecencySearch = isRecencyQuery(sanitizedMessage);
     const isTopicExploration = isTopicExplorationQuery(sanitizedMessage);
 
-    // Determine minimum similarity based on query type:
-    // - Topic exploration: 0.35 (very broad, want ALL mentions)
-    // - Recency: 0.40 (broad, recent context)
-    // - Standard: 0.45 (normal threshold)
-    const retrievalMinSimilarity = isTopicExploration ? 0.35 : (isRecencySearch ? 0.40 : 0.45);
-
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
-      maxResults: isTopicExploration ? 20 : 15, // More results for topic exploration
-      minSimilarity: retrievalMinSimilarity,
+      maxResults: 15,
+      minSimilarity: 0.0, // No threshold - always return top results
       includeDocumentInfo: true,
       searchMode: 'hybrid',
     });
@@ -488,83 +482,25 @@ export async function POST(request: NextRequest) {
       rawResultsCount: rawResults.length,
       topSimilarity: rawResults[0]?.similarity,
       query: sanitizedMessage.substring(0, 50),
-      isTopicExploration,
     }, 'Retrieved relevant chunks');
 
-    // Debug: Log raw results details
+    // Log similarity distribution for monitoring
     if (rawResults.length > 0) {
+      const avgSimilarity = rawResults.reduce((sum, r) => sum + r.similarity, 0) / rawResults.length;
       log.info({
         topSimilarity: rawResults[0]?.similarity,
-        avgSimilarity: rawResults.reduce((sum, r) => sum + r.similarity, 0) / rawResults.length
-      }, 'Raw results details');
-    } else {
-      log.error({ query: sanitizedMessage }, 'No raw results found from vector search - possible DB/embedding issue');
+        avgSimilarity,
+        lowestSimilarity: rawResults[rawResults.length - 1]?.similarity,
+      }, 'Search results similarity distribution');
     }
 
-    // Step 2: Deduplicate results to avoid duplicate sources
-    const results = deduplicateResults(rawResults, 0.9); // Remove very similar content
+    // Step 3: Deduplicate results to avoid duplicate sources
+    const results = deduplicateResults(rawResults, 0.9);
     log.info({ uniqueChunks: results.length }, 'Deduplicated results');
 
-    // Debug: Log the results
-    if (results.length > 0) {
-      log.debug({
-        topSimilarity: results[0].similarity,
-        contentPreviewLength: results[0].content.length
-      }, 'Top result details');
-    }
-
-    // Step 3: Check if we have relevant information
-    // Use lower threshold for recency/broad/topic exploration queries
-    const isRecent = isRecencyQuery(sanitizedMessage);
-    // Note: isFollowUp is already defined above for cache check
-    // Voyage AI voyage-3-large typically returns 50-70% for relevant content
-    // Thresholds calibrated based on testing:
-    // - Topic exploration: 0.40 (broad searches for all mentions)
-    // - Recency: 0.45 (time-based queries)
-    // - Standard: 0.50 (normal factual queries)
-    const similarityThreshold = isTopicExploration ? 0.40 : (isRecent ? 0.45 : 0.50);
-    const hasRelevant = hasRelevantResults(results, similarityThreshold);
-    log.info({ hasRelevant, topSimilarity: results[0]?.similarity, isRecent, isTopicExploration, isFollowUp, threshold: similarityThreshold }, 'Checked relevance of results');
-
-    // For follow-up questions with conversation history, we can answer based on
-    // the previous context even if new document retrieval doesn't find highly relevant results
-    const canAnswerFromConversation = isFollowUp && conversationHistory.length > 0;
-
-    if (!hasRelevant && !canAnswerFromConversation) {
-      log.info('No relevant information found for query');
-
-      // Log query with no results for analytics (only for authenticated users)
-      const responseTime = Date.now() - startTime;
-      if (user) {
-        logQuery({
-          user_id: user.id,
-          query_text: sanitizedMessage,
-          response_text: "No relevant information found",
-          tokens_used: 0,
-          response_time_ms: responseTime,
-          has_results: false,
-          num_citations: 0,
-        }).catch(err => {
-          log.error({ err }, 'Failed to log no-results query');
-        });
-      }
-
-      return NextResponse.json({
-        response: "I don't have enough information in my database to answer that question. I can only provide information about content that has been uploaded to AckIndex. Please try asking about topics covered in the uploaded documents, or consider uploading more relevant content.",
-        citations: [],
-        hasContext: false,
-      });
-    }
-
-    // Log when we're answering a follow-up from conversation context
-    if (!hasRelevant && canAnswerFromConversation) {
-      log.info({ historyLength: conversationHistory.length }, 'Answering follow-up question using conversation context');
-    }
-
-    // Step 4: Build context from retrieved chunks
-    // Use lower threshold for topic exploration queries to include more results
-    const contextMinSimilarity = isTopicExploration ? 0.35 : 0.45;
-    let context = buildContext(results, contextMinSimilarity);
+    // Step 4: Build context from ALL retrieved chunks (no threshold filtering)
+    // Claude will assess relevance - it's better at nuance than rigid thresholds
+    let context = buildContext(results, 0.0); // No filtering - include all results
     const citations = await extractCitations(results);
 
     // Add full conversation history to context for proper follow-up contextualization
