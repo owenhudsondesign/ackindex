@@ -364,34 +364,39 @@ export default function Home() {
             )}
           </svg>
         </button>
-        {/* Subtle Grid Background - Light Mode */}
-        <div
-          className="absolute inset-0 block dark:hidden pointer-events-none"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, rgb(200 200 200 / 0.15) 1px, transparent 1px),
-              linear-gradient(to bottom, rgb(200 200 200 / 0.15) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%)
-            `,
-            backgroundSize: '40px 40px, 40px 40px, 100% 100%',
-            backgroundPosition: '0 0, 0 0, center',
-            zIndex: 0
-          }}
-        />
-        {/* Subtle Grid Background - Dark Mode */}
-        <div
-          className="absolute inset-0 hidden dark:block pointer-events-none"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
-              linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%)
-            `,
-            backgroundSize: '40px 40px, 40px 40px, 100% 100%',
-            backgroundPosition: '0 0, 0 0, center',
-            zIndex: 0
-          }}
-        />
+        {/* Subtle Grid Background - Only show on empty state (no messages) */}
+        {!hasMessages && (
+          <>
+            {/* Light Mode */}
+            <div
+              className="absolute inset-0 block dark:hidden pointer-events-none"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, rgb(200 200 200 / 0.15) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgb(200 200 200 / 0.15) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%)
+                `,
+                backgroundSize: '40px 40px, 40px 40px, 100% 100%',
+                backgroundPosition: '0 0, 0 0, center',
+                zIndex: 0
+              }}
+            />
+            {/* Dark Mode */}
+            <div
+              className="absolute inset-0 hidden dark:block pointer-events-none"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0) 100%)
+                `,
+                backgroundSize: '40px 40px, 40px 40px, 100% 100%',
+                backgroundPosition: '0 0, 0 0, center',
+                zIndex: 0
+              }}
+            />
+          </>
+        )}
         {/* Empty State - Landing page content (centered when no messages) */}
         {!hasMessages && (
           <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 overflow-y-auto">
