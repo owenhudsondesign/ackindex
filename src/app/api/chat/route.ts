@@ -419,16 +419,20 @@ export async function POST(request: NextRequest) {
       searchMode: 'hybrid',
     });
 
-    log.info({ rawResultsCount: rawResults.length }, 'Retrieved relevant chunks');
+    log.info({
+      rawResultsCount: rawResults.length,
+      topSimilarity: rawResults[0]?.similarity,
+      query: sanitizedMessage.substring(0, 50),
+    }, 'Retrieved relevant chunks');
 
     // Debug: Log raw results details
     if (rawResults.length > 0) {
-      log.debug({
+      log.info({
         topSimilarity: rawResults[0]?.similarity,
         avgSimilarity: rawResults.reduce((sum, r) => sum + r.similarity, 0) / rawResults.length
       }, 'Raw results details');
     } else {
-      log.warn('No raw results found from vector search');
+      log.error({ query: sanitizedMessage }, 'No raw results found from vector search - possible DB/embedding issue');
     }
 
     // Step 2: Deduplicate results to avoid duplicate sources
