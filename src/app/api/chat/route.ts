@@ -476,28 +476,25 @@ export async function POST(request: NextRequest) {
     let context = buildContext(results);
     const citations = await extractCitations(results);
 
-    // Add previous assistant message content to context for follow-up questions
-    // This helps when users ask about specific items mentioned in previous responses
-    const previousAssistantMessages = conversationHistory
-      .filter((m: any) => m.role === 'assistant')
-      .slice(-1); // Get last assistant message
-
-    if (previousAssistantMessages.length > 0 && isFollowUpQuery(message)) {
-      const previousContent = previousAssistantMessages
-        .map((m: any) => m.content)
+    // Add full conversation history to context for proper follow-up contextualization
+    // This allows the LLM to reference specific items from any previous exchange
+    if (conversationHistory.length > 0) {
+      const conversationContext = conversationHistory
+        .map((m: any) => {
+          const role = m.role === 'user' ? 'User' : 'Assistant';
+          return `${role}: ${m.content}`;
+        })
         .join('\n\n');
 
-      // Truncate to avoid context overflow (keep first 2000 chars of previous response)
-      const truncatedPrevious = previousContent.slice(0, 2000);
-
-      context = `${context}\n\n--- Previous Response (for reference) ---\n${truncatedPrevious}`;
+      context = `${context}\n\n--- Conversation History ---\n${conversationContext}`;
 
       log.info({
-        previousContentLength: truncatedPrevious.length
-      }, 'Added previous assistant response to context for follow-up');
+        conversationLength: conversationHistory.length,
+        contextChars: conversationContext.length
+      }, 'Added full conversation history to context');
     }
 
-    // Also try to use citations if available (for premium users with server-side history)
+    // Also include citations if available (for premium users with server-side history)
     const previousCitations = conversationHistory
       .filter((m: any) => m.role === 'assistant' && m.citations && m.citations.length > 0)
       .slice(-2)
@@ -512,7 +509,7 @@ export async function POST(request: NextRequest) {
 
       log.info({
         previousCitationsCount: previousCitations.length
-      }, 'Added previous citations to context for follow-up');
+      }, 'Added previous citations to context');
     }
 
     log.info({
