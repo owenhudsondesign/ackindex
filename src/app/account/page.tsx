@@ -23,23 +23,16 @@ interface UserDashboard {
   stripe_customer_id: string | null;
 }
 
-interface ContentStats {
-  totalMeetings: number;
-  recentMeetings: Array<{ title: string; date: string }>;
-  boardsCovered: string[];
-}
 
 function AccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<UserDashboard | null>(null);
-  const [contentStats, setContentStats] = useState<ContentStats | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     loadDashboard();
-    loadContentStats();
 
     if (searchParams.get('success') === 'true') {
       setShowSuccess(true);
@@ -80,18 +73,6 @@ function AccountContent() {
     }
   };
 
-  const loadContentStats = async () => {
-    try {
-      // Fetch content statistics
-      const response = await fetch('/api/content-stats');
-      if (response.ok) {
-        const data = await response.json();
-        setContentStats(data);
-      }
-    } catch (error) {
-      console.error('Error loading content stats:', error);
-    }
-  };
 
   if (loading) {
     return (
@@ -195,50 +176,26 @@ function AccountContent() {
               </p>
             </Card>
 
-            {/* Available Content */}
-            <Card className="p-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                Available Content
+            {/* Important Notice */}
+            <Card className="p-8 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+              <h2 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Important Notice
               </h2>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">Meeting Recordings</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Transcribed and searchable</p>
-                    </div>
-                  </div>
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {contentStats?.totalMeetings || '—'}
-                  </span>
-                </div>
-
-                <div className="pt-2">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Boards & Commissions Covered:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {(contentStats?.boardsCovered || [
-                      'Select Board',
-                      'Planning Board',
-                      'Conservation Commission',
-                      'Historic District Commission',
-                      'Zoning Board of Appeals',
-                      'Board of Health'
-                    ]).map((board, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm"
-                      >
-                        {board}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+                <p>
+                  This tool uses AI to search and summarize information from Town of Nantucket meeting recordings.
+                  While we strive for accuracy, AI-generated responses may contain errors or misinterpretations.
+                </p>
+                <p>
+                  <strong>Always verify important information</strong> by checking the original meeting recordings
+                  or contacting the appropriate town department directly.
+                </p>
+                <p className="text-blue-600 dark:text-blue-300">
+                  This service is provided as a convenience tool and should not be considered an official town resource.
+                </p>
               </div>
             </Card>
 
