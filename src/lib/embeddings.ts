@@ -11,11 +11,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// OpenAI's text-embedding-ada-002 produces 1536-dimensional vectors
-// NOTE: Must match the model used for stored embeddings in the database!
-// To upgrade to text-embedding-3-large, you must re-generate ALL embeddings.
+// OpenAI's text-embedding-3-large with 1536 dimensions
+// NOTE: All embeddings in the database must use the same model!
+// Migration completed on 2025-11-27
 export const EMBEDDING_DIMENSIONS = 1536;
-export const EMBEDDING_MODEL = 'text-embedding-ada-002';
+export const EMBEDDING_MODEL = 'text-embedding-3-large';
 
 /**
  * Generate embedding for a single text
@@ -28,6 +28,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     const response = await openai.embeddings.create({
       model: EMBEDDING_MODEL,
       input: cleanText,
+      dimensions: EMBEDDING_DIMENSIONS,
     });
 
     return response.data[0].embedding;
@@ -60,6 +61,7 @@ export async function generateEmbeddingsBatch(
       const response = await openai.embeddings.create({
         model: EMBEDDING_MODEL,
         input: cleanBatch,
+        dimensions: EMBEDDING_DIMENSIONS,
       });
 
       embeddings.push(...response.data.map(d => d.embedding));
