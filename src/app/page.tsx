@@ -162,6 +162,13 @@ export default function Home() {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
+      // Build conversation history for context (for anonymous/free users without server-side history)
+      // Only include last 4 messages to keep payload small
+      const recentHistory = messages
+        .filter(m => !m.isLoading)
+        .slice(-4)
+        .map(m => ({ role: m.role, content: m.content }));
+
       // Call the chat API
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -169,6 +176,7 @@ export default function Home() {
         body: JSON.stringify({
           message,
           conversationId: currentConversationId, // Include current conversation ID
+          history: recentHistory, // Send conversation history for follow-up context
         }),
       });
 

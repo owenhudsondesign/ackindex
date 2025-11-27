@@ -191,6 +191,7 @@ export async function POST(request: NextRequest) {
     body = await request.json();
     message = body.message;
     conversationId = body.conversationId; // Optional - if provided, continue conversation
+    const clientHistory = body.history || []; // Client-side history for anonymous/free users
 
     if (!message || typeof message !== 'string') {
       log.warn('Chat request missing message field');
@@ -345,15 +346,25 @@ export async function POST(request: NextRequest) {
           log.info({ conversationId: activeConversationId, historyLength: conversationHistory.length }, 'Loaded conversation history (premium)');
         }
       } else {
-        // Free users: stateless queries (no conversation history)
-        log.info('Free user - stateless query mode');
+        // Free users: use client-provided history for follow-up context
+        if (clientHistory.length > 0) {
+          conversationHistory = clientHistory.slice(-4); // Limit to last 4 messages
+          log.info({ historyLength: conversationHistory.length }, 'Free user - using client-provided history');
+        } else {
+          log.info('Free user - stateless query mode');
+        }
       }
     } else {
-      // Anonymous users: stateless queries (no conversation history)
-      log.info('Anonymous user - stateless query mode');
+      // Anonymous users: use client-provided history for follow-up context
+      if (clientHistory.length > 0) {
+        conversationHistory = clientHistory.slice(-4); // Limit to last 4 messages
+        log.info({ historyLength: conversationHistory.length }, 'Anonymous user - using client-provided history');
+      } else {
+        log.info('Anonymous user - stateless query mode');
+      }
     }
 
-    // Resolve follow-up queries using conversation context (premium users only)
+    // Resolve follow-up queries using conversation context
     let resolvedMessage = message;
     if (conversationHistory.length > 0) {
       resolvedMessage = resolveFollowUpQuery(message, conversationHistory);
