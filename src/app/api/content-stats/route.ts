@@ -45,7 +45,20 @@ export async function GET() {
     }
 
     // Extract unique board/commission names from titles
-    const boardSet = new Set<string>();
+    const boardCounts = new Map<string, number>();
+
+    // Main boards we want to highlight (normalized names)
+    const mainBoards = [
+      'Select Board',
+      'Planning Board',
+      'Conservation Commission',
+      'Historic District Commission',
+      'Zoning Board of Appeals',
+      'Board of Health',
+      'School Committee',
+      'Finance Committee',
+      'Airport Commission',
+    ];
 
     for (const doc of recentDocs || []) {
       const title = doc.title || '';
@@ -53,16 +66,41 @@ export async function GET() {
       // Extract board name from title like "Nantucket Select Board - November 19, 2025"
       const match = title.match(/^(?:Nantucket\s+)?(.+?)\s*[-–]\s*/i);
       if (match) {
-        const boardName = match[1].trim();
-        // Clean up common variations
-        if (boardName && boardName.length > 3 && boardName.length < 50) {
-          boardSet.add(boardName);
-        }
+        let boardName = match[1].trim();
+
+        // Skip truncated or invalid names
+        if (!boardName || boardName.length < 5 || boardName.length > 40) continue;
+
+        // Normalize common variations
+        if (boardName.includes('Select Board')) boardName = 'Select Board';
+        if (boardName.includes('Planning Board') && !boardName.includes('Economic')) boardName = 'Planning Board';
+        if (boardName.includes('Conservation')) boardName = 'Conservation Commission';
+        if (boardName.includes('Historic District')) boardName = 'Historic District Commission';
+        if (boardName.includes('Zoning Board')) boardName = 'Zoning Board of Appeals';
+        if (boardName.includes('Board of Health')) boardName = 'Board of Health';
+        if (boardName.includes('School Committee')) boardName = 'School Committee';
+        if (boardName.includes('Finance Committee')) boardName = 'Finance Committee';
+        if (boardName.includes('Airport')) boardName = 'Airport Commission';
+
+        // Count occurrences
+        boardCounts.set(boardName, (boardCounts.get(boardName) || 0) + 1);
       }
     }
 
-    // Convert to array and sort
-    const boardsCovered = Array.from(boardSet).sort();
+    // Sort by count and take top boards, prioritizing main boards
+    const sortedBoards = Array.from(boardCounts.entries())
+      .sort((a, b) => {
+        // Prioritize main boards
+        const aIsMain = mainBoards.includes(a[0]) ? 1 : 0;
+        const bIsMain = mainBoards.includes(b[0]) ? 1 : 0;
+        if (aIsMain !== bIsMain) return bIsMain - aIsMain;
+        // Then sort by count
+        return b[1] - a[1];
+      })
+      .slice(0, 8)
+      .map(([name]) => name);
+
+    const boardsCovered = sortedBoards.length > 0 ? sortedBoards : mainBoards.slice(0, 6);
 
     // Build response
     const stats = {
