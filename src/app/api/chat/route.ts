@@ -852,9 +852,9 @@ export async function POST(request: NextRequest) {
       isAnonymous,
       stats: {
         chunksRetrieved: results.length,
-        avgSimilarity: Math.round(
-          results.reduce((sum, r) => sum + r.similarity, 0) / results.length * 100
-        ),
+        avgSimilarity: results.length > 0
+          ? Math.round(results.reduce((sum, r) => sum + r.similarity, 0) / results.length * 100)
+          : 0,
       },
       usage: usageStats,
       // Anti-hallucination metadata
