@@ -46,6 +46,8 @@ const RECENCY_PATTERNS = [
   /recent(ly)?/i,
   /latest/i,
   /last (few )?(meetings?|weeks?|months?)/i,
+  /last\s+\w+\s+(board|committee|commission|meeting)/i, // "last Select Board", "last School Committee"
+  /most recent/i,
   /new(est)? (updates?|news|developments?)/i,
   /what('?s| is) new/i,
   /any updates?/i,
@@ -117,8 +119,9 @@ export async function retrieveRelevantChunks(
       logger.info({ query }, '[Retrieval] Detected recency query, fetching recent content');
 
       // For recency queries, combine recent documents with semantic search
+      // Pass the original query so fetchRecentContent can filter by meeting type
       const [recentResults, semanticResults] = await Promise.all([
-        fetchRecentContent(maxResults),
+        fetchRecentContent(maxResults, query),
         searchMode === 'hybrid'
           ? hybridSearch(effectiveQuery, maxResults, minSimilarity)
           : semanticSearch(effectiveQuery, maxResults, minSimilarity, includeDocumentInfo, query)
@@ -174,25 +177,68 @@ export async function retrieveRelevantChunks(
 }
 
 /**
- * Fetch recent content by date (for recency queries)
+ * Extract meeting type keywords from query for targeted recency search
  */
-async function fetchRecentContent(maxResults: number): Promise<RetrievalResult[]> {
+function extractMeetingTypeFromQuery(query: string): string | null {
+  const meetingTypes = [
+    'select board',
+    'school committee',
+    'planning board',
+    'zoning board',
+    'conservation commission',
+    'historic district commission',
+    'board of health',
+    'airport commission',
+    'finance committee',
+    'town meeting',
+  ];
+
+  const queryLower = query.toLowerCase();
+  for (const meetingType of meetingTypes) {
+    if (queryLower.includes(meetingType)) {
+      return meetingType;
+    }
+  }
+  return null;
+}
+
+/**
+ * Fetch recent content by date (for recency queries)
+ * If query mentions a specific meeting type, prioritize that type
+ */
+async function fetchRecentContent(maxResults: number, query?: string): Promise<RetrievalResult[]> {
   // Fetch chunks from the most recent documents (last 90 days)
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-  const { data: recentDocs, error: docError } = await supabaseAdmin
+  // Build the query
+  let docQuery = supabaseAdmin
     .from('documents')
     .select('id, title, source_url, filename, source_type, created_at')
     .gte('created_at', ninetyDaysAgo.toISOString())
-    .in('status', ['indexed', 'completed', 'processed']) // Accept multiple status values
-    .order('created_at', { ascending: false })
-    .limit(10);
+    .in('status', ['indexed', 'completed', 'processed'])
+    .order('created_at', { ascending: false });
+
+  // If query mentions a specific meeting type, filter for it
+  const meetingType = query ? extractMeetingTypeFromQuery(query) : null;
+  if (meetingType) {
+    // Use ilike for case-insensitive partial match on title
+    docQuery = docQuery.ilike('title', `%${meetingType}%`);
+    logger.info({ meetingType }, '[Retrieval] Filtering recent content by meeting type');
+  }
+
+  const { data: recentDocs, error: docError } = await docQuery.limit(10);
 
   if (docError || !recentDocs || recentDocs.length === 0) {
-    logger.debug({ error: docError }, '[Retrieval] No recent documents found');
+    logger.debug({ error: docError, meetingType }, '[Retrieval] No recent documents found');
     return [];
   }
+
+  logger.info({
+    count: recentDocs.length,
+    topDoc: recentDocs[0]?.title,
+    meetingType
+  }, '[Retrieval] Found recent documents');
 
   const docIds = recentDocs.map(d => d.id);
 
