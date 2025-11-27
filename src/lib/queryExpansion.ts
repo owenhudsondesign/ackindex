@@ -368,8 +368,9 @@ export function expandQuery(query: string): QueryExpansionResult {
   for (const [term, synonyms] of Object.entries(CIVIC_SYNONYMS)) {
     // Check if query contains the primary term
     if (queryLower.includes(term.toLowerCase())) {
-      // Add top 2 synonyms to avoid over-expansion
-      const toAdd = synonyms.slice(0, 2);
+      // For language-related terms, include more synonyms (need both Spanish AND Portuguese)
+      const isLanguageTerm = ['language accessibility', 'translation', 'transcription', 'accessibility', 'spanish', 'portuguese'].includes(term.toLowerCase());
+      const toAdd = isLanguageTerm ? synonyms.slice(0, 4) : synonyms.slice(0, 2);
       expansions.push(...toAdd);
       synonymsAdded.push(`${term} → ${toAdd.join(', ')}`);
     }

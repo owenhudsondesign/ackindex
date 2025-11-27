@@ -190,8 +190,9 @@ export async function retrieveRelevantChunks(
     // For queries with synonyms (like "language accessibility" → "Spanish, Portuguese"),
     // do an additional search with just the synonyms to catch content that uses different terminology
     if (searchMode === 'hybrid' && queryExpansion.expansions.length > 0) {
-      // Search with both the expanded query AND just the synonyms
-      const synonymQuery = queryExpansion.expansions.join(' ');
+      // Build a focused synonym query using first 3 expansions
+      // Testing shows 3 specific terms work better than 4+ (extra terms dilute the embedding)
+      const synonymQuery = queryExpansion.expansions.slice(0, 3).join(' ');
 
       const [mainResults, synonymResults] = await Promise.all([
         hybridSearch(effectiveQuery, maxResults, minSimilarity),
