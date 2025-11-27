@@ -35,6 +35,10 @@ const FOLLOW_UP_PATTERNS = [
   /\bmean(?:s)?\s+for\b/i, // "what does this mean for..."
   /^(?:so|okay|ok)\s+/i, // "so what happens next?", "okay, but..."
   /^(?:what|how)\s+(?:should|do|can|will)\s+(?:i|we)\b/i, // "what should I do?", "how can I..."
+  /^how about\b/i, // "how about as a business owner", "how about for seniors"
+  /^what about\b/i, // "what about businesses", "what about parking"
+  /^(?:and|but)\s+(?:what|how|if)\b/i, // "and what if...", "but how..."
+  /^as a\s+\w+/i, // "as a homeowner...", "as a business owner..."
 ];
 
 /**
@@ -73,10 +77,24 @@ function resolveFollowUpQuery(
   const topics: string[] = [];
   const combinedPrevious = `${lastUser.content} ${lastAssistant.content}`;
 
+  // Look for acronyms (all caps, 2-6 letters) - catches NRTA, PFAS, STR, etc.
+  const acronyms = combinedPrevious.match(/\b[A-Z]{2,6}\b/g);
+  if (acronyms) {
+    // Filter out common words that might be caps (THE, AND, etc.)
+    const validAcronyms = acronyms.filter(a => !['THE', 'AND', 'FOR', 'BUT', 'NOT', 'ARE', 'WAS', 'HAS'].includes(a));
+    topics.push(...validAcronyms.slice(0, 2));
+  }
+
   // Look for proper nouns (capitalized sequences of 2+ words)
   const properNouns = combinedPrevious.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g);
   if (properNouns) {
     topics.push(...properNouns.slice(0, 2));
+  }
+
+  // Look for "Wave on Demand" style service names (Title Case phrases)
+  const serviceNames = combinedPrevious.match(/\b([A-Z][a-z]+(?:\s+(?:on|of|the|and|for)\s+)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g);
+  if (serviceNames) {
+    topics.push(...serviceNames.slice(0, 1));
   }
 
   // Look for quoted terms
@@ -96,7 +114,7 @@ function resolveFollowUpQuery(
   }
 
   // If we found topics, prepend them to the query for better retrieval
-  const uniqueTopics = [...new Set(topics)].slice(0, 2);
+  const uniqueTopics = [...new Set(topics)].slice(0, 3);
   if (uniqueTopics.length > 0) {
     const context = uniqueTopics.join(' and ');
     return `${query} (regarding ${context})`;
