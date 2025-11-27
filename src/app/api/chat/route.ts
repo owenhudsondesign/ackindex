@@ -472,8 +472,8 @@ export async function POST(request: NextRequest) {
     const isTopicExploration = isTopicExplorationQuery(sanitizedMessage);
 
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
-      maxResults: 10, // Balanced: captures relevant content without wasting tokens on noise
-      minSimilarity: 0.0, // No threshold - always return top results
+      maxResults: 10,
+      minSimilarity: 0.30, // Minimum quality threshold - filter out truly irrelevant results
       includeDocumentInfo: true,
       searchMode: 'hybrid',
     });
@@ -498,9 +498,9 @@ export async function POST(request: NextRequest) {
     const results = deduplicateResults(rawResults, 0.9);
     log.info({ uniqueChunks: results.length }, 'Deduplicated results');
 
-    // Step 4: Build context from ALL retrieved chunks (no threshold filtering)
-    // Claude will assess relevance - it's better at nuance than rigid thresholds
-    let context = buildContext(results, 0.0); // No filtering - include all results
+    // Step 4: Build context from retrieved chunks
+    // Use a quality threshold to avoid sending noise to Claude
+    let context = buildContext(results, 0.30);
     const citations = await extractCitations(results);
 
     // Add full conversation history to context for proper follow-up contextualization

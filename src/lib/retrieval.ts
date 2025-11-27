@@ -186,7 +186,44 @@ export async function retrieveRelevantChunks(
       return await multiPassRetrieval(queryAnalysis, retrieveWithExpansion, { maxResults });
     }
 
-    // Standard single-pass retrieval
+    // Standard single-pass retrieval with synonym boost
+    // For queries with synonyms (like "language accessibility" → "Spanish, Portuguese"),
+    // do an additional search with just the synonyms to catch content that uses different terminology
+    if (searchMode === 'hybrid' && queryExpansion.expansions.length > 0) {
+      // Search with both the expanded query AND just the synonyms
+      const synonymQuery = queryExpansion.expansions.join(' ');
+
+      const [mainResults, synonymResults] = await Promise.all([
+        hybridSearch(effectiveQuery, maxResults, minSimilarity),
+        hybridSearch(synonymQuery, Math.floor(maxResults / 2), minSimilarity),
+      ]);
+
+      // Merge and deduplicate, prioritizing higher similarity scores
+      const seenIds = new Set<string>();
+      const mergedResults: RetrievalResult[] = [];
+
+      // Add main results first
+      for (const result of mainResults) {
+        if (!seenIds.has(result.id)) {
+          seenIds.add(result.id);
+          mergedResults.push(result);
+        }
+      }
+
+      // Add synonym results that weren't in main results
+      for (const result of synonymResults) {
+        if (!seenIds.has(result.id)) {
+          seenIds.add(result.id);
+          mergedResults.push(result);
+        }
+      }
+
+      // Sort by similarity and limit
+      return mergedResults
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, maxResults);
+    }
+
     if (searchMode === 'keyword') {
       return await keywordSearch(effectiveQuery, maxResults);
     } else if (searchMode === 'hybrid') {
