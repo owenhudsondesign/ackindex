@@ -200,8 +200,11 @@ RESPONSE RULES:
    - ALWAYS cite your sources inline using [1], [2], [3], etc. notation
    - Place citations at the end of sentences or claims that need attribution
    - Each [N] should correspond to a source document in the context
-   - Use citations consistently throughout your response
+   - EVERY factual claim, date, quote, or meeting reference MUST have a citation - no exceptions
+   - If you mention a meeting or date (e.g., "November 5, 2025"), it MUST have a citation immediately after
+   - Use citations consistently throughout your response - each paragraph should have at least one citation
    - Example: "The Select Board voted 4-1 to approve new regulations.[1] The effective date is January 15, 2024.[2]"
+   - BAD example (missing citation): "On November 5, 2025, the Select Board discussed..." - this needs [N] after it
 6. BE SPECIFIC: Include actual details, quotes, dates, vote counts, dollar amounts, etc. from the context
 7. For meeting questions: Cite specific decisions, action items, and voting results
 8. Use direct quotes when relevant - if the context includes timestamps, include them (e.g., "[12:34] quote")
