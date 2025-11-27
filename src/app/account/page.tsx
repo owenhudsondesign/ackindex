@@ -23,6 +23,12 @@ interface UserDashboard {
   stripe_customer_id: string | null;
 }
 
+// Rate limit configurations (matching rateLimit.ts)
+const RATE_LIMITS = {
+  free: { requests: 20, label: '20 questions/minute' },
+  premium: { requests: 60, label: '60 questions/minute' },
+};
+
 function AccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,7 +39,7 @@ function AccountContent() {
 
   useEffect(() => {
     loadDashboard();
-    
+
     // Check for success parameter
     if (searchParams.get('success') === 'true') {
       setShowSuccess(true);
@@ -62,7 +68,7 @@ function AccountContent() {
           'Authorization': `Bearer ${session.access_token}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to load dashboard');
       }
@@ -127,12 +133,8 @@ function AccountContent() {
     );
   }
 
-  const usagePercentage = Math.min(
-    (dashboard.tokens_used_this_month / dashboard.monthly_token_limit) * 100,
-    100
-  );
-
   const isPremium = dashboard.subscription_tier === 'premium';
+  const rateLimit = isPremium ? RATE_LIMITS.premium : RATE_LIMITS.free;
 
   return (
     <PageLayout>
@@ -163,13 +165,13 @@ function AccountContent() {
 
         <div className="mb-10">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">My Account</h1>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">Manage your subscription and usage</p>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">Manage your account and view usage</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Subscription Card */}
+            {/* Plan Card */}
             <Card className="p-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -177,9 +179,7 @@ function AccountContent() {
                     {isPremium ? 'Premium Plan' : 'Free Plan'}
                   </h2>
                   <p className="text-gray-600 dark:text-gray-300">
-                    {isPremium
-                      ? '50,000 tokens per month'
-                      : '3,500 tokens per month'}
+                    {rateLimit.label}
                   </p>
                 </div>
                 {isPremium ? (
@@ -193,103 +193,117 @@ function AccountContent() {
                 )}
               </div>
 
-
-              {isPremium && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                  {dashboard.stripe_customer_id ? (
+              {/* Plan Features */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+                  Your Plan Includes
+                </h3>
+                <ul className="space-y-3">
+                  <li className="flex items-center text-gray-700 dark:text-gray-300">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>{rateLimit.requests} questions per minute</span>
+                  </li>
+                  <li className="flex items-center text-gray-700 dark:text-gray-300">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>Access to all meeting transcripts</span>
+                  </li>
+                  <li className="flex items-center text-gray-700 dark:text-gray-300">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>Source citations with every answer</span>
+                  </li>
+                  {isPremium && (
                     <>
-                      <Button
-                        variant="secondary"
-                        onClick={handleManageSubscription}
-                        disabled={portalLoading}
-                      >
-                        {portalLoading
-                          ? 'Loading...'
-                          : 'Manage Subscription & Billing'}
-                      </Button>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                        Update payment method, view invoices, or cancel subscription
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Link href="/pricing">
-                        <Button variant="secondary" fullWidth>
-                          Subscribe via Stripe
-                        </Button>
-                      </Link>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                        Set up billing to manage your subscription
-                      </p>
+                      <li className="flex items-center text-gray-700 dark:text-gray-300">
+                        <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span>Conversation history saved</span>
+                      </li>
+                      <li className="flex items-center text-gray-700 dark:text-gray-300">
+                        <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span>Priority support</span>
+                      </li>
                     </>
                   )}
+                </ul>
+              </div>
+
+              {/* Subscription Management */}
+              {isPremium && dashboard.stripe_customer_id && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                  <Button
+                    variant="secondary"
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                  >
+                    {portalLoading
+                      ? 'Loading...'
+                      : 'Manage Subscription & Billing'}
+                  </Button>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Update payment method, view invoices, or cancel subscription
+                  </p>
+                </div>
+              )}
+
+              {!isPremium && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                  <Link href="/pricing">
+                    <Button fullWidth>
+                      Upgrade to Premium
+                    </Button>
+                  </Link>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">
+                    Get 3x more questions per minute and save conversations
+                  </p>
                 </div>
               )}
             </Card>
 
-            {/* Usage Card */}
+            {/* Usage Stats Card */}
             <Card className="p-8">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                Usage This Month
+                Usage Statistics
               </h2>
 
-              <div className="space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                      Token Usage
-                    </span>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {`${dashboard.tokens_used_this_month.toLocaleString()} / ${dashboard.monthly_token_limit.toLocaleString()}`}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        usagePercentage > 90
-                          ? 'bg-red-500 dark:bg-red-600'
-                          : usagePercentage > 70
-                          ? 'bg-yellow-500 dark:bg-yellow-600'
-                          : 'bg-blue-500 dark:bg-blue-600'
-                      }`}
-                      style={{ width: `${usagePercentage}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                    {dashboard.tokens_remaining.toLocaleString()} tokens remaining
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-5">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Questions This Month</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {dashboard.queries_this_month.toLocaleString()}
                   </p>
                 </div>
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-5">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Rate Limit</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {rateLimit.requests}
+                    <span className="text-sm font-normal text-gray-600 dark:text-gray-400 ml-1">/min</span>
+                  </p>
+                </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Questions Asked</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {dashboard.queries_this_month}
+                    <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                      How Rate Limiting Works
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Avg. per Question</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {dashboard.queries_this_month > 0
-                        ? Math.round(
-                            dashboard.tokens_used_this_month /
-                              dashboard.queries_this_month
-                          )
-                        : 0}{' '}
-                      <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                        tokens
-                      </span>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      You can ask up to {rateLimit.requests} questions per minute. There's no monthly limit—rate limits reset every minute, so you can ask as many questions as you need throughout the month.
                     </p>
                   </div>
                 </div>
-
-                {!isPremium && usagePercentage > 80 && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
-                    <p className="text-sm text-yellow-900 dark:text-yellow-100">
-                      ⚠️ You're running low on tokens!
-                    </p>
-                  </div>
-                )}
               </div>
             </Card>
           </div>
@@ -316,7 +330,7 @@ function AccountContent() {
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Email Updates</p>
                   <p className="font-medium text-gray-900 dark:text-white">
                     {dashboard.email_updates_enabled ? (
-                      <span className="text-green-600 dark:text-green-400">✓ Subscribed</span>
+                      <span className="text-green-600 dark:text-green-400">Subscribed</span>
                     ) : (
                       <span className="text-gray-500 dark:text-gray-400">Not subscribed</span>
                     )}
@@ -391,4 +405,3 @@ export default function AccountPage() {
     </Suspense>
   );
 }
-
