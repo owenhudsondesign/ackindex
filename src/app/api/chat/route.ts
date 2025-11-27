@@ -815,9 +815,37 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    // For follow-up questions, include previous citations so [1], [2] references still work
+    // Merge previous citations with any new ones, avoiding duplicates
+    let finalCitations = citations;
+    if (isFollowUp && previousCitations.length > 0) {
+      // Use previous citations if we have no new ones, otherwise merge
+      if (citations.length === 0) {
+        finalCitations = previousCitations.map((cite: any, idx: number) => ({
+          ...cite,
+          index: idx + 1, // Re-index for consistency
+        }));
+      } else {
+        // Merge: new citations first, then previous ones that aren't duplicates
+        const existingUrls = new Set(citations.map((c: any) => c.url || c.documentId));
+        const uniquePrevious = previousCitations.filter(
+          (c: any) => !existingUrls.has(c.url || c.documentId)
+        );
+        finalCitations = [...citations, ...uniquePrevious].map((cite: any, idx: number) => ({
+          ...cite,
+          index: idx + 1,
+        }));
+      }
+      log.info({
+        newCitations: citations.length,
+        previousCitations: previousCitations.length,
+        finalCitations: finalCitations.length
+      }, 'Merged citations for follow-up response');
+    }
+
     return NextResponse.json({
       response: finalResponse,
-      citations,
+      citations: finalCitations,
       hasContext: true,
       conversationId: isPremium ? activeConversationId : undefined, // Only return conversationId for premium
       isPremium,

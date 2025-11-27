@@ -164,10 +164,11 @@ export default function Home() {
 
       // Build conversation history for context (for anonymous/free users without server-side history)
       // Include the current user message plus recent history (last 4 exchanges)
+      // Include citations so follow-up questions can reference them
       const existingHistory = messages
         .filter(m => !m.isLoading)
         .slice(-4)
-        .map(m => ({ role: m.role, content: m.content }));
+        .map(m => ({ role: m.role, content: m.content, citations: m.citations }));
 
       // Add the current user message to history (since state hasn't updated yet)
       const recentHistory = [...existingHistory, { role: 'user' as const, content: message }];
