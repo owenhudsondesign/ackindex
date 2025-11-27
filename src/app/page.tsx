@@ -150,20 +150,22 @@ export default function Home() {
     setMessages(prev => [...prev, loadingMessage]);
 
     try {
-      // Get the session token for API authentication
+      // Get the session token for API authentication (optional - anonymous users allowed)
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('AUTHENTICATION_REQUIRED');
+
+      // Build headers - include auth token if user is signed in
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
       // Call the chat API
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers,
         body: JSON.stringify({
           message,
           conversationId: currentConversationId, // Include current conversation ID
@@ -177,6 +179,10 @@ export default function Home() {
         if (response.status === 401) {
           throw new Error('AUTHENTICATION_REQUIRED');
         } else if (response.status === 429) {
+          // Check if this is an anonymous user who hit the free trial limit
+          if (data.signupRequired) {
+            throw new Error('FREE_TRIAL_LIMIT');
+          }
           throw new Error('TOKEN_LIMIT_EXCEEDED');
         } else {
           throw new Error(data.error || 'Failed to get response from chat API');
@@ -213,7 +219,9 @@ export default function Home() {
       let errorContent = "I'm sorry, but I encountered an error while processing your request. Please try again later or contact support if the problem persists.";
       
       if (error instanceof Error) {
-        if (error.message === 'AUTHENTICATION_REQUIRED') {
+        if (error.message === 'FREE_TRIAL_LIMIT') {
+          errorContent = "🎉 **You've used your 5 free questions!**\n\nSign up for a free account to continue asking questions about Nantucket civic documents.\n\n[Create a free account](/signup) or [log in](/login) to continue!";
+        } else if (error.message === 'AUTHENTICATION_REQUIRED') {
           errorContent = "🔐 **Please sign up or log in to use the chatbot.**\n\nTo ask questions about Nantucket civic documents, you'll need to create an account. This helps us track usage and provide better service.\n\n[Sign up here](/signup) or [log in](/login) to get started!";
         } else if (error.message === 'TOKEN_LIMIT_EXCEEDED') {
           errorContent = "📊 **You've reached your monthly token limit.**\n\nPlease contact us if you need additional access.";
