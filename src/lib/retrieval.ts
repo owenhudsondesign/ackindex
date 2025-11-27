@@ -803,8 +803,8 @@ export async function extractCitations(results: RetrievalResult[]): Promise<Arra
 
   // Only show sources above quality threshold
   // Voyage AI voyage-3-large typically returns 50-70% for relevant content
-  // Minimum 45% similarity for a source to be shown (calibrated based on testing)
-  const qualitySources = uniqueResults.filter(r => r.similarity >= 0.45);
+  // Minimum 30% similarity to match what we pass to the LLM context
+  const qualitySources = uniqueResults.filter(r => r.similarity >= 0.30);
 
   // Show all quality sources - projects may span many relevant documents
   const topResults = qualitySources;
