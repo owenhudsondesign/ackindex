@@ -451,7 +451,7 @@ export async function POST(request: NextRequest) {
     // Use lower threshold for recency/broad queries since they have naturally lower semantic similarity
     const isRecent = isRecencyQuery(sanitizedMessage);
     const isFollowUp = isFollowUpQuery(message) && conversationHistory.length > 0;
-    const similarityThreshold = isRecent ? 0.65 : 0.78;
+    const similarityThreshold = isRecent ? 0.50 : 0.55;
     const hasRelevant = hasRelevantResults(results, similarityThreshold);
     log.info({ hasRelevant, topSimilarity: results[0]?.similarity, isRecent, isFollowUp, threshold: similarityThreshold }, 'Checked relevance of results');
 
