@@ -11,9 +11,9 @@ export async function POST(req: NextRequest) {
   try {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await req.json();

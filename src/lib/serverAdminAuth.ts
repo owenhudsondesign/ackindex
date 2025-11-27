@@ -60,15 +60,15 @@ export async function checkAdminRole(userId: string): Promise<{ id: string; emai
  * Returns admin user if authorized, or error response if not
  *
  * Usage:
- * const adminOrError = await requireAdminApi(session);
+ * const adminOrError = await requireAdminApi(user);
  * if (adminOrError instanceof NextResponse) return adminOrError;
  * // adminOrError is now guaranteed to be admin user
  */
 export async function requireAdminApi(
-  session: { user: { id: string; email?: string } } | null
+  user: { id: string; email?: string } | null
 ): Promise<{ id: string; email: string; role: string } | NextResponse> {
   // Check if user is authenticated
-  if (!session) {
+  if (!user) {
     return NextResponse.json(
       { error: 'Unauthorized - Authentication required' },
       { status: 401 }
@@ -76,7 +76,7 @@ export async function requireAdminApi(
   }
 
   // Check if user is admin
-  const adminUser = await checkAdminRole(session.user.id);
+  const adminUser = await checkAdminRole(user.id);
 
   if (!adminUser) {
     return NextResponse.json(

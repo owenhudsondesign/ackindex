@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const adminOrError = await requireAdminApi({ user });
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
@@ -150,7 +150,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const adminOrError = await requireAdminApi({ user });
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
@@ -265,7 +265,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const adminOrError = await requireAdminApi({ user });
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const { searchParams } = new URL(request.url);

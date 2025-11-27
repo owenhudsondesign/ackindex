@@ -34,12 +34,12 @@ async function getUserFromRequest(request: NextRequest) {
       }
     );
 
-    const { data: { session } } = await supabaseSSR.auth.getSession();
+    const { data: { user }, error } = await supabaseSSR.auth.getUser();
 
-    if (session?.user) {
+    if (!error && user) {
       return {
-        id: session.user.id,
-        email: session.user.email || '',
+        id: user.id,
+        email: user.email || '',
       };
     }
   } catch (error) {

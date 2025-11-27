@@ -19,9 +19,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
     const supabase = await createAdminSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const { data: post, error } = await supabase
@@ -54,9 +54,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
     const supabase = await createAdminSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const body = await request.json();
@@ -122,9 +122,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
     const supabase = await createAdminSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const { error } = await supabase

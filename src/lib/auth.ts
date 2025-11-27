@@ -38,16 +38,16 @@ export async function signOut() {
 }
 
 /**
- * Get the current user session
+ * Get the current user (secure server-side authentication)
  */
 export async function getSession() {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  
+  const { data: { user }, error } = await supabase.auth.getUser();
+
   if (error) {
-    throw new Error(error.message);
+    return null;
   }
 
-  return session;
+  return user ? { user } : null;
 }
 
 /**

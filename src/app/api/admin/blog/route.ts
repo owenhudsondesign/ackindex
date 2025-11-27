@@ -14,9 +14,9 @@ const log = logger.child({ endpoint: '/api/admin/blog' });
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createAdminSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     // Parse query parameters
@@ -66,9 +66,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createAdminSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     const { documentId } = await request.json();

@@ -21,10 +21,10 @@ export async function POST(req: NextRequest) {
     // Check authentication and admin authorization
     const supabaseClient = await createAdminSupabaseClient();
     const {
-      data: { session },
-    } = await supabaseClient.auth.getSession();
+      data: { user },
+    } = await supabaseClient.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) {
       console.log('[register-long-video] Auth failed');
       return adminOrError;

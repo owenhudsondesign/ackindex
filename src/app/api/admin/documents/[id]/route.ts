@@ -14,10 +14,10 @@ export async function DELETE(
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     if (!documentId) {

@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     // Parse request body
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = session?.user?.id;
+    const userId = user?.id;
 
     log.info(
       { url, videoId, playlistId, isPlaylist, userId },
@@ -277,10 +277,10 @@ export async function GET(request: NextRequest) {
     // Check authentication and admin authorization
     const supabase = await createAdminSupabaseClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    const adminOrError = await requireAdminApi(session);
+    const adminOrError = await requireAdminApi(user);
     if (adminOrError instanceof NextResponse) return adminOrError;
 
     // Get video ID or document ID from query params
