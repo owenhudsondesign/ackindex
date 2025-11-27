@@ -177,15 +177,15 @@ export async function retrieveRelevantChunks(
  * Fetch recent content by date (for recency queries)
  */
 async function fetchRecentContent(maxResults: number): Promise<RetrievalResult[]> {
-  // Fetch chunks from the most recent documents (last 30 days)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  // Fetch chunks from the most recent documents (last 90 days)
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
   const { data: recentDocs, error: docError } = await supabaseAdmin
     .from('documents')
     .select('id, title, source_url, filename, source_type, created_at')
-    .gte('created_at', thirtyDaysAgo.toISOString())
-    .eq('status', 'indexed')
+    .gte('created_at', ninetyDaysAgo.toISOString())
+    .in('status', ['indexed', 'completed', 'processed']) // Accept multiple status values
     .order('created_at', { ascending: false })
     .limit(10);
 
