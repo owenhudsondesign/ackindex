@@ -614,8 +614,12 @@ export async function POST(request: NextRequest) {
       log.info({ warnings: verification.warnings }, 'Verification warnings detected');
     }
 
-    // Block response if verification fails critical checks
-    if (shouldBlockResponse(verification)) {
+    // Handle verification failures
+    // For follow-up questions, add a disclaimer instead of blocking
+    // For regular queries, block if verification fails critical checks
+    const wouldBlock = shouldBlockResponse(verification);
+
+    if (wouldBlock && !isFollowUp) {
       log.error({
         userId: user?.id || anonymousFingerprint,
         query: sanitizedMessage,
@@ -649,6 +653,18 @@ export async function POST(request: NextRequest) {
         blocked: true,
         verificationIssues: verification.issues,
       });
+    }
+
+    // For follow-up questions with verification issues, add a disclaimer instead of blocking
+    let finalResponse = response;
+    if (wouldBlock && isFollowUp) {
+      log.info({
+        userId: user?.id || anonymousFingerprint,
+        query: sanitizedMessage,
+        issues: verification.issues,
+      }, 'Adding disclaimer to follow-up response instead of blocking');
+
+      finalResponse = `${response}\n\n---\n*Note: This response is based on our conversation context. For important decisions, please verify with the original meeting recordings or official documents.*`;
     }
 
     // Log successful verification (fire-and-forget, don't block response)
@@ -800,7 +816,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      response,
+      response: finalResponse,
       citations,
       hasContext: true,
       conversationId: isPremium ? activeConversationId : undefined, // Only return conversationId for premium
