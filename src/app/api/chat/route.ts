@@ -28,6 +28,8 @@ const FOLLOW_UP_PATTERNS = [
   /^tell me more/i,
   /^expand on/i,
   /^go into detail/i,
+  /^what (?:was|were|is|are) the\b/i, // "what was the vote?", "what were the results?"
+  /^(?:who|what|when|where|how)\s+(?:was|were|is|are|did)\b/i, // Short follow-up questions
 ];
 
 /**

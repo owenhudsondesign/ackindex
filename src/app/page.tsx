@@ -163,11 +163,14 @@ export default function Home() {
       }
 
       // Build conversation history for context (for anonymous/free users without server-side history)
-      // Only include last 4 messages to keep payload small
-      const recentHistory = messages
+      // Include the current user message plus recent history (last 4 exchanges)
+      const existingHistory = messages
         .filter(m => !m.isLoading)
         .slice(-4)
         .map(m => ({ role: m.role, content: m.content }));
+
+      // Add the current user message to history (since state hasn't updated yet)
+      const recentHistory = [...existingHistory, { role: 'user' as const, content: message }];
 
       // Call the chat API
       const response = await fetch('/api/chat', {
