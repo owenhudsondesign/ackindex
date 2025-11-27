@@ -229,6 +229,14 @@ export const CIVIC_SYNONYMS: Record<string, string[]> = {
   'permit': ['license', 'approval', 'authorization'],
   'fee': ['charge', 'cost', 'assessment', 'payment'],
   'project': ['development', 'initiative', 'proposal', 'plan'],
+
+  // Language & Accessibility
+  'language accessibility': ['translation', 'Spanish', 'Portuguese', 'multilingual', 'interpreter', 'language services'],
+  'translation': ['language accessibility', 'Spanish', 'Portuguese', 'multilingual', 'interpreter'],
+  'transcription': ['transcript', 'captioning', 'subtitles', 'closed captions', 'accessibility'],
+  'accessibility': ['ADA', 'accommodations', 'language access', 'translation', 'interpreter'],
+  'spanish': ['translation', 'language access', 'multilingual', 'Portuguese', 'interpreter'],
+  'portuguese': ['translation', 'language access', 'multilingual', 'Spanish', 'interpreter'],
 };
 
 // =============================================================================
