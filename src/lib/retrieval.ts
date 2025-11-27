@@ -658,8 +658,9 @@ export function buildContext(results: RetrievalResult[]): string {
 
 /**
  * Extract citations from results
+ * Fetches blog post slugs to link citations to blog posts when available
  */
-export function extractCitations(results: RetrievalResult[]): Array<{
+export async function extractCitations(results: RetrievalResult[]): Promise<Array<{
   title: string;
   url?: string;
   snippet?: string;
@@ -668,7 +669,8 @@ export function extractCitations(results: RetrievalResult[]): Array<{
   index?: number;
   startTime?: number;
   documentId?: string;
-}> {
+  blogPostSlug?: string;
+}>> {
   // Deduplicate by document ID to avoid showing same source multiple times
   const seenDocuments = new Set<string>();
   const uniqueResults: RetrievalResult[] = [];
@@ -688,9 +690,34 @@ export function extractCitations(results: RetrievalResult[]): Array<{
   // Show all quality sources - projects may span many relevant documents
   const topResults = qualitySources;
 
+  // Fetch blog post slugs for all document IDs
+  const docIds = topResults
+    .map(r => r.document?.id)
+    .filter((id): id is string => !!id);
+
+  let blogPostMap = new Map<string, string>();
+
+  if (docIds.length > 0) {
+    try {
+      const { data: blogPosts } = await supabaseAdmin
+        .from('blog_posts')
+        .select('document_id, slug')
+        .in('document_id', docIds)
+        .eq('status', 'published');
+
+      if (blogPosts) {
+        blogPostMap = new Map(blogPosts.map(bp => [bp.document_id, bp.slug]));
+      }
+    } catch (error) {
+      logger.warn({ error }, '[Retrieval] Failed to fetch blog post slugs');
+    }
+  }
+
   return topResults.map((result, index) => {
     // Extract timestamp from chunk metadata (set by longVideoProcessor)
     const startTime = result.metadata?.start_time as number | undefined;
+    const documentId = result.document?.id;
+    const blogPostSlug = documentId ? blogPostMap.get(documentId) : undefined;
 
     return {
       title: result.document?.title || result.document?.filename || 'Untitled',
@@ -700,7 +727,8 @@ export function extractCitations(results: RetrievalResult[]): Array<{
       similarity: Math.round(result.similarity * 100),
       index: index + 1,
       startTime, // Video timestamp in seconds
-      documentId: result.document?.id, // For linking to blog posts with video
+      documentId, // For linking to blog posts with video
+      blogPostSlug, // Slug for /blog/{slug} page
     };
   });
 }

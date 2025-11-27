@@ -463,7 +463,7 @@ export async function POST(request: NextRequest) {
 
     // Step 4: Build context from retrieved chunks
     let context = buildContext(results);
-    const citations = extractCitations(results);
+    const citations = await extractCitations(results);
 
     // Add previous assistant message citations to context for follow-up questions
     const previousCitations = conversationHistory

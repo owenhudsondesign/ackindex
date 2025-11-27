@@ -8,6 +8,7 @@ export interface Citation {
   index?: number;
   startTime?: number; // Video timestamp in seconds
   documentId?: string; // For linking to blog posts
+  blogPostSlug?: string; // Slug for /blog/{slug} page
 }
 
 export interface Message {

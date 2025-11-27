@@ -7,32 +7,43 @@ import FlagResponseButton from './FlagResponseButton';
 
 /**
  * Build citation URL with optional timestamp for video sources
- * For videos, links to blog post with #t=XXX timestamp
+ * Prefers blog post URL when available, falls back to original source URL
  */
 function buildCitationUrl(citation: Citation): string | undefined {
-  // If there's no URL and no documentId, can't build a link
-  if (!citation.url && !citation.documentId) {
+  // If there's no URL, no blog post, and no documentId, can't build a link
+  if (!citation.url && !citation.blogPostSlug && !citation.documentId) {
     return undefined;
   }
 
-  // If citation has a timestamp, append it to the URL
-  if (citation.startTime !== undefined && citation.startTime > 0) {
-    const timestamp = Math.floor(citation.startTime);
+  const timestamp = citation.startTime !== undefined && citation.startTime > 0
+    ? Math.floor(citation.startTime)
+    : undefined;
 
-    // For YouTube URLs, use ?t=XXX format
-    if (citation.url?.includes('youtube.com') || citation.url?.includes('youtu.be')) {
-      const url = new URL(citation.url);
-      url.searchParams.set('t', String(timestamp));
-      return url.toString();
+  // Prefer blog post link if available
+  if (citation.blogPostSlug) {
+    const baseUrl = `/blog/${citation.blogPostSlug}`;
+    if (timestamp) {
+      return `${baseUrl}#t=${timestamp}`;
     }
-
-    // For other URLs (like blog posts with embedded videos), use #t=XXX
-    if (citation.url) {
-      return `${citation.url}#t=${timestamp}`;
-    }
+    return baseUrl;
   }
 
-  return citation.url;
+  // Fall back to original URL with timestamp
+  if (citation.url) {
+    if (timestamp) {
+      // For YouTube URLs, use ?t=XXX format
+      if (citation.url.includes('youtube.com') || citation.url.includes('youtu.be')) {
+        const url = new URL(citation.url);
+        url.searchParams.set('t', String(timestamp));
+        return url.toString();
+      }
+      // For other URLs, use #t=XXX
+      return `${citation.url}#t=${timestamp}`;
+    }
+    return citation.url;
+  }
+
+  return undefined;
 }
 
 /**
