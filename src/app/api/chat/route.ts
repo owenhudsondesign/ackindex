@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults, deduplicateResults } from '@/lib/retrieval';
 import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
-import { generateFingerprint, getOrCreateAnonymousSession, recordAnonymousUsage, ANONYMOUS_TOKEN_LIMIT } from '@/lib/anonymousSession';
+import { generateFingerprint, getOrCreateAnonymousSession, recordAnonymousUsage, ANONYMOUS_QUERY_LIMIT } from '@/lib/anonymousSession';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -250,21 +250,23 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check if anonymous user has tokens remaining
+      // Check if anonymous user has queries remaining
       if (!anonymousSession.canQuery) {
-        log.info({ fingerprint: anonymousFingerprint, tokensUsed: anonymousSession.tokensUsed }, 'Anonymous user hit token limit');
+        log.info({ fingerprint: anonymousFingerprint, queriesUsed: anonymousSession.queriesUsed }, 'Anonymous user hit query limit');
         return NextResponse.json(
           {
             error: 'Free trial limit reached',
-            message: `You've used all ${anonymousSession.tokensUsed} of your free trial tokens. Sign up for a free account to get 14x more queries (50,000 tokens/month)!`,
+            message: `You've used your ${ANONYMOUS_QUERY_LIMIT} free questions. Sign up for a free account to get unlimited access!`,
             signupRequired: true,
             isAnonymous: true,
+            queriesUsed: anonymousSession.queriesUsed,
+            queryLimit: ANONYMOUS_QUERY_LIMIT,
           },
           { status: 429 } // Too Many Requests
         );
       }
 
-      log.info({ fingerprint: anonymousFingerprint, tokensRemaining: anonymousSession.tokensRemaining }, 'Anonymous user authorized to query');
+      log.info({ fingerprint: anonymousFingerprint, queriesRemaining: anonymousSession.queriesRemaining }, 'Anonymous user authorized to query');
     } else {
       // Authenticated user
       log.setBindings({ userId: user.id, userEmail: user.email });
@@ -733,10 +735,14 @@ export async function POST(request: NextRequest) {
       // Refresh session to get updated usage
       const updatedSession = await getOrCreateAnonymousSession(anonymousFingerprint!);
       usageStats = {
-        tokensUsed: updatedSession?.tokensUsed || anonymousSession.tokensUsed + totalTokens,
-        tokensRemaining: Math.max(0, (updatedSession?.tokensRemaining || anonymousSession.tokensRemaining) - totalTokens),
-        monthlyLimit: ANONYMOUS_TOKEN_LIMIT,
+        queriesUsed: (updatedSession?.queriesUsed || anonymousSession.queriesUsed) + 1,
+        queriesRemaining: Math.max(0, (updatedSession?.queriesRemaining || anonymousSession.queriesRemaining) - 1),
+        queryLimit: ANONYMOUS_QUERY_LIMIT,
         isAnonymous: true,
+        // Legacy token fields for backwards compatibility
+        tokensUsed: updatedSession?.tokensUsed || anonymousSession.tokensUsed + totalTokens,
+        tokensRemaining: 0,
+        monthlyLimit: ANONYMOUS_QUERY_LIMIT,
       };
     } else {
       usageStats = {

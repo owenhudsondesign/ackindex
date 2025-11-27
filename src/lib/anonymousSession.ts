@@ -9,15 +9,21 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 // Service role client for admin operations
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-// Token limits
-export const ANONYMOUS_TOKEN_LIMIT = 3500; // ~2-3 queries
-export const FREE_USER_TOKEN_LIMIT = 50000; // ~35-50 queries
+// Query limits for anonymous users
+export const ANONYMOUS_QUERY_LIMIT = 5; // 5 free questions before signup required
+export const FREE_USER_TOKEN_LIMIT = 50000; // ~35-50 queries for signed-in free users
+
+// Legacy export for backwards compatibility
+export const ANONYMOUS_TOKEN_LIMIT = 3500;
 
 export interface AnonymousSession {
   sessionId: string;
+  queriesUsed: number;
+  queriesRemaining: number;
+  canQuery: boolean;
+  // Legacy token fields for backwards compatibility
   tokensUsed: number;
   tokensRemaining: number;
-  canQuery: boolean;
 }
 
 /**
@@ -45,8 +51,53 @@ export function generateFingerprint(request: NextRequest): string {
 
 /**
  * Get or create an anonymous session for rate limiting
+ * Now uses query count instead of token count
  */
 export async function getOrCreateAnonymousSession(
+  fingerprint: string
+): Promise<AnonymousSession | null> {
+  try {
+    const { data, error } = await supabaseAdmin.rpc('get_or_create_anonymous_session_v2', {
+      p_fingerprint: fingerprint,
+      p_query_limit: ANONYMOUS_QUERY_LIMIT,
+    });
+
+    if (error) {
+      // Fall back to legacy function if v2 doesn't exist yet
+      if (error.message?.includes('function') && error.message?.includes('does not exist')) {
+        logger.info({ fingerprint }, 'Falling back to legacy anonymous session function');
+        return getOrCreateAnonymousSessionLegacy(fingerprint);
+      }
+      logger.error({ error, fingerprint }, 'Error getting/creating anonymous session');
+      return null;
+    }
+
+    if (!data || data.length === 0) {
+      logger.error({ fingerprint }, 'No data returned from get_or_create_anonymous_session_v2');
+      return null;
+    }
+
+    const session = data[0];
+
+    return {
+      sessionId: session.session_id,
+      queriesUsed: session.queries_used,
+      queriesRemaining: session.queries_remaining,
+      canQuery: session.can_query,
+      // Legacy fields for backwards compatibility
+      tokensUsed: session.tokens_used || 0,
+      tokensRemaining: 0,
+    };
+  } catch (error) {
+    logger.error({ error, fingerprint }, 'Exception in getOrCreateAnonymousSession');
+    return null;
+  }
+}
+
+/**
+ * Legacy function for backwards compatibility during migration
+ */
+async function getOrCreateAnonymousSessionLegacy(
   fingerprint: string
 ): Promise<AnonymousSession | null> {
   try {
@@ -56,33 +107,68 @@ export async function getOrCreateAnonymousSession(
     });
 
     if (error) {
-      logger.error({ error, fingerprint }, 'Error getting/creating anonymous session');
+      logger.error({ error, fingerprint }, 'Error in legacy anonymous session');
       return null;
     }
 
     if (!data || data.length === 0) {
-      logger.error({ fingerprint }, 'No data returned from get_or_create_anonymous_session');
       return null;
     }
 
     const session = data[0];
 
+    // Convert token-based session to query-based (estimate ~700 tokens per query)
+    const estimatedQueries = Math.floor(session.tokens_used / 700);
+
     return {
       sessionId: session.session_id,
+      queriesUsed: estimatedQueries,
+      queriesRemaining: Math.max(0, ANONYMOUS_QUERY_LIMIT - estimatedQueries),
+      canQuery: estimatedQueries < ANONYMOUS_QUERY_LIMIT,
       tokensUsed: session.tokens_used,
       tokensRemaining: session.tokens_remaining,
-      canQuery: session.can_query,
     };
   } catch (error) {
-    logger.error({ error, fingerprint }, 'Exception in getOrCreateAnonymousSession');
+    logger.error({ error, fingerprint }, 'Exception in legacy anonymous session');
     return null;
   }
 }
 
 /**
  * Record usage for an anonymous session
+ * Now increments query count (tokens still recorded for analytics)
  */
 export async function recordAnonymousUsage(
+  fingerprint: string,
+  tokensUsed: number
+): Promise<boolean> {
+  try {
+    // Try the new v2 function first
+    const { data, error } = await supabaseAdmin.rpc('record_anonymous_usage_v2', {
+      p_fingerprint: fingerprint,
+      p_tokens_used: tokensUsed,
+    });
+
+    if (error) {
+      // Fall back to legacy function if v2 doesn't exist yet
+      if (error.message?.includes('function') && error.message?.includes('does not exist')) {
+        return recordAnonymousUsageLegacy(fingerprint, tokensUsed);
+      }
+      logger.error({ error, fingerprint, tokensUsed }, 'Error recording anonymous usage');
+      return false;
+    }
+
+    return data === true;
+  } catch (error) {
+    logger.error({ error, fingerprint, tokensUsed }, 'Exception in recordAnonymousUsage');
+    return false;
+  }
+}
+
+/**
+ * Legacy record usage function
+ */
+async function recordAnonymousUsageLegacy(
   fingerprint: string,
   tokensUsed: number
 ): Promise<boolean> {
@@ -93,13 +179,13 @@ export async function recordAnonymousUsage(
     });
 
     if (error) {
-      logger.error({ error, fingerprint, tokensUsed }, 'Error recording anonymous usage');
+      logger.error({ error, fingerprint, tokensUsed }, 'Error in legacy record usage');
       return false;
     }
 
     return data === true;
   } catch (error) {
-    logger.error({ error, fingerprint, tokensUsed }, 'Exception in recordAnonymousUsage');
+    logger.error({ error, fingerprint, tokensUsed }, 'Exception in legacy record usage');
     return false;
   }
 }
