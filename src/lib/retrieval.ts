@@ -401,7 +401,14 @@ async function hybridSearch(
     return await semanticSearch(query, maxResults, minSimilarity, true);
   }
 
-  return data || [];
+  // CRITICAL: Enrich with document info - required for buildContext and extractCitations
+  // Without this, results have no document.id and get filtered out
+  let results = data || [];
+  if (results.length > 0) {
+    results = await enrichWithDocumentInfo(results);
+  }
+
+  return results;
 }
 
 /**
