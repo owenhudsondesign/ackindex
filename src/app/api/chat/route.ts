@@ -30,6 +30,11 @@ const FOLLOW_UP_PATTERNS = [
   /^go into detail/i,
   /^what (?:was|were|is|are) the\b/i, // "what was the vote?", "what were the results?"
   /^(?:who|what|when|where|how)\s+(?:was|were|is|are|did)\b/i, // Short follow-up questions
+  /\bfor me\b.*\?$/i, // "what does this mean for me?" "how does this affect me?"
+  /\baffect(?:s)?\s+(?:me|us|residents|citizens|homeowners)/i, // "how does this affect residents?"
+  /\bmean(?:s)?\s+for\b/i, // "what does this mean for..."
+  /^(?:so|okay|ok)\s+/i, // "so what happens next?", "okay, but..."
+  /^(?:what|how)\s+(?:should|do|can|will)\s+(?:i|we)\b/i, // "what should I do?", "how can I..."
 ];
 
 /**
@@ -441,11 +446,16 @@ export async function POST(request: NextRequest) {
     // Step 3: Check if we have relevant information
     // Use lower threshold for recency/broad queries since they have naturally lower semantic similarity
     const isRecent = isRecencyQuery(sanitizedMessage);
+    const isFollowUp = isFollowUpQuery(message) && conversationHistory.length > 0;
     const similarityThreshold = isRecent ? 0.65 : 0.78;
     const hasRelevant = hasRelevantResults(results, similarityThreshold);
-    log.info({ hasRelevant, topSimilarity: results[0]?.similarity, isRecent, threshold: similarityThreshold }, 'Checked relevance of results');
+    log.info({ hasRelevant, topSimilarity: results[0]?.similarity, isRecent, isFollowUp, threshold: similarityThreshold }, 'Checked relevance of results');
 
-    if (!hasRelevant) {
+    // For follow-up questions with conversation history, we can answer based on
+    // the previous context even if new document retrieval doesn't find highly relevant results
+    const canAnswerFromConversation = isFollowUp && conversationHistory.length > 0;
+
+    if (!hasRelevant && !canAnswerFromConversation) {
       log.info('No relevant information found for query');
 
       // Log query with no results for analytics (only for authenticated users)
@@ -469,6 +479,11 @@ export async function POST(request: NextRequest) {
         citations: [],
         hasContext: false,
       });
+    }
+
+    // Log when we're answering a follow-up from conversation context
+    if (!hasRelevant && canAnswerFromConversation) {
+      log.info({ historyLength: conversationHistory.length }, 'Answering follow-up question using conversation context');
     }
 
     // Step 4: Build context from retrieved chunks
