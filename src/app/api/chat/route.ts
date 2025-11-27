@@ -675,13 +675,15 @@ export async function POST(request: NextRequest) {
     }, 'Generated LLM response successfully');
 
     // ANTI-HALLUCINATION: Multi-layer verification
+    // Skip cross-model verification for topic exploration queries (broad searches)
+    // since these are exploratory and the user expects a summary of ALL mentions
     const avgSimilarity = results.reduce((sum, r) => sum + r.similarity, 0) / results.length;
     const verification = await verifyResponse(
       sanitizedMessage,
       response,
       context,
       citations,
-      { skipCrossModel: false } // Enable cross-model verification for maximum accuracy
+      { skipCrossModel: isTopicExploration } // Skip expensive verification for broad searches
     );
 
     log.info({
@@ -700,11 +702,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle verification failures
-    // For follow-up questions, add a disclaimer instead of blocking
-    // For regular queries, block if verification fails critical checks
+    // For follow-up questions and topic exploration queries, add a disclaimer instead of blocking
+    // For regular factual queries, block if verification fails critical checks
     const wouldBlock = shouldBlockResponse(verification);
 
-    if (wouldBlock && !isFollowUp) {
+    // Don't block topic exploration queries - they're broad searches where user expects ALL mentions
+    // Add a disclaimer instead of blocking
+    if (wouldBlock && !isFollowUp && !isTopicExploration) {
       log.error({
         userId: user?.id || anonymousFingerprint,
         query: sanitizedMessage,
@@ -740,7 +744,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // For follow-up questions with verification issues, add a disclaimer instead of blocking
+    // For follow-up questions or topic exploration with verification issues, add a disclaimer instead of blocking
     let finalResponse = response;
     if (wouldBlock && isFollowUp) {
       log.info({
@@ -750,6 +754,14 @@ export async function POST(request: NextRequest) {
       }, 'Adding disclaimer to follow-up response instead of blocking');
 
       finalResponse = `${response}\n\n---\n*Note: This response is based on our conversation context. For important decisions, please verify with the original meeting recordings or official documents.*`;
+    } else if (wouldBlock && isTopicExploration) {
+      log.info({
+        userId: user?.id || anonymousFingerprint,
+        query: sanitizedMessage,
+        issues: verification.issues,
+      }, 'Adding disclaimer to topic exploration response instead of blocking');
+
+      finalResponse = `${response}\n\n---\n*Note: This is a summary of discussions found across multiple meetings. For specific details or important decisions, please verify with the original meeting recordings.*`;
     }
 
     // Log successful verification (fire-and-forget, don't block response)
