@@ -16,6 +16,7 @@ export interface VerificationResult {
   details: {
     citationsPresent: boolean;
     numbersVerified: boolean;
+    quotesVerified: boolean;
     noSpeculation: boolean;
     factsGrounded: boolean;
     crossModelVerified?: boolean;
@@ -94,7 +95,76 @@ export function verifyNumbers(response: string, context: string): {
 }
 
 /**
- * VERIFICATION LAYER 3: Speculative Language Detection
+ * VERIFICATION LAYER 3: Quote Verification
+ * Ensure all direct quotes in the response actually exist in the source context
+ * This is CRITICAL - hallucinated quotes are a major trust violation
+ */
+export function verifyQuotes(response: string, context: string): {
+  isValid: boolean;
+  issues: string[];
+} {
+  const issues: string[] = [];
+
+  // Extract all quoted text from the response
+  // Matches both "double quotes" and "curly quotes"
+  const quotePatterns = [
+    /"([^"]+)"/g,  // Standard double quotes
+    /"([^"]+)"/g,  // Curly double quotes
+  ];
+
+  const contextLower = context.toLowerCase();
+
+  for (const pattern of quotePatterns) {
+    let match;
+    while ((match = pattern.exec(response)) !== null) {
+      const quote = match[1];
+
+      // Skip very short quotes (likely not actual citations)
+      if (quote.length < 15) continue;
+
+      // Skip quotes that are clearly not from transcripts
+      if (quote.includes('Source') || quote.includes('[') || quote.includes('http')) continue;
+
+      // Check if the quote (or a significant portion) exists in context
+      // We check for a substring match to allow for minor formatting differences
+      const quoteLower = quote.toLowerCase();
+
+      // Extract key phrases from the quote (5+ word sequences)
+      const words = quoteLower.split(/\s+/);
+      let foundInContext = false;
+
+      // Check if any 5-word sequence from the quote exists in context
+      for (let i = 0; i <= words.length - 5; i++) {
+        const phrase = words.slice(i, i + 5).join(' ');
+        if (contextLower.includes(phrase)) {
+          foundInContext = true;
+          break;
+        }
+      }
+
+      // Also check the full quote with some fuzzy matching
+      if (!foundInContext) {
+        // Try checking first 30 characters of the quote
+        const shortQuote = quoteLower.substring(0, 30);
+        if (contextLower.includes(shortQuote)) {
+          foundInContext = true;
+        }
+      }
+
+      if (!foundInContext) {
+        issues.push(`Quote not found in sources: "${quote.substring(0, 50)}..."`);
+      }
+    }
+  }
+
+  return {
+    isValid: issues.length === 0,
+    issues,
+  };
+}
+
+/**
+ * VERIFICATION LAYER 4: Speculative Language Detection
  * Detect and flag any predictive or speculative phrases
  */
 export function detectSpeculation(response: string): {
@@ -221,13 +291,20 @@ export async function verifyResponse(
     issues.push(...numberCheck.issues);
   }
 
-  // Layer 3: Speculation detection
+  // Layer 3: Quote verification - CRITICAL, always run
+  // Hallucinated quotes are a major trust violation
+  const quoteCheck = verifyQuotes(response, context);
+  if (!quoteCheck.isValid) {
+    issues.push(...quoteCheck.issues);
+  }
+
+  // Layer 4: Speculation detection
   const speculationCheck = detectSpeculation(response);
   if (!speculationCheck.isValid) {
     warnings.push(...speculationCheck.warnings);
   }
 
-  // Layer 4: Cross-model verification (optional, more expensive)
+  // Layer 5: Cross-model verification (optional, more expensive)
   let crossModelResult;
   if (!options.skipCrossModel) {
     crossModelResult = await crossModelVerification(query, response, context, citations);
@@ -254,6 +331,7 @@ export async function verifyResponse(
     details: {
       citationsPresent: citations.length > 0,
       numbersVerified: numberCheck.isValid,
+      quotesVerified: quoteCheck.isValid,
       noSpeculation: speculationCheck.isValid,
       factsGrounded: structureCheck.isValid,
       crossModelVerified: crossModelResult?.isValid,
@@ -266,9 +344,10 @@ export async function verifyResponse(
  */
 export function shouldBlockResponse(verification: VerificationResult): boolean {
   // Block if:
-  // 1. Critical issues found (numbers don't match, no citations for facts)
+  // 1. Critical issues found (numbers don't match, quotes not found, no citations for facts)
   const hasCriticalIssues = verification.issues.some(issue =>
     issue.includes('not found in source') ||
+    issue.includes('Quote not found') ||  // Hallucinated quotes are CRITICAL
     issue.includes('no citations') ||
     issue.includes('Cross-model verification failed')
   );

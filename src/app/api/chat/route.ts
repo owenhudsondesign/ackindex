@@ -642,11 +642,13 @@ export async function POST(request: NextRequest) {
     // Handle verification failures
     // For follow-up questions and topic exploration queries, add a disclaimer instead of blocking
     // For regular factual queries, block if verification fails critical checks
+    // EXCEPTION: Hallucinated quotes are ALWAYS blocked - they're a major trust violation
     const wouldBlock = shouldBlockResponse(verification);
+    const hasHallucinatedQuotes = verification.issues.some(i => i.includes('Quote not found'));
 
-    // Don't block topic exploration queries - they're broad searches where user expects ALL mentions
-    // Add a disclaimer instead of blocking
-    if (wouldBlock && !isFollowUp && !isTopicExploration) {
+    // Block if: regular query fails verification OR any query has hallucinated quotes
+    // Hallucinated quotes are too serious to let through with just a disclaimer
+    if ((wouldBlock && !isFollowUp && !isTopicExploration) || hasHallucinatedQuotes) {
       log.error({
         userId: user?.id || anonymousFingerprint,
         query: sanitizedMessage,
@@ -664,6 +666,7 @@ export async function POST(request: NextRequest) {
         warnings: verification.warnings,
         citations_present: verification.details.citationsPresent,
         numbers_verified: verification.details.numbersVerified,
+        quotes_verified: verification.details.quotesVerified,
         no_speculation: verification.details.noSpeculation,
         facts_grounded: verification.details.factsGrounded,
         cross_model_verified: verification.details.crossModelVerified,
