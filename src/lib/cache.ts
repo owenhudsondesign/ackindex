@@ -18,6 +18,7 @@ const CACHE_PREFIX = {
   SUBSCRIPTION: 'user:subscription:',
   SEARCH_QUERY: 'search:query:',
   EMBEDDING: 'embedding:',
+  CHAT_RESPONSE: 'chat:response:',  // Full chat responses
 } as const;
 
 // TTL values in seconds
@@ -26,6 +27,7 @@ export const CACHE_TTL = {
   SUBSCRIPTION: 300,         // 5 minutes
   SEARCH_QUERY: 86400,       // 24 hours
   EMBEDDING: 2592000,        // 30 days
+  CHAT_RESPONSE: 3600,       // 1 hour for chat responses
 } as const;
 
 /**
@@ -249,4 +251,66 @@ export async function invalidateUserCaches(userId: string) {
   const success = results.every(r => r.status === 'fulfilled' && r.value === true);
   logger.debug({ userId, success }, 'User caches invalidated');
   return success;
+}
+
+/**
+ * Chat Response Caching
+ *
+ * Caches full chat responses to avoid redundant Claude API calls
+ * for identical or similar queries. Useful for common questions.
+ */
+export interface CachedChatResponse {
+  response: string;
+  citations: any[];
+  model: string;
+  cachedAt: string;
+}
+
+export async function getCachedChatResponse(query: string): Promise<CachedChatResponse | null> {
+  try {
+    // Normalize query for better cache hits
+    const normalizedQuery = query.toLowerCase().trim().replace(/\s+/g, ' ');
+    const queryHash = generateHash(normalizedQuery);
+    const key = `${CACHE_PREFIX.CHAT_RESPONSE}${queryHash}`;
+    const cached = await kv.get<CachedChatResponse>(key);
+
+    if (cached) {
+      logger.info({ query: query.substring(0, 50), queryHash }, 'Chat response cache HIT');
+      return cached;
+    }
+
+    logger.debug({ query: query.substring(0, 50), queryHash }, 'Chat response cache miss');
+    return null;
+  } catch (error) {
+    logger.error({ error, query: query.substring(0, 50) }, 'Error getting cached chat response');
+    return null;
+  }
+}
+
+export async function setCachedChatResponse(
+  query: string,
+  response: string,
+  citations: any[],
+  model: string
+): Promise<boolean> {
+  try {
+    // Normalize query for better cache hits
+    const normalizedQuery = query.toLowerCase().trim().replace(/\s+/g, ' ');
+    const queryHash = generateHash(normalizedQuery);
+    const key = `${CACHE_PREFIX.CHAT_RESPONSE}${queryHash}`;
+
+    const cacheData: CachedChatResponse = {
+      response,
+      citations,
+      model,
+      cachedAt: new Date().toISOString(),
+    };
+
+    await kv.set(key, cacheData, { ex: CACHE_TTL.CHAT_RESPONSE });
+    logger.info({ query: query.substring(0, 50), queryHash, ttl: CACHE_TTL.CHAT_RESPONSE }, 'Chat response cached');
+    return true;
+  } catch (error) {
+    logger.error({ error, query: query.substring(0, 50) }, 'Error caching chat response');
+    return false;
+  }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateClaudeResponseWithUsage, CLAUDE_MODEL, CLAUDE_COSTS, ClaudeRateLimitError, type ClaudeMessage } from '@/lib/anthropic';
+import { generateClaudeResponseWithUsage, CLAUDE_MODEL, CLAUDE_COSTS, SONNET_COSTS, ClaudeRateLimitError, selectModelForQuery, type ClaudeMessage } from '@/lib/anthropic';
 import { retrieveRelevantChunks, buildContext, extractCitations, hasRelevantResults, deduplicateResults, isRecencyQuery } from '@/lib/retrieval';
 import { canUserQuery, recordUsage, getUserDashboard } from '@/lib/userProfile';
 import { generateFingerprint, getOrCreateAnonymousSession, recordAnonymousUsage, ANONYMOUS_QUERY_LIMIT } from '@/lib/anonymousSession';
@@ -13,6 +13,7 @@ import logger from '@/lib/logger';
 import { logQuery } from '@/lib/analytics';
 import { createConversation, addMessage, getRecentMessages, autoGenerateTitle, updateConversationTitle } from '@/lib/conversations';
 import { checkRateLimit, checkGlobalRateLimit, getRateLimitTier, createRateLimitHeaders } from '@/lib/rateLimit';
+import { getCachedChatResponse, setCachedChatResponse } from '@/lib/cache';
 
 /**
  * Follow-up query patterns that indicate user is referencing previous context
@@ -425,6 +426,44 @@ export async function POST(request: NextRequest) {
     // Use sanitized input for the rest of the processing
     const sanitizedMessage = validation.sanitizedInput;
 
+    // Check cache for identical queries (only for non-follow-up, stateless queries)
+    // Follow-up queries need fresh context, so we skip cache for those
+    const isFollowUp = isFollowUpQuery(message) && conversationHistory.length > 0;
+    if (!isFollowUp && conversationHistory.length === 0) {
+      const cachedResponse = await getCachedChatResponse(sanitizedMessage);
+      if (cachedResponse) {
+        log.info({ query: sanitizedMessage.substring(0, 50), cachedAt: cachedResponse.cachedAt }, 'Returning cached response');
+
+        // Still record the query for analytics (but no Claude API cost)
+        const responseTime = Date.now() - startTime;
+        if (user) {
+          logQuery({
+            user_id: user.id,
+            query_text: sanitizedMessage,
+            response_text: cachedResponse.response,
+            tokens_used: 0, // No tokens used for cached response
+            response_time_ms: responseTime,
+            has_results: true,
+            num_citations: cachedResponse.citations.length,
+          }).catch(err => log.error({ err }, 'Failed to log cached query'));
+        }
+
+        return NextResponse.json({
+          response: cachedResponse.response,
+          citations: cachedResponse.citations,
+          hasContext: true,
+          cached: true,
+          stats: { chunksRetrieved: 0, avgSimilarity: 0 },
+          usage: {
+            tokensUsed: 0,
+            tokensRemaining: dashboard?.tokens_remaining || 0,
+            monthlyLimit: dashboard?.monthly_token_limit || 50000,
+            isAnonymous,
+          },
+        });
+      }
+    }
+
     // Step 2: Retrieve relevant chunks using hybrid search
     // Hybrid combines semantic (vector) + keyword (text) search for better recall
     // This helps with specific terms like legal codes (e.g., "4181L") that semantic alone might miss
@@ -580,19 +619,29 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: sanitizedMessage },
     ];
 
+    // Smart model selection: Use Haiku for simple queries, Sonnet for complex ones
+    const selectedModel = selectModelForQuery(sanitizedMessage);
+
     // Debug: Log system prompt details
     log.debug({
       systemPromptLength: systemPrompt.length,
       contextLength: context.length,
-      model: CLAUDE_MODEL
+      model: selectedModel
     }, 'Sending query to Claude');
 
     const claudeResult = await generateClaudeResponseWithUsage(claudeMessages, {
       system: systemPrompt,
       temperature: 0.3, // Low temperature for more factual responses
       maxTokens: 1024, // Allow detailed answers with quotes
+      model: selectedModel, // Smart routing: haiku (default) or sonnet (complex)
     });
     const rawResponse = claudeResult.text;
+
+    log.info({
+      model: claudeResult.model,
+      selectedModel,
+      query: sanitizedMessage.substring(0, 50),
+    }, 'Model selected for query');
 
     // Validate AI response for potential system prompt leaks
     const responseValidation = validateAIResponse(rawResponse);
@@ -726,11 +775,14 @@ export async function POST(request: NextRequest) {
     const outputTokens = claudeResult.usage.outputTokens;
     const totalTokens = inputTokens + outputTokens;
 
-    // Calculate cost (Claude 4.5 Sonnet pricing)
-    // $3.00 per 1M input tokens, $15.00 per 1M output tokens
+    // Calculate cost based on which model was used
+    // Haiku: $0.80/$4.00 per 1M tokens (input/output)
+    // Sonnet: $3.00/$15.00 per 1M tokens (input/output)
+    const usedSonnet = selectedModel === 'sonnet';
+    const costs = usedSonnet ? SONNET_COSTS : CLAUDE_COSTS;
     const costCents = Math.ceil(
-      (inputTokens / 1_000_000) * CLAUDE_COSTS.input * 100 +
-      (outputTokens / 1_000_000) * CLAUDE_COSTS.output * 100
+      (inputTokens / 1_000_000) * costs.input * 100 +
+      (outputTokens / 1_000_000) * costs.output * 100
     );
 
     // Record usage in database
@@ -837,6 +889,13 @@ export async function POST(request: NextRequest) {
         monthlyLimit: dashboard?.monthly_token_limit || 50000,
         isAnonymous: false,
       };
+    }
+
+    // Cache successful responses for stateless queries (not follow-ups, not conversations)
+    // This helps reduce API costs for common/repeated questions
+    if (!isFollowUp && conversationHistory.length === 0 && verification.isValid) {
+      setCachedChatResponse(sanitizedMessage, finalResponse, citations, claudeResult.model)
+        .catch(err => log.error({ err }, 'Failed to cache chat response'));
     }
 
     // For follow-up questions, include previous citations so [1], [2] references still work
