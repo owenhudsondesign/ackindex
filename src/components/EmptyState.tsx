@@ -48,7 +48,7 @@ export default function EmptyState({ onQuestionClick }: EmptyStateProps) {
         <div className="text-left">
           <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">How it works</p>
           <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-            AckIndex searches official documents and provides answers with source citations. 
+            AckIndex searches through town meeting recordings and provides answers with source citations.
             If we don't have enough information, we'll let you know.
           </p>
         </div>
