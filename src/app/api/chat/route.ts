@@ -507,7 +507,7 @@ export async function POST(request: NextRequest) {
     // Step 3: Check if we have relevant information
     // Use lower threshold for recency/broad queries since they have naturally lower semantic similarity
     const isRecent = isRecencyQuery(sanitizedMessage);
-    const isFollowUp = isFollowUpQuery(message) && conversationHistory.length > 0;
+    // Note: isFollowUp is already defined above for cache check
     // Voyage AI voyage-3-large typically returns 50-70% for relevant content
     // Thresholds calibrated based on testing: 50%+ indicates relevant content
     const similarityThreshold = isRecent ? 0.45 : 0.50;
