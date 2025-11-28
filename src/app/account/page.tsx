@@ -30,6 +30,7 @@ function AccountContent() {
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<UserDashboard | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [emailUpdating, setEmailUpdating] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -73,6 +74,34 @@ function AccountContent() {
     }
   };
 
+  const toggleEmailUpdates = async () => {
+    if (!dashboard || emailUpdating) return;
+
+    setEmailUpdating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const newValue = !dashboard.email_updates_enabled;
+
+      const response = await fetch('/api/user/email-preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ email_updates_enabled: newValue })
+      });
+
+      if (response.ok) {
+        setDashboard({ ...dashboard, email_updates_enabled: newValue });
+      }
+    } catch (error) {
+      console.error('Error updating email preferences:', error);
+    } finally {
+      setEmailUpdating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -265,12 +294,24 @@ function AccountContent() {
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Email Updates</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Get notified about new features</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Weekly Newsletter</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Get weekly summaries of town meetings</p>
                   </div>
-                  <span className={`text-sm font-medium ${dashboard.email_updates_enabled ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {dashboard.email_updates_enabled ? 'On' : 'Off'}
-                  </span>
+                  <button
+                    onClick={toggleEmailUpdates}
+                    disabled={emailUpdating}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                      dashboard.email_updates_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                    }`}
+                    role="switch"
+                    aria-checked={dashboard.email_updates_enabled}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        dashboard.email_updates_enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
             </Card>
