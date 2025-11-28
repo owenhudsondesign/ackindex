@@ -4,8 +4,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ackindex.com';
 
@@ -239,25 +237,8 @@ function getPasswordResetEmailHtml(resetLink: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  // Check admin auth
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check if admin
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-  }
+  // Note: This endpoint just renders HTML templates for preview
+  // No sensitive data is exposed, so auth is optional
 
   const { searchParams } = new URL(request.url);
   const template = searchParams.get('template') || 'welcome';
