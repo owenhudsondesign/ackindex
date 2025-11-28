@@ -128,21 +128,19 @@ export async function POST(request: NextRequest) {
         }
       }
     } else if (hasLanguageUpdate) {
-      // Just updating language preference - upsert to handle users without a record
-      const { error: langError } = await supabaseAdmin
+      // Just updating language preference
+      logger.info({ email: user.email, preferred_language }, '[EmailPreferences] Updating language only');
+
+      const { data: updateData, error: langError } = await supabaseAdmin
         .from('email_subscribers')
-        .upsert({
-          email: user.email,
-          user_id: user.id,
-          preferred_language,
-          is_subscribed: false, // Default to not subscribed if creating new record
-          verified: true,
-        }, {
-          onConflict: 'user_id',
-        });
+        .update({ preferred_language })
+        .eq('email', user.email)
+        .select();
 
       if (langError) {
-        logger.warn({ error: langError }, '[EmailPreferences] Failed to update language preference');
+        logger.error({ error: langError, email: user.email }, '[EmailPreferences] Failed to update language preference');
+      } else {
+        logger.info({ updateData, rowsAffected: updateData?.length }, '[EmailPreferences] Language update result');
       }
     }
 
