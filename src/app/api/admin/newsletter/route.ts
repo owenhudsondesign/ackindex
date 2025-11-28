@@ -101,13 +101,24 @@ export async function POST(request: NextRequest) {
     const summary = await generateWeeklySummary(meetings, baseUrl);
 
     // Insert into newsletter_triggers table for Dreamlit to pick up
+    // Includes all language versions for Dreamlit to select based on user preference
     const { data: trigger, error } = await supabaseAdmin
       .from('newsletter_triggers')
       .insert({
+        // English (default)
         subject: summary.subject,
         preview_text: summary.previewText,
         html_content: summary.htmlContent,
         plain_text_content: summary.plainTextContent,
+        // Spanish
+        subject_es: summary.subject_es,
+        html_content_es: summary.htmlContent_es,
+        plain_text_content_es: summary.plainTextContent_es,
+        // Portuguese
+        subject_pt: summary.subject_pt,
+        html_content_pt: summary.htmlContent_pt,
+        plain_text_content_pt: summary.plainTextContent_pt,
+        // Metadata
         newsletter_type: 'weekly_summary',
         week_start: summary.weekStart.toISOString().split('T')[0],
         week_end: summary.weekEnd.toISOString().split('T')[0],

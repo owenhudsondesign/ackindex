@@ -39,6 +39,11 @@ CREATE INDEX IF NOT EXISTS idx_email_subscribers_frequency ON email_subscribers(
 -- RLS for email_subscribers
 ALTER TABLE email_subscribers ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (for idempotent migrations)
+DROP POLICY IF EXISTS "Users can view own subscription" ON email_subscribers;
+DROP POLICY IF EXISTS "Users can update own subscription" ON email_subscribers;
+DROP POLICY IF EXISTS "Service role full access to subscribers" ON email_subscribers;
+
 -- Users can view and update their own subscription
 CREATE POLICY "Users can view own subscription"
   ON email_subscribers

@@ -49,6 +49,7 @@ export interface UserDashboard {
   subscription_status: string;
   monthly_token_limit: number;
   email_updates_enabled: boolean;
+  preferred_language: 'en' | 'es' | 'pt';
   tokens_used_this_month: number;
   queries_this_month: number;
   tokens_remaining: number;
@@ -155,6 +156,13 @@ export async function getUserDashboard(userId: string): Promise<UserDashboard | 
       logger.error({ error: userError, userId }, 'Error fetching user email');
     }
 
+    // Fetch language preference from email_subscribers
+    const { data: subscriber } = await supabaseAdmin
+      .from('email_subscribers')
+      .select('preferred_language')
+      .eq('user_id', userId)
+      .single();
+
     // Build the dashboard object
     return {
       id: profile.id,
@@ -164,6 +172,7 @@ export async function getUserDashboard(userId: string): Promise<UserDashboard | 
       subscription_status: profile.subscription_status,
       monthly_token_limit: profile.monthly_token_limit,
       email_updates_enabled: profile.email_updates_enabled,
+      preferred_language: (subscriber?.preferred_language as 'en' | 'es' | 'pt') || 'en',
       tokens_used_this_month: tokensUsed,
       queries_this_month: queriesThisMonth,
       tokens_remaining: tokensRemaining,

@@ -17,11 +17,18 @@ interface UserDashboard {
   subscription_status: string;
   monthly_token_limit: number;
   email_updates_enabled: boolean;
+  preferred_language: 'en' | 'es' | 'pt';
   tokens_used_this_month: number;
   queries_this_month: number;
   tokens_remaining: number;
   stripe_customer_id: string | null;
 }
+
+const LANGUAGES = [
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'pt', name: 'Português', flag: '🇧🇷' },
+] as const;
 
 
 function AccountContent() {
@@ -31,6 +38,7 @@ function AccountContent() {
   const [dashboard, setDashboard] = useState<UserDashboard | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [emailUpdating, setEmailUpdating] = useState(false);
+  const [languageUpdating, setLanguageUpdating] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -100,6 +108,33 @@ function AccountContent() {
       console.error('Error updating email preferences:', error);
     } finally {
       setEmailUpdating(false);
+    }
+  };
+
+  const updateLanguage = async (language: 'en' | 'es' | 'pt') => {
+    if (!dashboard || languageUpdating || dashboard.preferred_language === language) return;
+
+    setLanguageUpdating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/user/email-preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ preferred_language: language })
+      });
+
+      if (response.ok) {
+        setDashboard({ ...dashboard, preferred_language: language });
+      }
+    } catch (error) {
+      console.error('Error updating language preference:', error);
+    } finally {
+      setLanguageUpdating(false);
     }
   };
 
@@ -313,6 +348,30 @@ function AccountContent() {
                     />
                   </button>
                 </div>
+
+                {/* Language Preference - only show if newsletter is enabled */}
+                {dashboard.email_updates_enabled && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Newsletter Language</p>
+                    <div className="flex gap-2">
+                      {LANGUAGES.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => updateLanguage(lang.code as 'en' | 'es' | 'pt')}
+                          disabled={languageUpdating}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                            dashboard.preferred_language === lang.code
+                              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          <span>{lang.flag}</span>
+                          <span>{lang.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
 

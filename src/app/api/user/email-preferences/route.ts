@@ -42,11 +42,16 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { email_updates_enabled } = body;
+    const { email_updates_enabled, preferred_language } = body;
 
-    if (typeof email_updates_enabled !== 'boolean') {
+    // Validate inputs
+    const validLanguages = ['en', 'es', 'pt'];
+    const hasEmailUpdate = typeof email_updates_enabled === 'boolean';
+    const hasLanguageUpdate = typeof preferred_language === 'string' && validLanguages.includes(preferred_language);
+
+    if (!hasEmailUpdate && !hasLanguageUpdate) {
       return NextResponse.json(
-        { error: 'Invalid request body' },
+        { error: 'Invalid request body - must include email_updates_enabled or preferred_language' },
         { status: 400 }
       );
     }
@@ -54,29 +59,37 @@ export async function POST(request: NextRequest) {
     logger.info({
       userId: user.id,
       email_updates_enabled,
+      preferred_language,
     }, '[EmailPreferences] Updating user preferences');
 
-    // Update user_profiles table
-    const { error: profileError } = await supabaseAdmin
-      .from('user_profiles')
-      .update({ email_updates_enabled })
-      .eq('id', user.id);
+    // Build update object for user_profiles
+    const profileUpdate: Record<string, unknown> = {};
+    if (hasEmailUpdate) {
+      profileUpdate.email_updates_enabled = email_updates_enabled;
+    }
 
-    if (profileError) {
-      logger.error({ error: profileError }, '[EmailPreferences] Failed to update user_profiles');
-      return NextResponse.json(
-        { error: 'Failed to update preferences' },
-        { status: 500 }
-      );
+    // Update user_profiles table if we have something to update
+    if (Object.keys(profileUpdate).length > 0) {
+      const { error: profileError } = await supabaseAdmin
+        .from('user_profiles')
+        .update(profileUpdate)
+        .eq('id', user.id);
+
+      if (profileError) {
+        logger.error({ error: profileError }, '[EmailPreferences] Failed to update user_profiles');
+        return NextResponse.json(
+          { error: 'Failed to update preferences' },
+          { status: 500 }
+        );
+      }
     }
 
     // Sync with email_subscribers table
     // This ensures Dreamlit can query subscribers correctly
-    if (email_updates_enabled) {
-      // Upsert into email_subscribers
-      const { error: subscriberError } = await supabaseAdmin
-        .from('email_subscribers')
-        .upsert({
+    if (hasEmailUpdate) {
+      if (email_updates_enabled) {
+        // Upsert into email_subscribers
+        const subscriberData: Record<string, unknown> = {
           email: user.email,
           user_id: user.id,
           is_subscribed: true,
@@ -84,37 +97,58 @@ export async function POST(request: NextRequest) {
           verified: true, // Account users are verified
           subscribed_at: new Date().toISOString(),
           unsubscribed_at: null,
-        }, {
-          onConflict: 'email',
-        });
+        };
 
-      if (subscriberError) {
-        logger.warn({ error: subscriberError }, '[EmailPreferences] Failed to upsert email_subscribers');
-        // Don't fail the request, user_profiles was updated successfully
+        // Include language if provided
+        if (hasLanguageUpdate) {
+          subscriberData.preferred_language = preferred_language;
+        }
+
+        const { error: subscriberError } = await supabaseAdmin
+          .from('email_subscribers')
+          .upsert(subscriberData, {
+            onConflict: 'email',
+          });
+
+        if (subscriberError) {
+          logger.warn({ error: subscriberError }, '[EmailPreferences] Failed to upsert email_subscribers');
+        }
+      } else {
+        // Update email_subscribers to unsubscribed
+        const { error: unsubError } = await supabaseAdmin
+          .from('email_subscribers')
+          .update({
+            is_subscribed: false,
+            unsubscribed_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id);
+
+        if (unsubError) {
+          logger.warn({ error: unsubError }, '[EmailPreferences] Failed to update email_subscribers');
+        }
       }
-    } else {
-      // Update email_subscribers to unsubscribed
-      const { error: unsubError } = await supabaseAdmin
+    } else if (hasLanguageUpdate) {
+      // Just updating language preference
+      const { error: langError } = await supabaseAdmin
         .from('email_subscribers')
-        .update({
-          is_subscribed: false,
-          unsubscribed_at: new Date().toISOString(),
-        })
+        .update({ preferred_language })
         .eq('user_id', user.id);
 
-      if (unsubError) {
-        logger.warn({ error: unsubError }, '[EmailPreferences] Failed to update email_subscribers');
+      if (langError) {
+        logger.warn({ error: langError }, '[EmailPreferences] Failed to update language preference');
       }
     }
 
     logger.info({
       userId: user.id,
       email_updates_enabled,
+      preferred_language,
     }, '[EmailPreferences] Preferences updated successfully');
 
     return NextResponse.json({
       success: true,
-      email_updates_enabled,
+      ...(hasEmailUpdate && { email_updates_enabled }),
+      ...(hasLanguageUpdate && { preferred_language }),
     });
   } catch (error) {
     logger.error({ error }, '[EmailPreferences] Unexpected error');
