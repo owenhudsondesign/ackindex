@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import logger from '@/lib/logger';
+import { sendWelcomeEmail } from '@/lib/emails';
 
 // Service role client (bypasses RLS)
 const supabaseAdmin = createClient(
@@ -104,6 +105,15 @@ export async function POST(request: NextRequest) {
         // Don't fail signup if email subscription fails
       }
     }
+
+    // Send welcome email (don't await - fire and forget to not slow down signup)
+    sendWelcomeEmail(email, fullName || '').then(result => {
+      if (result.success) {
+        log.info({ email }, 'Welcome email sent');
+      } else {
+        log.error({ email, error: result.error }, 'Failed to send welcome email');
+      }
+    });
 
     return NextResponse.json({
       success: true,
