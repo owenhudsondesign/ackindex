@@ -834,7 +834,20 @@ export async function extractCitations(results: RetrievalResult[]): Promise<Arra
 
   return topResults.map((result, index) => {
     // Extract timestamp from chunk metadata (set by longVideoProcessor)
-    const startTime = result.metadata?.start_time as number | undefined;
+    let startTime = result.metadata?.start_time as number | undefined;
+
+    // If no start_time in metadata, try to parse from content
+    // Content may have timestamps like [12:34] or [1:23:45] at the beginning
+    if (startTime === undefined && result.content) {
+      const timestampMatch = result.content.match(/\[(\d+):(\d+)(?::(\d+))?\]/);
+      if (timestampMatch) {
+        const hours = timestampMatch[3] ? parseInt(timestampMatch[1], 10) : 0;
+        const minutes = timestampMatch[3] ? parseInt(timestampMatch[2], 10) : parseInt(timestampMatch[1], 10);
+        const seconds = timestampMatch[3] ? parseInt(timestampMatch[3], 10) : parseInt(timestampMatch[2], 10);
+        startTime = hours * 3600 + minutes * 60 + seconds;
+      }
+    }
+
     const documentId = result.document?.id;
     const blogPostSlug = documentId ? blogPostMap.get(documentId) : undefined;
 
