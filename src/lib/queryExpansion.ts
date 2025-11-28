@@ -313,6 +313,8 @@ export function detectBroadQuery(query: string): BroadQueryResult {
     const match = queryLower.match(pattern);
     if (match) {
       const topic = match[1].trim();
+      const topicWords = topic.split(/\s+/).filter(w => w.length > 2);
+
       // Check if the extracted topic is itself a broad term
       for (const [term, refinements] of Object.entries(BROAD_TERM_REFINEMENTS)) {
         if (topic.includes(term) || term.includes(topic)) {
@@ -324,7 +326,18 @@ export function detectBroadQuery(query: string): BroadQueryResult {
           };
         }
       }
-      // Generic vague query
+
+      // If the topic has 3+ meaningful words, it's specific enough - NOT broad
+      // e.g., "solid waste tipping fees" is specific (4 words), "housing" is broad (1 word)
+      if (topicWords.length >= 3) {
+        return {
+          isBroad: false,
+          suggestedRefinements: [],
+          defaultConstraint: '',
+        };
+      }
+
+      // Generic vague query (only 1-2 word topic that didn't match BROAD_TERM_REFINEMENTS)
       return {
         isBroad: true,
         suggestedRefinements: ['recent meetings', 'specific topics', 'particular dates'],
@@ -382,6 +395,33 @@ function stripGenericDescriptors(query: string): string {
 }
 
 /**
+ * Conversational prefixes that should be stripped for better embedding search
+ * These phrases add no semantic value and can dilute the query embedding
+ * e.g., "tell me about solid waste tipping fees" -> "solid waste tipping fees"
+ */
+const CONVERSATIONAL_PREFIXES = [
+  /^tell\s+me\s+(?:about|more\s+about)\s+(?:the\s+)?/i,
+  /^what\s+(?:is|are|about|do\s+you\s+know\s+about)\s+(?:the\s+)?/i,
+  /^(?:can\s+you\s+)?(?:give|provide|show)\s+me\s+(?:information\s+)?(?:about|on)\s+(?:the\s+)?/i,
+  /^i\s+(?:want|need|would\s+like)\s+(?:to\s+know|information)\s+(?:about|on)\s+(?:the\s+)?/i,
+  /^(?:please\s+)?explain\s+(?:to\s+me\s+)?(?:what\s+)?(?:the\s+)?/i,
+  /^(?:information|info)\s+(?:about|on|regarding)\s+(?:the\s+)?/i,
+  /^(?:anything|something)\s+(?:about|on)\s+(?:the\s+)?/i,
+];
+
+/**
+ * Strip conversational prefixes from a query for better embedding search
+ * Returns the core topic without the conversational wrapper
+ */
+export function stripConversationalPrefix(query: string): string {
+  let stripped = query.trim();
+  for (const prefix of CONVERSATIONAL_PREFIXES) {
+    stripped = stripped.replace(prefix, '');
+  }
+  return stripped.trim();
+}
+
+/**
  * Expand query with synonyms and acronym definitions
  * Returns the expanded query and list of expansions applied
  */
@@ -390,32 +430,43 @@ export function expandQuery(query: string): QueryExpansionResult {
   const acronymsExpanded: string[] = [];
   const synonymsAdded: string[] = [];
 
-  // 0. Strip generic descriptors for better matching
+  // 0. Strip conversational prefixes first (most important for embedding quality)
+  // e.g., "tell me about solid waste tipping fees" -> "solid waste tipping fees"
+  let baseQuery = stripConversationalPrefix(query);
+  if (baseQuery !== query) {
+    logger.debug({
+      original: query,
+      stripped: baseQuery,
+    }, '[QueryExpansion] Stripped conversational prefix');
+  }
+
+  // 0b. Strip generic descriptors for better matching
   // The original query will be kept, but we also search without descriptors
-  const strippedQuery = stripGenericDescriptors(query);
-  if (strippedQuery !== query && strippedQuery.length > 3) {
+  const strippedQuery = stripGenericDescriptors(baseQuery);
+  if (strippedQuery !== baseQuery && strippedQuery.length > 3) {
     expansions.push(strippedQuery);
-    synonymsAdded.push(`stripped: "${query}" → "${strippedQuery}"`);
+    synonymsAdded.push(`stripped: "${baseQuery}" → "${strippedQuery}"`);
   }
 
   // 1. Expand acronyms (check both directions)
+  // Use baseQuery (with conversational prefix stripped) for better matching
   for (const [acronym, fullForm] of Object.entries(CIVIC_ACRONYMS)) {
     // Case-insensitive match for acronym in query
     const acronymRegex = new RegExp(`\\b${acronym}\\b`, 'gi');
-    if (acronymRegex.test(query)) {
+    if (acronymRegex.test(baseQuery)) {
       expansions.push(fullForm);
       acronymsExpanded.push(`${acronym} → ${fullForm}`);
     }
 
     // Also check if user typed full form, might want acronym matches too
-    if (query.toLowerCase().includes(fullForm.toLowerCase())) {
+    if (baseQuery.toLowerCase().includes(fullForm.toLowerCase())) {
       expansions.push(acronym);
       acronymsExpanded.push(`${fullForm} → ${acronym}`);
     }
   }
 
   // 2. Add synonym expansions
-  const queryLower = query.toLowerCase();
+  const queryLower = baseQuery.toLowerCase();
   for (const [term, synonyms] of Object.entries(CIVIC_SYNONYMS)) {
     // Check if query contains the primary term
     if (queryLower.includes(term.toLowerCase())) {
@@ -441,14 +492,17 @@ export function expandQuery(query: string): QueryExpansionResult {
   // Remove duplicates and limit expansions
   const uniqueExpansions = [...new Set(expansions)].slice(0, 5);
 
-  let expandedQuery = query;
+  // Use baseQuery (without conversational prefix) for the expanded query
+  // This significantly improves embedding quality for queries like "tell me about X"
+  let expandedQuery = baseQuery;
   if (uniqueExpansions.length > 0) {
     // Append expansions as context for better embedding
-    expandedQuery = `${query} (related: ${uniqueExpansions.join(', ')})`;
+    expandedQuery = `${baseQuery} (related: ${uniqueExpansions.join(', ')})`;
   }
 
   logger.debug({
     originalQuery: query,
+    baseQuery,
     expandedQuery,
     acronymsExpanded,
     synonymsAdded,
