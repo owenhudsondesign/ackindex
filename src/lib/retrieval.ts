@@ -76,6 +76,12 @@ const TOPIC_EXPLORATION_PATTERNS = [
   /has\s+.+\s+been\s+(discussed|mentioned|addressed)/i, // "has X been discussed"
   /what\s+has\s+been\s+said\s+about/i, // "what has been said about"
   /times?\s+.+\s+(was|were)\s+(discussed|mentioned)/i, // "times X was discussed"
+  // "What is X" style questions - these are exploratory, asking for general information about a topic
+  /what\s+is\s+(the\s+)?(a\s+)?[\w\s]+(initiative|program|project|service|plan|effort|proposal)/i,
+  /tell\s+me\s+about/i, // "tell me about X"
+  /explain\s+(the\s+)?[\w\s]+(initiative|program|project|service|plan)/i,
+  /what\s+do\s+you\s+know\s+about/i, // "what do you know about X"
+  /information\s+(about|on|regarding)/i, // "information about X"
 ];
 
 /**
