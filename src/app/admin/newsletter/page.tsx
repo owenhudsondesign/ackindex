@@ -14,6 +14,7 @@ interface NewsletterPreview {
   subject: string;
   previewText: string;
   htmlContent: string;
+  plainTextContent?: string;
   meetingsCount: number;
   meetingTypes: string[];
   weekStart: string;
@@ -42,6 +43,13 @@ export default function NewsletterAdminPage() {
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
   const [subscriberStats, setSubscriberStats] = useState<SubscriberStats | null>(null);
   const [days, setDays] = useState(7);
+
+  // Editable content state
+  const [editedSubject, setEditedSubject] = useState('');
+  const [editedPreviewText, setEditedPreviewText] = useState('');
+  const [editedHtmlContent, setEditedHtmlContent] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [showHtmlEditor, setShowHtmlEditor] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -85,11 +93,17 @@ export default function NewsletterAdminPage() {
   const generatePreview = async () => {
     setIsGenerating(true);
     setSendResult(null);
+    setIsEditing(false);
+    setShowHtmlEditor(false);
     try {
       const response = await fetch(`/api/admin/newsletter?days=${days}`);
       if (response.ok) {
         const data = await response.json();
         setPreview(data);
+        // Initialize editable state with generated content
+        setEditedSubject(data.subject || '');
+        setEditedPreviewText(data.previewText || '');
+        setEditedHtmlContent(data.htmlContent || '');
       } else {
         const error = await response.json();
         setSendResult({ success: false, message: error.error || 'Failed to generate preview' });
@@ -110,10 +124,25 @@ export default function NewsletterAdminPage() {
     setIsSending(true);
     setSendResult(null);
     try {
+      // Check if content was edited
+      const hasEdits = preview && (
+        editedSubject !== preview.subject ||
+        editedPreviewText !== preview.previewText ||
+        editedHtmlContent !== preview.htmlContent
+      );
+
       const response = await fetch('/api/admin/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ days }),
+        body: JSON.stringify({
+          days,
+          // Only send custom content if edits were made
+          customContent: hasEdits ? {
+            subject: editedSubject,
+            previewText: editedPreviewText,
+            htmlContent: editedHtmlContent,
+          } : undefined,
+        }),
       });
 
       const data = await response.json();
@@ -121,9 +150,11 @@ export default function NewsletterAdminPage() {
       if (response.ok) {
         setSendResult({
           success: true,
-          message: `Newsletter triggered successfully! ${data.meetingsCount} meetings included.`,
+          message: `Newsletter triggered successfully! ${data.meetingsCount} meetings included.${hasEdits ? ' (with your edits)' : ''}`,
         });
         setPreview(null);
+        setIsEditing(false);
+        setShowHtmlEditor(false);
       } else {
         setSendResult({ success: false, message: data.error || 'Failed to send newsletter' });
       }
@@ -267,30 +298,64 @@ export default function NewsletterAdminPage() {
           {/* Preview */}
           {preview && (
             <Card className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Newsletter Preview
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Newsletter Preview
+                </h2>
+                <Button
+                  onClick={() => setIsEditing(!isEditing)}
+                  variant="secondary"
+                  className="text-sm"
+                >
+                  {isEditing ? 'View Mode' : 'Edit Mode'}
+                </Button>
+              </div>
 
-              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="mb-2">
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Subject:</span>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium">{preview.subject}</p>
-                </div>
-                <div className="mb-2">
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Preview Text:</span>
-                  <p className="text-gray-700 dark:text-gray-300">{preview.previewText}</p>
-                </div>
-                <div className="mb-2">
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Period:</span>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    {new Date(preview.weekStart).toLocaleDateString()} - {new Date(preview.weekEnd).toLocaleDateString()}
-                  </p>
+              {/* Editable Subject & Preview Text */}
+              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    Subject:
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedSubject}
+                      onChange={(e) => setEditedSubject(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-gray-900 dark:text-gray-100 font-medium">{editedSubject}</p>
+                  )}
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Meetings Included:</span>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    {preview.meetingsCount} ({preview.meetingTypes.join(', ') || 'None'})
-                  </p>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    Preview Text:
+                  </label>
+                  {isEditing ? (
+                    <textarea
+                      value={editedPreviewText}
+                      onChange={(e) => setEditedPreviewText(e.target.value)}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-gray-700 dark:text-gray-300">{editedPreviewText}</p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Period:</span>
+                    <p className="text-gray-700 dark:text-gray-300">
+                      {new Date(preview.weekStart).toLocaleDateString()} - {new Date(preview.weekEnd).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Meetings Included:</span>
+                    <p className="text-gray-700 dark:text-gray-300">
+                      {preview.meetingsCount} ({preview.meetingTypes.join(', ') || 'None'})
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -316,17 +381,52 @@ export default function NewsletterAdminPage() {
                 </div>
               )}
 
-              {/* HTML Preview */}
+              {/* HTML Editor / Preview */}
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email Preview (English)
+                <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Email Content (English)
+                  </span>
+                  {isEditing && (
+                    <button
+                      onClick={() => setShowHtmlEditor(!showHtmlEditor)}
+                      className="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+                    >
+                      {showHtmlEditor ? 'Show Preview' : 'Edit HTML'}
+                    </button>
+                  )}
                 </div>
-                <iframe
-                  srcDoc={preview.htmlContent}
-                  className="w-full h-[600px] bg-white"
-                  title="Newsletter Preview"
-                />
+                {isEditing && showHtmlEditor ? (
+                  <textarea
+                    value={editedHtmlContent}
+                    onChange={(e) => setEditedHtmlContent(e.target.value)}
+                    className="w-full h-[600px] p-4 font-mono text-sm bg-gray-900 text-gray-100 focus:outline-none"
+                    spellCheck={false}
+                  />
+                ) : (
+                  <iframe
+                    srcDoc={editedHtmlContent}
+                    className="w-full h-[600px] bg-white"
+                    title="Newsletter Preview"
+                  />
+                )}
               </div>
+
+              {/* Reset button when editing */}
+              {isEditing && (
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => {
+                      setEditedSubject(preview.subject);
+                      setEditedPreviewText(preview.previewText);
+                      setEditedHtmlContent(preview.htmlContent);
+                    }}
+                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  >
+                    Reset to Original
+                  </button>
+                </div>
+              )}
             </Card>
           )}
         </div>

@@ -1,7 +1,7 @@
 /**
  * Newsletter Admin API
  *
- * POST /api/admin/newsletter - Generate and trigger weekly summary newsletter
+ * POST /api/admin/newsletter - Generate and send weekly summary newsletter via Resend
  * GET /api/admin/newsletter - Preview the newsletter without sending
  */
 
@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
 import { getRecentMeetings, generateWeeklySummary } from '@/lib/newsletterSummary';
 import { supabaseAdmin } from '@/lib/supabase';
+import { sendNewsletterToSubscribers } from '@/lib/resend';
 import logger from '@/lib/logger';
 
 /**
@@ -77,7 +78,8 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST - Generate and trigger the newsletter send via Dreamlit
+ * POST - Generate and send the newsletter via Resend
+ * Accepts optional customContent to override generated content
  */
 export async function POST(request: NextRequest) {
   try {
@@ -90,74 +92,104 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body = await request.json().catch(() => ({}));
     const days = body.days || 7;
+    const customContent = body.customContent as {
+      subject?: string;
+      previewText?: string;
+      htmlContent?: string;
+    } | undefined;
 
-    logger.info({ days, triggeredBy: user?.id }, '[Newsletter] Triggering newsletter send');
+    const hasCustomContent = customContent && (
+      customContent.subject || customContent.previewText || customContent.htmlContent
+    );
+
+    logger.info({
+      days,
+      triggeredBy: user?.id,
+      hasCustomContent: !!hasCustomContent
+    }, '[Newsletter] Sending newsletter via Resend');
 
     // Fetch recent meetings
     const meetings = await getRecentMeetings(days);
 
-    // Generate summary
+    // Generate summary (we always generate for translations and metadata)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://ackindex.com';
     const summary = await generateWeeklySummary(meetings, baseUrl);
 
-    // Insert into newsletter_triggers table for Dreamlit to pick up
-    // Includes all language versions for Dreamlit to select based on user preference
-    const { data: trigger, error } = await supabaseAdmin
+    // Use custom content if provided, otherwise use generated
+    const finalSubject = customContent?.subject || summary.subject;
+    const finalHtmlContent = customContent?.htmlContent || summary.htmlContent;
+
+    // Build newsletter content object for Resend
+    const newsletterContent = {
+      id: crypto.randomUUID(),
+      subject: finalSubject,
+      subject_es: summary.subject_es,
+      subject_pt: summary.subject_pt,
+      html_content: finalHtmlContent,
+      html_content_es: summary.htmlContent_es,
+      html_content_pt: summary.htmlContent_pt,
+      plain_text_content: summary.plainTextContent,
+      plain_text_content_es: summary.plainTextContent_es,
+      plain_text_content_pt: summary.plainTextContent_pt,
+    };
+
+    // Send via Resend
+    const { sent, failed, errors } = await sendNewsletterToSubscribers(newsletterContent);
+
+    // Log to newsletter_triggers for record keeping
+    const { data: trigger, error: insertError } = await supabaseAdmin
       .from('newsletter_triggers')
       .insert({
-        // English (default)
-        subject: summary.subject,
-        preview_text: summary.previewText,
-        html_content: summary.htmlContent,
+        subject: finalSubject,
+        preview_text: customContent?.previewText || summary.previewText,
+        html_content: finalHtmlContent,
         plain_text_content: summary.plainTextContent,
-        // Spanish
         subject_es: summary.subject_es,
         html_content_es: summary.htmlContent_es,
         plain_text_content_es: summary.plainTextContent_es,
-        // Portuguese
         subject_pt: summary.subject_pt,
         html_content_pt: summary.htmlContent_pt,
         plain_text_content_pt: summary.plainTextContent_pt,
-        // Metadata
         newsletter_type: 'weekly_summary',
         week_start: summary.weekStart.toISOString().split('T')[0],
         week_end: summary.weekEnd.toISOString().split('T')[0],
         meetings_count: summary.meetingsCount,
         meeting_types: summary.meetingTypes,
-        status: 'pending',
+        status: failed === 0 ? 'sent' : 'partial',
+        processed_at: new Date().toISOString(),
         triggered_by: user?.id,
       })
       .select()
       .single();
 
-    if (error) {
-      logger.error({ error }, '[Newsletter] Failed to insert trigger');
-      return NextResponse.json(
-        { error: 'Failed to trigger newsletter' },
-        { status: 500 }
-      );
+    if (insertError) {
+      logger.warn({ error: insertError }, '[Newsletter] Failed to log newsletter to database (emails were still sent)');
     }
 
     logger.info({
-      triggerId: trigger.id,
+      triggerId: trigger?.id,
+      sent,
+      failed,
       meetingsCount: summary.meetingsCount,
-      meetingTypes: summary.meetingTypes,
-    }, '[Newsletter] Newsletter triggered successfully');
+    }, '[Newsletter] Newsletter sent via Resend');
 
     return NextResponse.json({
       success: true,
-      triggerId: trigger.id,
-      subject: summary.subject,
+      triggerId: trigger?.id,
+      subject: finalSubject,
       meetingsCount: summary.meetingsCount,
       meetingTypes: summary.meetingTypes,
       weekStart: summary.weekStart.toISOString(),
       weekEnd: summary.weekEnd.toISOString(),
-      message: 'Newsletter triggered. Dreamlit will send it to subscribers.',
+      emailsSent: sent,
+      emailsFailed: failed,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Newsletter sent to ${sent} subscriber${sent !== 1 ? 's' : ''}${failed > 0 ? ` (${failed} failed)` : ''}.`,
     });
   } catch (error) {
-    logger.error({ error }, '[Newsletter] Trigger failed');
+    logger.error({ error }, '[Newsletter] Send failed');
     return NextResponse.json(
-      { error: 'Failed to trigger newsletter' },
+      { error: 'Failed to send newsletter' },
       { status: 500 }
     );
   }
