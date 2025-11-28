@@ -202,7 +202,8 @@ RESPONSE RULES:
 6. CITATION FORMAT:
    - Cite your sources inline using [1], [2], [3] or [Source 1], [Source 2], [Source 3] notation
    - Place citations at the end of sentences or claims that need attribution
-   - Each number should correspond to a source document in the context
+   - Each number should correspond to a source document in the CURRENT context provided below
+   - IMPORTANT: Citation numbers are SPECIFIC to each response. Do NOT reuse citation numbers from previous responses in the conversation - always use the numbers from the current "Context from meeting transcripts" section
    - EVERY factual claim, date, quote, or meeting reference MUST have a citation
    - Example: "The Select Board voted 4-1 to approve new regulations.[1]"
    - WRONG format: "[From Select Board, October 22, 2025]" - do NOT write out full source names
