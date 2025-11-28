@@ -297,6 +297,61 @@ export default function NewsletterAdminPage() {
             </Card>
           )}
 
+          {/* Controls */}
+          <Card className="p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Generate Newsletter
+            </h2>
+
+            <div className="flex items-center gap-4 mb-4">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Include meetings from the last:
+              </label>
+              <select
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              >
+                <option value={7}>7 days</option>
+                <option value={14}>14 days</option>
+                <option value={30}>30 days</option>
+              </select>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={generatePreview}
+                disabled={isGenerating}
+                variant="secondary"
+              >
+                {isGenerating ? 'Generating...' : 'Preview Newsletter'}
+              </Button>
+
+              {preview && (
+                <Button
+                  onClick={sendNewsletter}
+                  disabled={isSending}
+                  variant="primary"
+                >
+                  {isSending ? 'Sending...' : 'Send to Subscribers'}
+                </Button>
+              )}
+            </div>
+
+            {/* Result Message */}
+            {sendResult && (
+              <div
+                className={`mt-4 p-4 rounded-lg ${
+                  sendResult.success
+                    ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700'
+                    : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700'
+                }`}
+              >
+                {sendResult.message}
+              </div>
+            )}
+          </Card>
+
           {/* Newsletter Queue */}
           <Card className="p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -314,7 +369,7 @@ export default function NewsletterAdminPage() {
 
             {queue.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400 text-sm">
-                No newsletters in queue. Generate one below.
+                No newsletters in queue. Generate one above.
               </p>
             ) : (
               <div className="space-y-3">
@@ -373,61 +428,6 @@ export default function NewsletterAdminPage() {
                     </button>
                   </div>
                 ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Controls */}
-          <Card className="p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Generate Newsletter
-            </h2>
-
-            <div className="flex items-center gap-4 mb-4">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Include meetings from the last:
-              </label>
-              <select
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              >
-                <option value={7}>7 days</option>
-                <option value={14}>14 days</option>
-                <option value={30}>30 days</option>
-              </select>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={generatePreview}
-                disabled={isGenerating}
-                variant="secondary"
-              >
-                {isGenerating ? 'Generating...' : 'Preview Newsletter'}
-              </Button>
-
-              {preview && (
-                <Button
-                  onClick={sendNewsletter}
-                  disabled={isSending}
-                  variant="primary"
-                >
-                  {isSending ? 'Sending...' : 'Send to Subscribers'}
-                </Button>
-              )}
-            </div>
-
-            {/* Result Message */}
-            {sendResult && (
-              <div
-                className={`mt-4 p-4 rounded-lg ${
-                  sendResult.success
-                    ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700'
-                    : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700'
-                }`}
-              >
-                {sendResult.message}
               </div>
             )}
           </Card>

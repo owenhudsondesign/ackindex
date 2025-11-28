@@ -135,7 +135,6 @@ Use simple, clean HTML with inline styles. Use a warm, community-focused tone.`;
       [{ role: 'user', content: prompt }],
       {
         model: 'sonnet',
-        maxTokens: 2000,
         temperature: 0.7,
       }
     );
@@ -221,6 +220,8 @@ Respond with JSON containing the COMPLETE translations:
   "summary": "COMPLETE fully translated email body HTML - every single word translated"
 }`;
 
+    logger.info({ targetLang }, '[Newsletter] Requesting translation');
+
     const response = await generateClaudeResponse(
       [{ role: 'user', content: prompt }],
       {
@@ -229,12 +230,23 @@ Respond with JSON containing the COMPLETE translations:
       }
     );
 
+    logger.info({ targetLang, responseLength: response.length }, '[Newsletter] Translation response received');
+
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      logger.error({ targetLang, response: response.substring(0, 500) }, '[Newsletter] Failed to parse translation JSON');
       throw new Error('Failed to parse translation response');
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
+
+    if (!parsed.summary || parsed.summary.length < 100) {
+      logger.error({ targetLang, summaryLength: parsed.summary?.length }, '[Newsletter] Translation summary too short or missing');
+      throw new Error('Translation summary is too short or missing');
+    }
+
+    logger.info({ targetLang, summaryLength: parsed.summary.length }, '[Newsletter] Translation parsed successfully');
+
     const htmlContent = buildEmailHtml(parsed.summary, meetings, baseUrl, targetLang);
     const plainTextContent = stripHtml(parsed.summary);
 
