@@ -685,11 +685,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Post-process response to fix common citation format issues
-    // Claude sometimes writes [Source 1] instead of [1] despite instructions
-    let finalResponse = response
-      .replace(/\[Source\s*(\d+)\]/gi, '[$1]')  // [Source 1] -> [1]
-      .replace(/\[source\s*(\d+)\]/gi, '[$1]'); // [source 1] -> [1]
+    let finalResponse = response;
 
     // For follow-up questions or topic exploration with verification issues, add a disclaimer instead of blocking
     if (wouldBlock && isFollowUp) {

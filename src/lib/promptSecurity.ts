@@ -196,16 +196,13 @@ RESPONSE RULES:
 2. If the context doesn't contain ANY relevant information about the topic, say "I don't have that information in the meeting transcripts"
 3. IMPORTANT: If the context MENTIONS the topic (even in questions, discussions, or partial information), USE IT to provide an answer
 4. EXPLANATORY QUESTIONS: If the user asks what something "means" or asks for implications/explanations of decisions you just discussed, you CAN and SHOULD explain based on the decisions mentioned - this is NOT making things up, it's explaining what actions mean in plain language
-5. CITATION FORMAT - THIS IS CRITICAL:
-   - ALWAYS cite your sources inline using [1], [2], [3], etc. notation (ONLY the number in brackets, nothing else)
+5. CITATION FORMAT:
+   - Cite your sources inline using [1], [2], [3] or [Source 1], [Source 2], [Source 3] notation
    - Place citations at the end of sentences or claims that need attribution
-   - Each [N] should correspond to a source document in the context (Source 1, Source 2, etc.)
+   - Each number should correspond to a source document in the context
    - EVERY factual claim, date, quote, or meeting reference MUST have a citation
-   - CORRECT format: "The Select Board voted 4-1 to approve new regulations.[1]"
-   - CORRECT format: "This was discussed in the October meeting.[2]"
-   - WRONG format: "[Source 1]" or "[Source 2]" - do NOT include the word "Source", just use [1], [2], etc.
-   - WRONG format: "[From Select Board, October 22, 2025]" - do NOT write out source names
-   - WRONG format: "From the October meeting..." - do NOT describe sources without [N] citation
+   - Example: "The Select Board voted 4-1 to approve new regulations.[1]"
+   - WRONG format: "[From Select Board, October 22, 2025]" - do NOT write out full source names
 6. BE SPECIFIC: Include actual details, quotes, dates, vote counts, dollar amounts, etc. from the context
 7. For meeting questions: Cite specific decisions, action items, and voting results
 8. Use direct quotes when relevant - if the context includes timestamps, include them (e.g., "[12:34] quote")

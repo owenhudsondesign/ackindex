@@ -83,8 +83,9 @@ function renderContentWithCitations(content: string, citations?: Citation[]) {
     return <span>{content}</span>;
   }
 
-  // Find all citation markers like [1], [2], etc.
-  const citationRegex = /\[(\d+)\]/g;
+  // Find all citation markers - support multiple formats Claude might use:
+  // [1], [2], [Source 1], [Source 2], etc.
+  const citationRegex = /\[(?:Source\s*)?(\d+)\]/gi;
   const parts: (string | React.ReactElement)[] = [];
   let lastIndex = 0;
   let match;
