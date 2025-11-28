@@ -199,27 +199,33 @@ async function translateNewsletter(
 
   try {
     const prompt = `Translate this newsletter email content to ${langName}.
-Keep the same friendly, community-focused tone. Preserve any HTML formatting.
 
-Subject line: "${originalSubject}"
+IMPORTANT RULES:
+- You MUST translate the ENTIRE content completely - do not truncate, summarize, or skip any sections
+- Do NOT write things like "... [rest translated similarly]" or "..." - translate EVERY word
+- Keep the same friendly, community-focused tone
+- Preserve ALL HTML formatting exactly as provided
+- Translate all text content but keep HTML tags, URLs, numbers, and proper nouns unchanged
 
-Preview text: "${originalPreviewText}"
+Subject line to translate: "${originalSubject}"
 
-Email body:
+Preview text to translate: "${originalPreviewText}"
+
+Email body HTML to translate (translate ALL of this completely):
 ${originalSummary}
 
-Respond with JSON:
+Respond with JSON containing the COMPLETE translations:
 {
-  "subject": "translated subject line",
-  "previewText": "translated preview text",
-  "summary": "translated email body HTML"
+  "subject": "fully translated subject line",
+  "previewText": "fully translated preview text",
+  "summary": "COMPLETE fully translated email body HTML - every single word translated"
 }`;
 
     const response = await generateClaudeResponse(
       [{ role: 'user', content: prompt }],
       {
-        model: 'haiku', // Use Haiku for translations (faster, cheaper)
-        maxTokens: 2000,
+        model: 'sonnet', // Use Sonnet for better quality translations
+        maxTokens: 4000, // Increase token limit for full translation
         temperature: 0.3,
       }
     );
