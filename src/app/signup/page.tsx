@@ -71,20 +71,34 @@ export default function SignUpPage() {
       }
 
       // Now log them in automatically
-      await signIn({
-        email: formData.email,
-        password: formData.password,
-      });
+      try {
+        await signIn({
+          email: formData.email,
+          password: formData.password,
+        });
+      } catch (signInErr) {
+        // Sign in failed but account was created - that's okay, they can log in manually
+        console.log('Auto sign-in failed, account was created');
+      }
 
       setSuccess(true);
-      
+
       // Redirect to home page after 2 seconds to use the chatbot
       setTimeout(() => {
         router.push('/');
         router.refresh();
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Failed to create account. Please try again.');
+      // Check for specific error messages and make them user-friendly
+      const errorMessage = err.message || 'Failed to create account. Please try again.';
+
+      if (errorMessage.includes('already registered') || errorMessage.includes('already been registered')) {
+        setError('An account with this email already exists. Please log in instead, or use "Forgot Password" if you need to reset your password.');
+      } else if (errorMessage.includes('Invalid login credentials')) {
+        setError('An account with this email already exists. Please log in instead, or use "Forgot Password" if you need to reset your password.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
