@@ -301,6 +301,7 @@ const EMAIL_STRINGS: Record<SupportedLanguage, {
 
 /**
  * Build full HTML email with header, content, and footer
+ * Brand blue: #2e90c6
  */
 function buildEmailHtml(
   summaryContent: string,
@@ -309,14 +310,15 @@ function buildEmailHtml(
   lang: SupportedLanguage = 'en'
 ): string {
   const strings = EMAIL_STRINGS[lang];
+  const brandBlue = '#2e90c6';
 
   const meetingLinks = meetings.map(m => `
     <tr>
-      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-        <a href="${baseUrl}/blog/${m.slug}" style="color: #2563eb; text-decoration: none; font-weight: 500;">
+      <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+        <a href="${baseUrl}/blog/${m.slug}" style="color: ${brandBlue}; text-decoration: none; font-weight: 500;">
           ${m.title}
         </a>
-        <div style="color: #6b7280; font-size: 14px; margin-top: 4px;">
+        <div style="color: #6b7280; font-size: 13px; margin-top: 2px;">
           ${m.meeting_type || 'Meeting'} • ${m.meeting_date ? new Date(m.meeting_date).toLocaleDateString() : ''}
         </div>
       </td>
@@ -330,20 +332,29 @@ function buildEmailHtml(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${strings.title}</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; }
+      .email-padding { padding-left: 16px !important; padding-right: 16px !important; }
+      .header-padding { padding: 20px 16px !important; }
+      .content-padding { padding: 20px 16px !important; }
+      .footer-padding { padding: 16px !important; }
+    }
+  </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6;">
     <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <td align="center" style="padding: 20px 8px;">
+        <table role="presentation" class="email-container" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 600px;">
 
           <!-- Header -->
           <tr>
-            <td style="padding: 32px 40px; background-color: #1e3a5f; border-radius: 8px 8px 0 0;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
-                📋 ${strings.title}
+            <td class="header-padding" style="padding: 24px 24px; background-color: ${brandBlue}; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 600;">
+                ${strings.title}
               </h1>
-              <p style="margin: 8px 0 0 0; color: #94a3b8; font-size: 14px;">
+              <p style="margin: 6px 0 0 0; color: rgba(255,255,255,0.85); font-size: 14px;">
                 ${strings.subtitle}
               </p>
             </td>
@@ -351,16 +362,16 @@ function buildEmailHtml(
 
           <!-- Main Content -->
           <tr>
-            <td style="padding: 32px 40px;">
+            <td class="content-padding" style="padding: 24px;">
               ${summaryContent}
             </td>
           </tr>
 
           <!-- Meeting Links -->
           <tr>
-            <td style="padding: 0 40px 32px 40px;">
-              <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #1f2937;">
-                📄 ${strings.meetingSummaries}
+            <td class="email-padding" style="padding: 0 24px 24px 24px;">
+              <h2 style="margin: 0 0 12px 0; font-size: 17px; color: #1f2937;">
+                ${strings.meetingSummaries}
               </h2>
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 ${meetingLinks}
@@ -370,8 +381,8 @@ function buildEmailHtml(
 
           <!-- CTA -->
           <tr>
-            <td style="padding: 0 40px 32px 40px;" align="center">
-              <a href="${baseUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">
+            <td class="email-padding" style="padding: 0 24px 24px 24px;" align="center">
+              <a href="${baseUrl}" style="display: inline-block; padding: 12px 24px; background-color: ${brandBlue}; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 ${strings.visitButton} →
               </a>
             </td>
@@ -379,10 +390,10 @@ function buildEmailHtml(
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 24px 40px; background-color: #f9fafb; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
+            <td class="footer-padding" style="padding: 20px 24px; background-color: #f9fafb; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0; color: #6b7280; font-size: 12px; text-align: center;">
                 ${strings.footerText}<br>
-                <a href="${baseUrl}/unsubscribe" style="color: #6b7280;">${strings.unsubscribe}</a> •
+                <a href="${baseUrl}/account" style="color: #6b7280;">${strings.unsubscribe}</a> •
                 <a href="${baseUrl}" style="color: #6b7280;">AckIndex.com</a>
               </p>
             </td>
