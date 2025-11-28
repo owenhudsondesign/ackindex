@@ -128,11 +128,18 @@ export async function POST(request: NextRequest) {
         }
       }
     } else if (hasLanguageUpdate) {
-      // Just updating language preference
+      // Just updating language preference - upsert to handle users without a record
       const { error: langError } = await supabaseAdmin
         .from('email_subscribers')
-        .update({ preferred_language })
-        .eq('user_id', user.id);
+        .upsert({
+          email: user.email,
+          user_id: user.id,
+          preferred_language,
+          is_subscribed: false, // Default to not subscribed if creating new record
+          verified: true,
+        }, {
+          onConflict: 'user_id',
+        });
 
       if (langError) {
         logger.warn({ error: langError }, '[EmailPreferences] Failed to update language preference');
