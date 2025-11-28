@@ -438,6 +438,13 @@ export async function POST(request: NextRequest) {
     const isRecencySearch = isRecencyQuery(sanitizedMessage);
     const isTopicExploration = isTopicExplorationQuery(sanitizedMessage);
 
+    log.info({
+      query: sanitizedMessage,
+      isFollowUp,
+      isRecencySearch,
+      isTopicExploration,
+    }, 'Query classification');
+
     const rawResults = await retrieveRelevantChunks(sanitizedMessage, {
       maxResults: 10,
       minSimilarity: 0.30, // Minimum quality threshold - filter out truly irrelevant results
