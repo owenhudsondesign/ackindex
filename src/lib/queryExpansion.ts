@@ -246,6 +246,10 @@ export const CIVIC_SYNONYMS: Record<string, string[]> = {
   'accessibility': ['ADA', 'accommodations', 'language access', 'translation', 'interpreter'],
   'spanish': ['translation', 'language access', 'multilingual', 'Portuguese', 'interpreter'],
   'portuguese': ['translation', 'language access', 'multilingual', 'Spanish', 'interpreter'],
+
+  // Transportation
+  'micro transit': ['on demand', 'demand response', 'shuttle service', 'transit'],
+  'on demand transit': ['micro transit', 'shuttle', 'demand response'],
 };
 
 // =============================================================================
@@ -348,6 +352,36 @@ export interface QueryExpansionResult {
 }
 
 /**
+ * Generic descriptors that should be stripped from search queries
+ * These words add context but don't help find specific content
+ * e.g., "wave on demand initiative" -> search for "wave on demand"
+ */
+const GENERIC_DESCRIPTORS = [
+  'initiative',
+  'program',
+  'project',
+  'service',
+  'plan',
+  'effort',
+  'proposal',
+  'policy',
+  'strategy',
+];
+
+/**
+ * Strip generic descriptors from a query for better search matching
+ * e.g., "wave on demand initiative" -> "wave on demand"
+ */
+function stripGenericDescriptors(query: string): string {
+  let stripped = query;
+  for (const descriptor of GENERIC_DESCRIPTORS) {
+    // Remove the descriptor word (case-insensitive, word boundary)
+    stripped = stripped.replace(new RegExp(`\\s+${descriptor}\\b`, 'gi'), '');
+  }
+  return stripped.trim();
+}
+
+/**
  * Expand query with synonyms and acronym definitions
  * Returns the expanded query and list of expansions applied
  */
@@ -355,6 +389,14 @@ export function expandQuery(query: string): QueryExpansionResult {
   const expansions: string[] = [];
   const acronymsExpanded: string[] = [];
   const synonymsAdded: string[] = [];
+
+  // 0. Strip generic descriptors for better matching
+  // The original query will be kept, but we also search without descriptors
+  const strippedQuery = stripGenericDescriptors(query);
+  if (strippedQuery !== query && strippedQuery.length > 3) {
+    expansions.push(strippedQuery);
+    synonymsAdded.push(`stripped: "${query}" → "${strippedQuery}"`);
+  }
 
   // 1. Expand acronyms (check both directions)
   for (const [acronym, fullForm] of Object.entries(CIVIC_ACRONYMS)) {
