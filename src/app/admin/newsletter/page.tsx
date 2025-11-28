@@ -33,6 +33,17 @@ interface SubscriberStats {
   byLanguage: { en: number; es: number; pt: number };
 }
 
+interface QueuedNewsletter {
+  id: string;
+  subject: string;
+  status: string;
+  created_at: string;
+  processed_at: string | null;
+  meetings_count: number;
+  week_start: string | null;
+  week_end: string | null;
+}
+
 export default function NewsletterAdminPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +62,11 @@ export default function NewsletterAdminPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [showHtmlEditor, setShowHtmlEditor] = useState(false);
 
+  // Queue state
+  const [queue, setQueue] = useState<QueuedNewsletter[]>([]);
+  const [isLoadingQueue, setIsLoadingQueue] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -68,6 +84,7 @@ export default function NewsletterAdminPage() {
 
         setIsAuthorized(true);
         fetchSubscriberStats();
+        fetchQueue();
       } catch (error) {
         console.error('Auth check failed:', error);
         router.push('/admin/login');
@@ -87,6 +104,45 @@ export default function NewsletterAdminPage() {
       }
     } catch (error) {
       console.error('Failed to fetch subscriber stats:', error);
+    }
+  };
+
+  const fetchQueue = async () => {
+    setIsLoadingQueue(true);
+    try {
+      const response = await fetch('/api/admin/newsletter/queue');
+      if (response.ok) {
+        const data = await response.json();
+        setQueue(data.newsletters || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch newsletter queue:', error);
+    } finally {
+      setIsLoadingQueue(false);
+    }
+  };
+
+  const deleteNewsletter = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this newsletter?')) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const response = await fetch(`/api/admin/newsletter/queue?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setQueue(queue.filter(n => n.id !== id));
+      } else {
+        alert('Failed to delete newsletter');
+      }
+    } catch (error) {
+      console.error('Failed to delete newsletter:', error);
+      alert('Failed to delete newsletter');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -150,11 +206,12 @@ export default function NewsletterAdminPage() {
       if (response.ok) {
         setSendResult({
           success: true,
-          message: `Newsletter triggered successfully! ${data.meetingsCount} meetings included.${hasEdits ? ' (with your edits)' : ''}`,
+          message: data.message || `Newsletter sent successfully! ${data.meetingsCount} meetings included.${hasEdits ? ' (with your edits)' : ''}`,
         });
         setPreview(null);
         setIsEditing(false);
         setShowHtmlEditor(false);
+        fetchQueue(); // Refresh queue to show the sent newsletter
       } else {
         setSendResult({ success: false, message: data.error || 'Failed to send newsletter' });
       }
@@ -239,6 +296,86 @@ export default function NewsletterAdminPage() {
               </div>
             </Card>
           )}
+
+          {/* Newsletter Queue */}
+          <Card className="p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Newsletter Queue
+              </h2>
+              <button
+                onClick={fetchQueue}
+                disabled={isLoadingQueue}
+                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              >
+                {isLoadingQueue ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+
+            {queue.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                No newsletters in queue. Generate one below.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {queue.map((newsletter) => (
+                  <div
+                    key={newsletter.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      newsletter.status === 'pending'
+                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700'
+                        : newsletter.status === 'sent'
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            newsletter.status === 'pending'
+                              ? 'bg-amber-100 dark:bg-amber-800 text-amber-800 dark:text-amber-100'
+                              : newsletter.status === 'sent'
+                              ? 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'
+                          }`}
+                        >
+                          {newsletter.status}
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          {new Date(newsletter.created_at).toLocaleDateString()} {new Date(newsletter.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate mt-1">
+                        {newsletter.subject}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {newsletter.meetings_count} meeting{newsletter.meetings_count !== 1 ? 's' : ''}
+                        {newsletter.processed_at && ` • Sent ${new Date(newsletter.processed_at).toLocaleDateString()}`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => deleteNewsletter(newsletter.id)}
+                      disabled={deletingId === newsletter.id}
+                      className="ml-4 p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+                      title="Delete newsletter"
+                    >
+                      {deletingId === newsletter.id ? (
+                        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
 
           {/* Controls */}
           <Card className="p-6 mb-6">
