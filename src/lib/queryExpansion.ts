@@ -173,6 +173,15 @@ export const CIVIC_SYNONYMS: Record<string, string[]> = {
   'housing trust': ['affordable housing trust', 'housing fund', 'housing authority'],
   'accessory dwelling': ['in-law apartment', 'ADU', 'granny flat', 'secondary dwelling'],
 
+  // Elderly care / Senior services (Nantucket-specific: Our Island Home)
+  'elderly services': ['Our Island Home', 'senior services', 'Council on Aging', 'elderly care', 'senior care', 'aging services'],
+  'elderly care': ['Our Island Home', 'senior care', 'nursing home', 'assisted living', 'elder care', 'elderly services'],
+  'senior services': ['Our Island Home', 'Council on Aging', 'elderly services', 'aging services', 'senior programs'],
+  'senior care': ['Our Island Home', 'elderly care', 'nursing home', 'assisted living', 'elder care'],
+  'our island home': ['elderly care', 'senior care', 'nursing home', 'elderly services', 'island home'],
+  'nursing home': ['Our Island Home', 'senior care facility', 'elderly care facility', 'assisted living'],
+  'council on aging': ['COA', 'senior services', 'elderly services', 'aging services'],
+
   // Government bodies
   'select board': ['selectmen', 'board of selectmen', 'selectboard', 'town board'],
   'selectmen': ['select board', 'board of selectmen'],
