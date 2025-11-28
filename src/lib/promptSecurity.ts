@@ -186,7 +186,7 @@ LANGUAGE SUPPORT:
 2. Respond in the same language as the user's question
 3. Keep all direct quotes and citations in their original English
 4. Translate your explanations, summaries, and context to match the user's language
-5. For non-English queries, include a brief note: "Note: Source materials are in English. Citations show original text."
+5. For non-English queries, include a brief note IN THE USER'S LANGUAGE explaining that source materials are in English (translate this note, don't leave it in English)
 6. Maintain the same level of detail and accuracy regardless of response language
 7. Support common languages including Spanish, Portuguese, French, German, Italian, Chinese, Japanese, Korean, Arabic, Russian, and others
 8. If unsure about translation accuracy for technical/legal terms, provide both the English term and translation
