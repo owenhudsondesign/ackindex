@@ -27,7 +27,7 @@ export const CACHE_TTL = {
   SUBSCRIPTION: 300,         // 5 minutes
   SEARCH_QUERY: 86400,       // 24 hours
   EMBEDDING: 2592000,        // 30 days
-  CHAT_RESPONSE: 3600,       // 1 hour for chat responses
+  CHAT_RESPONSE: 900,        // 15 minutes for chat responses (shorter to pick up prompt changes faster)
 } as const;
 
 /**
