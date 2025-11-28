@@ -135,6 +135,7 @@ Use simple, clean HTML with inline styles. Use a warm, community-focused tone.`;
       [{ role: 'user', content: prompt }],
       {
         model: 'sonnet',
+        maxTokens: 8000,
         temperature: 0.7,
       }
     );
@@ -226,6 +227,7 @@ Respond with JSON containing the COMPLETE translations:
       [{ role: 'user', content: prompt }],
       {
         model: 'sonnet', // Use Sonnet for better quality translations
+        maxTokens: 8000,
         temperature: 0.3,
       }
     );
