@@ -426,43 +426,10 @@ export async function POST(request: NextRequest) {
     // Use sanitized input for the rest of the processing
     const sanitizedMessage = validation.sanitizedInput;
 
-    // Check cache for identical queries (only for non-follow-up, stateless queries)
-    // Follow-up queries need fresh context, so we skip cache for those
+    // Cache disabled for now - re-enable later if needed
+    // const cachedResponse = await getCachedChatResponse(sanitizedMessage);
+
     const isFollowUp = isFollowUpQuery(message) && conversationHistory.length > 0;
-    if (!isFollowUp && conversationHistory.length === 0) {
-      const cachedResponse = await getCachedChatResponse(sanitizedMessage);
-      if (cachedResponse) {
-        log.info({ query: sanitizedMessage.substring(0, 50), cachedAt: cachedResponse.cachedAt }, 'Returning cached response');
-
-        // Still record the query for analytics (but no Claude API cost)
-        const responseTime = Date.now() - startTime;
-        if (user) {
-          logQuery({
-            user_id: user.id,
-            query_text: sanitizedMessage,
-            response_text: cachedResponse.response,
-            tokens_used: 0, // No tokens used for cached response
-            response_time_ms: responseTime,
-            has_results: true,
-            num_citations: cachedResponse.citations.length,
-          }).catch(err => log.error({ err }, 'Failed to log cached query'));
-        }
-
-        return NextResponse.json({
-          response: cachedResponse.response,
-          citations: cachedResponse.citations,
-          hasContext: true,
-          cached: true,
-          stats: { chunksRetrieved: 0, avgSimilarity: 0 },
-          usage: {
-            tokensUsed: 0,
-            tokensRemaining: dashboard?.tokens_remaining || 0,
-            monthlyLimit: dashboard?.monthly_token_limit || 50000,
-            isAnonymous,
-          },
-        });
-      }
-    }
 
     // Step 2: Retrieve relevant chunks using hybrid search
     // Hybrid combines semantic (vector) + keyword (text) search for better recall
@@ -857,12 +824,11 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Cache successful responses for stateless queries (not follow-ups, not conversations)
-    // This helps reduce API costs for common/repeated questions
-    if (!isFollowUp && conversationHistory.length === 0 && verification.isValid) {
-      setCachedChatResponse(sanitizedMessage, finalResponse, citations, claudeResult.model)
-        .catch(err => log.error({ err }, 'Failed to cache chat response'));
-    }
+    // Cache disabled for now - re-enable later if needed
+    // if (!isFollowUp && conversationHistory.length === 0 && verification.isValid) {
+    //   setCachedChatResponse(sanitizedMessage, finalResponse, citations, claudeResult.model)
+    //     .catch(err => log.error({ err }, 'Failed to cache chat response'));
+    // }
 
     // For follow-up questions, include previous citations so [1], [2] references still work
     // Merge previous citations with any new ones, avoiding duplicates
