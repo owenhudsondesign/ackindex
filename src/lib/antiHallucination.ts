@@ -98,6 +98,11 @@ export function verifyNumbers(response: string, context: string): {
  * VERIFICATION LAYER 3: Quote Verification
  * Ensure all direct quotes in the response actually exist in the source context
  * This is CRITICAL - hallucinated quotes are a major trust violation
+ *
+ * NOTE: This should only flag DIRECT QUOTES from transcripts, not:
+ * - Names/titles in quotes (e.g., "Wave on Demand" as a program name)
+ * - Short phrases used for emphasis
+ * - Technical terms or proper nouns
  */
 export function verifyQuotes(response: string, context: string): {
   isValid: boolean;
@@ -119,23 +124,38 @@ export function verifyQuotes(response: string, context: string): {
     while ((match = pattern.exec(response)) !== null) {
       const quote = match[1];
 
-      // Skip very short quotes (likely not actual citations)
-      if (quote.length < 15) continue;
+      // Skip very short quotes (likely not actual citations, just emphasis)
+      // Increased threshold - most naming quotes are under 40 chars
+      if (quote.length < 40) continue;
 
       // Skip quotes that are clearly not from transcripts
       if (quote.includes('Source') || quote.includes('[') || quote.includes('http')) continue;
+
+      // Skip quotes that look like proper nouns/program names (Title Case with few words)
+      // e.g., "Wave on Demand initiative", "Our Island Home"
+      const words = quote.split(/\s+/);
+      if (words.length <= 6) {
+        // Check if it looks like a proper noun/title (most words capitalized or common small words)
+        const smallWords = ['the', 'a', 'an', 'on', 'in', 'of', 'for', 'and', 'or', 'to', 'is', 'at'];
+        const looksLikeTitle = words.every(w =>
+          smallWords.includes(w.toLowerCase()) ||
+          /^[A-Z]/.test(w) ||
+          /initiative|program|project|service|plan|effort/i.test(w)
+        );
+        if (looksLikeTitle) continue;
+      }
 
       // Check if the quote (or a significant portion) exists in context
       // We check for a substring match to allow for minor formatting differences
       const quoteLower = quote.toLowerCase();
 
       // Extract key phrases from the quote (5+ word sequences)
-      const words = quoteLower.split(/\s+/);
+      const quoteWords = quoteLower.split(/\s+/);
       let foundInContext = false;
 
       // Check if any 5-word sequence from the quote exists in context
-      for (let i = 0; i <= words.length - 5; i++) {
-        const phrase = words.slice(i, i + 5).join(' ');
+      for (let i = 0; i <= quoteWords.length - 5; i++) {
+        const phrase = quoteWords.slice(i, i + 5).join(' ');
         if (contextLower.includes(phrase)) {
           foundInContext = true;
           break;
