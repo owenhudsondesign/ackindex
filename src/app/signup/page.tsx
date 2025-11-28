@@ -253,27 +253,6 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-                <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">
-                  Free Account Includes:
-                </h3>
-                <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
-                  <li>✓ 50,000 tokens per month (~35-50 questions)</li>
-                  <li>✓ Full access to the chatbot</li>
-                  <li>✓ Search all Nantucket documents</li>
-                </ul>
-              </div>
-
-              <p className="text-xs text-gray-500 text-center mb-4">
-                Need more? Check out our{' '}
-                <Link href="/pricing" className="text-blue-600 hover:underline">
-                  Premium plan
-                </Link>{' '}
-                for unlimited usage.
-              </p>
-            </div>
-
             <Button type="submit" fullWidth disabled={loading}>
               {loading ? 'Creating Account...' : 'Create Account'}
             </Button>
