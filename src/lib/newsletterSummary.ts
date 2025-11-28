@@ -225,7 +225,6 @@ Respond with JSON containing the COMPLETE translations:
       [{ role: 'user', content: prompt }],
       {
         model: 'sonnet', // Use Sonnet for better quality translations
-        maxTokens: 4000, // Increase token limit for full translation
         temperature: 0.3,
       }
     );
