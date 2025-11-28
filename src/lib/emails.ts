@@ -8,6 +8,7 @@ import logger from '@/lib/logger';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_EMAIL = 'AckIndex <no-reply@mail.ackindex.com>';
+const REPLY_TO = 'owen@ackindex.com';
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ackindex.com';
 
 /**
@@ -100,6 +101,7 @@ export async function sendWelcomeEmail(
   try {
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
+      replyTo: REPLY_TO,
       to,
       subject: 'Welcome to AckIndex!',
       html,
@@ -209,6 +211,7 @@ export async function sendFollowUpEmail(
   try {
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
+      replyTo: REPLY_TO,
       to,
       subject: 'How are you liking AckIndex?',
       html,
@@ -304,6 +307,7 @@ export async function sendPasswordResetEmail(
   try {
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
+      replyTo: REPLY_TO,
       to,
       subject: 'Reset your AckIndex password',
       html,

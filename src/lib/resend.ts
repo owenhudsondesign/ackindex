@@ -11,6 +11,7 @@ import logger from '@/lib/logger';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_EMAIL = 'AckIndex <no-reply@mail.ackindex.com>';
+const REPLY_TO = 'owen@ackindex.com';
 
 interface Subscriber {
   email: string;
@@ -94,6 +95,7 @@ export async function sendNewsletterToSubscribers(
     try {
       const { error } = await resend.emails.send({
         from: FROM_EMAIL,
+        replyTo: REPLY_TO,
         to: subscriber.email,
         subject: content.subject,
         html: content.html,
@@ -133,6 +135,7 @@ export async function sendTestEmail(
   try {
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
+      replyTo: REPLY_TO,
       to,
       subject: `[TEST] ${content.subject}`,
       html: content.html,
