@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
   const [dayOfWeek, setDayOfWeek] = useState<DayOfWeekUsage[]>([]);
   const [mostReadBlogs, setMostReadBlogs] = useState<MostReadBlog[]>([]);
   const [searchInsights, setSearchInsights] = useState<SearchInsightsReport | null>(null);
-  const [insightsPeriod, setInsightsPeriod] = useState<'week' | 'month' | 'quarter'>('week');
+  const [insightsPeriod, setInsightsPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('week');
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -201,7 +201,7 @@ export default function AnalyticsPage() {
     }
   };
 
-  const fetchSearchInsights = async (period: 'week' | 'month' | 'quarter') => {
+  const fetchSearchInsights = async (period: 'week' | 'month' | 'quarter' | 'year') => {
     try {
       const res = await fetch(`/api/admin/analytics?type=search-insights&period=${period}`);
       if (res.ok) {
@@ -213,7 +213,7 @@ export default function AnalyticsPage() {
     }
   };
 
-  const handlePeriodChange = async (period: 'week' | 'month' | 'quarter') => {
+  const handlePeriodChange = async (period: 'week' | 'month' | 'quarter' | 'year') => {
     setInsightsPeriod(period);
     await fetchSearchInsights(period);
   };
@@ -448,7 +448,7 @@ export default function AnalyticsPage() {
               <div className="flex items-center gap-3">
                 {/* Period Selector */}
                 <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
-                  {(['week', 'month', 'quarter'] as const).map((period) => (
+                  {(['week', 'month', 'quarter', 'year'] as const).map((period) => (
                     <button
                       key={period}
                       onClick={() => handlePeriodChange(period)}
@@ -458,7 +458,7 @@ export default function AnalyticsPage() {
                           : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
-                      {period === 'week' ? '7 Days' : period === 'month' ? '30 Days' : '90 Days'}
+                      {period === 'week' ? '7 Days' : period === 'month' ? '30 Days' : period === 'quarter' ? '90 Days' : '365 Days'}
                     </button>
                   ))}
                 </div>

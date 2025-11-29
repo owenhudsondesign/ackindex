@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         break;
 
       case 'search-insights':
-        const period = (searchParams.get('period') || 'week') as 'week' | 'month' | 'quarter';
+        const period = (searchParams.get('period') || 'week') as 'week' | 'month' | 'quarter' | 'year';
         data = await getSearchInsightsReport(period);
         break;
 

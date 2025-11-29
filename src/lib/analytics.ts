@@ -373,7 +373,7 @@ export interface SearchInsightsReport {
  * Get comprehensive search insights for a time period
  */
 export async function getSearchInsightsReport(
-  period: 'week' | 'month' | 'quarter' = 'week'
+  period: 'week' | 'month' | 'quarter' | 'year' = 'week'
 ): Promise<SearchInsightsReport | null> {
   try {
     const now = new Date();
@@ -392,6 +392,10 @@ export async function getSearchInsightsReport(
       case 'quarter':
         startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
         periodLabel = 'Last 90 Days';
+        break;
+      case 'year':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        periodLabel = 'Last 365 Days';
         break;
     }
 

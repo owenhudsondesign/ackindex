@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
-    const period = (searchParams.get('period') || 'week') as 'week' | 'month' | 'quarter';
+    const period = (searchParams.get('period') || 'week') as 'week' | 'month' | 'quarter' | 'year';
     const format = searchParams.get('format') || 'csv';
 
     // Generate the report
