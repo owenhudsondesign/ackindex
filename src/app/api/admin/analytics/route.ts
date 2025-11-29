@@ -11,6 +11,7 @@ import {
   getUsageByDayOfWeek,
   getSearchEffectivenessMetrics,
   getMostReadBlogs,
+  getSearchInsightsReport,
 } from '@/lib/analytics';
 import logger from '@/lib/logger';
 
@@ -77,6 +78,11 @@ export async function GET(request: NextRequest) {
 
       case 'most-read-blogs':
         data = await getMostReadBlogs(limit);
+        break;
+
+      case 'search-insights':
+        const period = (searchParams.get('period') || 'week') as 'week' | 'month' | 'quarter';
+        data = await getSearchInsightsReport(period);
         break;
 
       default:

@@ -71,6 +71,46 @@ interface MostReadBlog {
   thumbnail_url: string | null;
 }
 
+interface SearchInsightsReport {
+  period: {
+    start: string;
+    end: string;
+    label: string;
+  };
+  summary: {
+    totalQueries: number;
+    uniqueUsers: number;
+    avgQueriesPerUser: number;
+    avgResponseTime: number;
+    successRate: number;
+  };
+  topQueries: Array<{
+    query: string;
+    count: number;
+    avgCitations: number;
+    successRate: number;
+  }>;
+  topTopics: Array<{
+    topic: string;
+    count: number;
+    trend: 'up' | 'down' | 'stable';
+    changePercent: number;
+  }>;
+  queryCategories: Array<{
+    category: string;
+    count: number;
+    percentage: number;
+  }>;
+  peakHours: Array<{
+    hour: number;
+    count: number;
+  }>;
+  dailyVolume: Array<{
+    date: string;
+    count: number;
+  }>;
+}
+
 export default function AnalyticsPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ email: string } | null>(null);
@@ -84,6 +124,9 @@ export default function AnalyticsPage() {
   const [mostViewed, setMostViewed] = useState<MostViewedDocument[]>([]);
   const [dayOfWeek, setDayOfWeek] = useState<DayOfWeekUsage[]>([]);
   const [mostReadBlogs, setMostReadBlogs] = useState<MostReadBlog[]>([]);
+  const [searchInsights, setSearchInsights] = useState<SearchInsightsReport | null>(null);
+  const [insightsPeriod, setInsightsPeriod] = useState<'week' | 'month' | 'quarter'>('week');
+  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -149,9 +192,51 @@ export default function AnalyticsPage() {
       setMostViewed(mostViewedData.data || []);
       setDayOfWeek(dayOfWeekData.data || []);
       setMostReadBlogs(mostReadBlogsData.data || []);
+
+      // Also fetch search insights with current period
+      await fetchSearchInsights(insightsPeriod);
     } catch (err) {
       console.error('Error fetching analytics:', err);
       setError('Failed to load analytics data');
+    }
+  };
+
+  const fetchSearchInsights = async (period: 'week' | 'month' | 'quarter') => {
+    try {
+      const res = await fetch(`/api/admin/analytics?type=search-insights&period=${period}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchInsights(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching search insights:', err);
+    }
+  };
+
+  const handlePeriodChange = async (period: 'week' | 'month' | 'quarter') => {
+    setInsightsPeriod(period);
+    await fetchSearchInsights(period);
+  };
+
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch(`/api/admin/analytics/export?period=${insightsPeriod}&format=csv`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ackindex-search-insights-${insightsPeriod}-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error('Export failed:', err);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -345,6 +430,160 @@ export default function AnalyticsPage() {
               </Card>
             </div>
           )}
+
+          {/* Search Insights Report - Exportable */}
+          <Card className="p-6 mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Search Insights Report
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {searchInsights?.period.label || 'Loading...'} • What are people searching for?
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Period Selector */}
+                <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+                  {(['week', 'month', 'quarter'] as const).map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => handlePeriodChange(period)}
+                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                        insightsPeriod === period
+                          ? 'bg-cyan-600 text-white'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {period === 'week' ? '7 Days' : period === 'month' ? '30 Days' : '90 Days'}
+                    </button>
+                  ))}
+                </div>
+                {/* Export Button */}
+                <button
+                  onClick={handleExportCSV}
+                  disabled={isExporting || !searchInsights}
+                  className="inline-flex items-center gap-2 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {isExporting ? 'Exporting...' : 'Export CSV'}
+                </button>
+              </div>
+            </div>
+
+            {searchInsights ? (
+              <div className="space-y-6">
+                {/* Summary Stats Row */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{searchInsights.summary.totalQueries}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Total Queries</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{searchInsights.summary.uniqueUsers}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Unique Users</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{searchInsights.summary.avgQueriesPerUser}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Queries/User</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{searchInsights.summary.successRate}%</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Success Rate</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{(searchInsights.summary.avgResponseTime / 1000).toFixed(1)}s</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Avg Response</p>
+                  </div>
+                </div>
+
+                {/* Two Column Layout: Categories & Top Queries */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Query Categories */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Query Categories</h4>
+                    <div className="space-y-2">
+                      {searchInsights.queryCategories.slice(0, 8).map((cat) => (
+                        <div key={cat.category} className="flex items-center gap-3">
+                          <div className="w-28 text-sm text-gray-700 dark:text-gray-300 truncate">{cat.category}</div>
+                          <div className="flex-grow">
+                            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 flex items-center justify-end pr-2"
+                                style={{ width: `${cat.percentage}%` }}
+                              >
+                                {cat.percentage > 10 && (
+                                  <span className="text-xs font-semibold text-white">{cat.percentage}%</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-12 text-xs text-gray-500 dark:text-gray-400 text-right">{cat.count}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Top Queries with Trends */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Top Searches</h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {searchInsights.topQueries.slice(0, 10).map((q, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <span className="text-sm font-bold text-gray-400 dark:text-gray-500 w-6">#{idx + 1}</span>
+                          <div className="flex-grow min-w-0">
+                            <p className="text-sm text-gray-900 dark:text-gray-100 truncate">{q.query}</p>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="font-semibold text-cyan-600 dark:text-cyan-400">{q.count}x</span>
+                            <span>{q.successRate}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trending Topics */}
+                {searchInsights.topTopics.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Trending vs Previous Period</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {searchInsights.topTopics.map((topic, idx) => (
+                        <div
+                          key={idx}
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm ${
+                            topic.trend === 'up'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                              : topic.trend === 'down'
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {topic.trend === 'up' && <span>↑</span>}
+                          {topic.trend === 'down' && <span>↓</span>}
+                          <span className="truncate max-w-[150px]">{topic.topic}</span>
+                          <span className="font-semibold">
+                            {topic.changePercent > 0 ? '+' : ''}{topic.changePercent}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-cyan-600 rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-gray-500 dark:text-gray-400">Loading search insights...</p>
+              </div>
+            )}
+          </Card>
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">

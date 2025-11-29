@@ -324,3 +324,312 @@ export async function incrementBlogViewCount(blogId: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Search Insights Report
+ * Comprehensive analytics about what users are searching for
+ */
+export interface SearchInsightsReport {
+  period: {
+    start: string;
+    end: string;
+    label: string;
+  };
+  summary: {
+    totalQueries: number;
+    uniqueUsers: number;
+    avgQueriesPerUser: number;
+    avgResponseTime: number;
+    successRate: number;
+  };
+  topQueries: Array<{
+    query: string;
+    count: number;
+    avgCitations: number;
+    successRate: number;
+  }>;
+  topTopics: Array<{
+    topic: string;
+    count: number;
+    trend: 'up' | 'down' | 'stable';
+    changePercent: number;
+  }>;
+  queryCategories: Array<{
+    category: string;
+    count: number;
+    percentage: number;
+  }>;
+  peakHours: Array<{
+    hour: number;
+    count: number;
+  }>;
+  dailyVolume: Array<{
+    date: string;
+    count: number;
+  }>;
+}
+
+/**
+ * Get comprehensive search insights for a time period
+ */
+export async function getSearchInsightsReport(
+  period: 'week' | 'month' | 'quarter' = 'week'
+): Promise<SearchInsightsReport | null> {
+  try {
+    const now = new Date();
+    let startDate: Date;
+    let periodLabel: string;
+
+    switch (period) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        periodLabel = 'Last 7 Days';
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        periodLabel = 'Last 30 Days';
+        break;
+      case 'quarter':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        periodLabel = 'Last 90 Days';
+        break;
+    }
+
+    const startDateStr = startDate.toISOString();
+    const endDateStr = now.toISOString();
+
+    // Fetch all queries in the period
+    const { data: queries, error: queryError } = await supabaseAdmin
+      .from('query_logs')
+      .select('*')
+      .gte('created_at', startDateStr)
+      .lte('created_at', endDateStr)
+      .order('created_at', { ascending: false });
+
+    if (queryError) {
+      logger.error({ err: queryError }, 'Failed to fetch queries for insights');
+      return null;
+    }
+
+    const queryList = queries || [];
+
+    // Calculate summary stats
+    const uniqueUsers = new Set(queryList.map(q => q.user_id)).size;
+    const successfulQueries = queryList.filter(q => q.has_results).length;
+    const avgResponseTime = queryList.length > 0
+      ? queryList.reduce((sum, q) => sum + (q.response_time_ms || 0), 0) / queryList.length
+      : 0;
+
+    // Group queries by text (normalize for counting)
+    const queryGroups: Record<string, { count: number; citations: number[]; hasResults: boolean[] }> = {};
+    queryList.forEach(q => {
+      const normalized = q.query_text?.toLowerCase().trim() || '';
+      if (!normalized) return;
+      if (!queryGroups[normalized]) {
+        queryGroups[normalized] = { count: 0, citations: [], hasResults: [] };
+      }
+      queryGroups[normalized].count++;
+      queryGroups[normalized].citations.push(q.num_citations || 0);
+      queryGroups[normalized].hasResults.push(q.has_results ?? true);
+    });
+
+    // Top queries
+    const topQueries = Object.entries(queryGroups)
+      .map(([query, data]) => ({
+        query,
+        count: data.count,
+        avgCitations: data.citations.length > 0
+          ? Math.round(data.citations.reduce((a, b) => a + b, 0) / data.citations.length * 10) / 10
+          : 0,
+        successRate: data.hasResults.length > 0
+          ? Math.round(data.hasResults.filter(Boolean).length / data.hasResults.length * 100)
+          : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20);
+
+    // Categorize queries by topic keywords
+    const categories: Record<string, number> = {
+      'Zoning & Land Use': 0,
+      'Budget & Finance': 0,
+      'Housing': 0,
+      'Environment': 0,
+      'Infrastructure': 0,
+      'Public Safety': 0,
+      'Education': 0,
+      'Town Governance': 0,
+      'Other': 0,
+    };
+
+    const categoryKeywords: Record<string, string[]> = {
+      'Zoning & Land Use': ['zoning', 'land use', 'setback', 'variance', 'building', 'permit', 'development', 'lot', 'overlay'],
+      'Budget & Finance': ['budget', 'tax', 'funding', 'appropriation', 'finance', 'money', 'cost', 'expense', 'revenue'],
+      'Housing': ['housing', 'affordable', 'rental', 'apartment', 'residential', 'home', 'condo'],
+      'Environment': ['environment', 'conservation', 'water', 'sewer', 'beach', 'erosion', 'climate', 'sustainability'],
+      'Infrastructure': ['road', 'traffic', 'parking', 'sidewalk', 'infrastructure', 'transportation', 'ferry'],
+      'Public Safety': ['police', 'fire', 'safety', 'emergency', 'ambulance'],
+      'Education': ['school', 'education', 'student', 'teacher'],
+      'Town Governance': ['select board', 'town meeting', 'vote', 'article', 'warrant', 'bylaw', 'committee'],
+    };
+
+    queryList.forEach(q => {
+      const text = q.query_text?.toLowerCase() || '';
+      let categorized = false;
+      for (const [category, keywords] of Object.entries(categoryKeywords)) {
+        if (keywords.some(kw => text.includes(kw))) {
+          categories[category]++;
+          categorized = true;
+          break;
+        }
+      }
+      if (!categorized) {
+        categories['Other']++;
+      }
+    });
+
+    const totalCategorized = Object.values(categories).reduce((a, b) => a + b, 0);
+    const queryCategories = Object.entries(categories)
+      .filter(([_, count]) => count > 0)
+      .map(([category, count]) => ({
+        category,
+        count,
+        percentage: totalCategorized > 0 ? Math.round(count / totalCategorized * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Peak hours
+    const hourCounts: Record<number, number> = {};
+    queryList.forEach(q => {
+      const hour = new Date(q.created_at).getHours();
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+    });
+
+    const peakHours = Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      count: hourCounts[hour] || 0,
+    }));
+
+    // Daily volume
+    const dayCounts: Record<string, number> = {};
+    queryList.forEach(q => {
+      const date = new Date(q.created_at).toISOString().split('T')[0];
+      dayCounts[date] = (dayCounts[date] || 0) + 1;
+    });
+
+    const dailyVolume = Object.entries(dayCounts)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Get trending topics (compare to previous period)
+    const prevStartDate = new Date(startDate.getTime() - (now.getTime() - startDate.getTime()));
+    const { data: prevQueries } = await supabaseAdmin
+      .from('query_logs')
+      .select('query_text')
+      .gte('created_at', prevStartDate.toISOString())
+      .lt('created_at', startDateStr);
+
+    const prevQueryGroups: Record<string, number> = {};
+    (prevQueries || []).forEach(q => {
+      const normalized = q.query_text?.toLowerCase().trim() || '';
+      if (normalized) {
+        prevQueryGroups[normalized] = (prevQueryGroups[normalized] || 0) + 1;
+      }
+    });
+
+    // Calculate topic trends
+    const topTopics = topQueries.slice(0, 10).map(q => {
+      const prevCount = prevQueryGroups[q.query] || 0;
+      const changePercent = prevCount > 0
+        ? Math.round((q.count - prevCount) / prevCount * 100)
+        : (q.count > 0 ? 100 : 0);
+
+      let trend: 'up' | 'down' | 'stable' = 'stable';
+      if (changePercent > 10) trend = 'up';
+      else if (changePercent < -10) trend = 'down';
+
+      return {
+        topic: q.query,
+        count: q.count,
+        trend,
+        changePercent,
+      };
+    });
+
+    return {
+      period: {
+        start: startDateStr,
+        end: endDateStr,
+        label: periodLabel,
+      },
+      summary: {
+        totalQueries: queryList.length,
+        uniqueUsers,
+        avgQueriesPerUser: uniqueUsers > 0 ? Math.round(queryList.length / uniqueUsers * 10) / 10 : 0,
+        avgResponseTime: Math.round(avgResponseTime),
+        successRate: queryList.length > 0 ? Math.round(successfulQueries / queryList.length * 100) : 0,
+      },
+      topQueries,
+      topTopics,
+      queryCategories,
+      peakHours,
+      dailyVolume,
+    };
+  } catch (error) {
+    logger.error({ err: error }, 'Exception while generating search insights report');
+    return null;
+  }
+}
+
+/**
+ * Generate CSV export of search insights
+ */
+export function generateSearchInsightsCSV(report: SearchInsightsReport): string {
+  const lines: string[] = [];
+
+  // Header
+  lines.push(`Search Insights Report - ${report.period.label}`);
+  lines.push(`Period: ${report.period.start.split('T')[0]} to ${report.period.end.split('T')[0]}`);
+  lines.push('');
+
+  // Summary
+  lines.push('=== SUMMARY ===');
+  lines.push(`Total Queries,${report.summary.totalQueries}`);
+  lines.push(`Unique Users,${report.summary.uniqueUsers}`);
+  lines.push(`Avg Queries per User,${report.summary.avgQueriesPerUser}`);
+  lines.push(`Avg Response Time (ms),${report.summary.avgResponseTime}`);
+  lines.push(`Success Rate,${report.summary.successRate}%`);
+  lines.push('');
+
+  // Top Queries
+  lines.push('=== TOP QUERIES ===');
+  lines.push('Query,Count,Avg Citations,Success Rate');
+  report.topQueries.forEach(q => {
+    lines.push(`"${q.query.replace(/"/g, '""')}",${q.count},${q.avgCitations},${q.successRate}%`);
+  });
+  lines.push('');
+
+  // Query Categories
+  lines.push('=== QUERY CATEGORIES ===');
+  lines.push('Category,Count,Percentage');
+  report.queryCategories.forEach(c => {
+    lines.push(`${c.category},${c.count},${c.percentage}%`);
+  });
+  lines.push('');
+
+  // Trending Topics
+  lines.push('=== TRENDING TOPICS ===');
+  lines.push('Topic,Count,Trend,Change %');
+  report.topTopics.forEach(t => {
+    lines.push(`"${t.topic.replace(/"/g, '""')}",${t.count},${t.trend},${t.changePercent}%`);
+  });
+  lines.push('');
+
+  // Daily Volume
+  lines.push('=== DAILY QUERY VOLUME ===');
+  lines.push('Date,Query Count');
+  report.dailyVolume.forEach(d => {
+    lines.push(`${d.date},${d.count}`);
+  });
+
+  return lines.join('\n');
+}
