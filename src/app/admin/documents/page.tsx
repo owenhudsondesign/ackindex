@@ -22,28 +22,27 @@ interface DocumentAIStatus {
   maxFileSize: number;
 }
 
-interface ParsedTable {
-  headers: string[];
-  rowCount: number;
-  pageNumber: number;
-  confidence: string;
-}
-
-interface UploadResult {
+interface BatchResult {
+  fileName: string;
   success: boolean;
   document?: {
     id: string;
     title: string;
+    documentType: string;
+    meetingDate: string | null;
     pages: number;
     tables: number;
     chunks: number;
-    status: string;
-  };
-  parsed?: {
-    textPreview: string;
-    tables: ParsedTable[];
   };
   error?: string;
+}
+
+interface BatchUploadResponse {
+  success: boolean;
+  processed: number;
+  succeeded: number;
+  failed: number;
+  results: BatchResult[];
 }
 
 export default function AdminDocumentsPage() {
@@ -57,13 +56,12 @@ export default function AdminDocumentsPage() {
   // Upload state
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
-  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [totalFiles, setTotalFiles] = useState(0);
+  const [batchResults, setBatchResults] = useState<BatchUploadResponse | null>(null);
 
-  // Form state
-  const [title, setTitle] = useState('');
-  const [documentType, setDocumentType] = useState('warrant');
-  const [meetingDate, setMeetingDate] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // Selected files
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   useEffect(() => {
     async function init() {
@@ -97,36 +95,34 @@ export default function AdminDocumentsPage() {
   }, [router]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      // Auto-fill title from filename if empty
-      if (!title) {
-        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
-        setTitle(nameWithoutExt.replace(/[-_]/g, ' '));
-      }
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles(files);
+      setBatchResults(null);
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile || !title) return;
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleBatchUpload = async () => {
+    if (selectedFiles.length === 0) return;
 
     setUploading(true);
-    setUploadProgress('Uploading document...');
-    setUploadResult(null);
+    setTotalFiles(selectedFiles.length);
+    setCurrentFileIndex(0);
+    setBatchResults(null);
 
     try {
       const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('title', title);
-      formData.append('documentType', documentType);
-      if (meetingDate) {
-        formData.append('meetingDate', meetingDate);
-      }
+      selectedFiles.forEach(file => {
+        formData.append('files', file);
+      });
 
-      setUploadProgress('Parsing with Google Document AI...');
+      setUploadProgress(`Processing ${selectedFiles.length} document${selectedFiles.length > 1 ? 's' : ''} with AI...`);
 
-      const res = await fetch('/api/admin/documents/parse', {
+      const res = await fetch('/api/admin/documents/batch', {
         method: 'POST',
         body: formData,
       });
@@ -134,22 +130,38 @@ export default function AdminDocumentsPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setUploadResult({ success: false, error: data.error || 'Upload failed' });
+        setBatchResults({
+          success: false,
+          processed: 0,
+          succeeded: 0,
+          failed: selectedFiles.length,
+          results: selectedFiles.map(f => ({
+            fileName: f.name,
+            success: false,
+            error: data.error || 'Upload failed',
+          })),
+        });
       } else {
-        setUploadResult(data);
-        // Reset form on success
-        setTitle('');
-        setDocumentType('warrant');
-        setMeetingDate('');
-        setSelectedFile(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+        setBatchResults(data);
+        // Clear files on success
+        if (data.success) {
+          setSelectedFiles([]);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         }
       }
     } catch (error) {
-      setUploadResult({
+      setBatchResults({
         success: false,
-        error: error instanceof Error ? error.message : 'Upload failed'
+        processed: 0,
+        succeeded: 0,
+        failed: selectedFiles.length,
+        results: selectedFiles.map(f => ({
+          fileName: f.name,
+          success: false,
+          error: error instanceof Error ? error.message : 'Upload failed',
+        })),
       });
     } finally {
       setUploading(false);
@@ -200,7 +212,7 @@ export default function AdminDocumentsPage() {
               Document Parser
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Upload warrants, budgets, and other town documents for parsing and search indexing
+              Upload warrants, budgets, and other town documents. AI automatically extracts titles, dates, and categories.
             </p>
           </div>
         </div>
@@ -241,99 +253,119 @@ export default function AdminDocumentsPage() {
             </div>
           </div>
 
-          {/* Upload Form */}
+          {/* Batch Upload Form */}
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Upload Document</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Batch Upload Documents</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Select multiple files. AI will automatically detect document titles, types, and meeting dates.
+            </p>
 
             <div className="space-y-6">
-              {/* File Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Document File
-                </label>
+              {/* Drop Zone / File Input */}
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  uploading || !status?.configured
+                    ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 cursor-not-allowed'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-ack-blue dark:hover:border-blue-500 cursor-pointer'
+                }`}
+                onClick={() => !uploading && status?.configured && fileInputRef.current?.click()}
+              >
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg,.tiff,.gif,.webp"
+                  multiple
                   onChange={handleFileSelect}
                   disabled={uploading || !status?.configured}
-                  className="block w-full text-sm text-gray-700 dark:text-gray-300
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-lg file:border-0
-                    file:text-sm file:font-medium
-                    file:bg-ack-blue file:text-white
-                    hover:file:bg-ack-blue-dark
-                    disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="hidden"
                 />
-                {selectedFile && (
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                  </p>
-                )}
-              </div>
-
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Document Title *
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., 2024 Annual Town Meeting Warrant"
-                  disabled={uploading}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
-                    bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                    focus:ring-2 focus:ring-ack-blue focus:border-transparent
-                    disabled:opacity-50"
-                />
-              </div>
-
-              {/* Document Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Document Type
-                </label>
-                <select
-                  value={documentType}
-                  onChange={(e) => setDocumentType(e.target.value)}
-                  disabled={uploading}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
-                    bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                    focus:ring-2 focus:ring-ack-blue focus:border-transparent
-                    disabled:opacity-50"
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <option value="warrant">Warrant Article</option>
-                  <option value="budget">Budget Document</option>
-                  <option value="agenda">Meeting Agenda</option>
-                  <option value="minutes">Meeting Minutes</option>
-                  <option value="report">Committee Report</option>
-                  <option value="other">Other</option>
-                </select>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+                <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-semibold text-ack-blue dark:text-blue-400">Click to select files</span> or drag and drop
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                  PDF, PNG, JPEG, TIFF, GIF, WebP up to 20MB each
+                </p>
               </div>
 
-              {/* Meeting Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Meeting Date (optional)
-                </label>
-                <input
-                  type="date"
-                  value={meetingDate}
-                  onChange={(e) => setMeetingDate(e.target.value)}
-                  disabled={uploading}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
-                    bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                    focus:ring-2 focus:ring-ack-blue focus:border-transparent
-                    disabled:opacity-50"
-                />
-              </div>
+              {/* Selected Files List */}
+              {selectedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-gray-900 dark:text-white">
+                      Selected Files ({selectedFiles.length})
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setSelectedFiles([]);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="text-sm text-red-600 dark:text-red-400 hover:underline"
+                      disabled={uploading}
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {selectedFiles.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <svg
+                            className="w-5 h-5 text-gray-400 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeFile(index)}
+                          disabled={uploading}
+                          className="p-1 text-gray-400 hover:text-red-500 disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Upload Button */}
               <button
-                onClick={handleUpload}
-                disabled={uploading || !selectedFile || !title || !status?.configured}
+                onClick={handleBatchUpload}
+                disabled={uploading || selectedFiles.length === 0 || !status?.configured}
                 className="w-full py-3 px-4 bg-ack-blue hover:bg-ack-blue-dark text-white font-medium rounded-lg
                   transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                   flex items-center justify-center gap-2"
@@ -351,91 +383,103 @@ export default function AdminDocumentsPage() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    Upload & Parse Document
+                    Upload & Parse {selectedFiles.length > 0 ? `${selectedFiles.length} Document${selectedFiles.length > 1 ? 's' : ''}` : 'Documents'}
                   </>
                 )}
               </button>
             </div>
           </div>
 
-          {/* Results */}
-          {uploadResult && (
-            <div className={`mt-8 p-6 rounded-lg border ${
-              uploadResult.success
-                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-            }`}>
-              {uploadResult.success ? (
-                <>
-                  <div className="flex items-center gap-2 mb-4">
+          {/* Batch Results */}
+          {batchResults && (
+            <div className="mt-8 space-y-4">
+              {/* Summary */}
+              <div className={`p-4 rounded-lg border ${
+                batchResults.failed === 0
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                  : batchResults.succeeded > 0
+                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+              }`}>
+                <div className="flex items-center gap-3">
+                  {batchResults.failed === 0 ? (
                     <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <h3 className="text-lg font-bold text-green-800 dark:text-green-300">Document Processed Successfully</h3>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{uploadResult.document?.pages}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Pages</p>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{uploadResult.document?.tables}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Tables</p>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{uploadResult.document?.chunks}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Chunks Indexed</p>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">{uploadResult.document?.status}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
-                    </div>
-                  </div>
-
-                  {/* Tables Found */}
-                  {uploadResult.parsed?.tables && uploadResult.parsed.tables.length > 0 && (
-                    <div className="mb-6">
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Tables Extracted:</h4>
-                      <div className="space-y-2">
-                        {uploadResult.parsed.tables.map((table, idx) => (
-                          <div key={idx} className="bg-white dark:bg-gray-800 p-3 rounded-lg text-sm">
-                            <p className="font-medium text-gray-900 dark:text-white">
-                              Table {idx + 1} (Page {table.pageNumber}) - {table.rowCount} rows
-                            </p>
-                            <p className="text-gray-600 dark:text-gray-400">
-                              Headers: {table.headers.join(', ') || 'None detected'}
-                            </p>
-                            <p className="text-gray-500 dark:text-gray-500 text-xs">
-                              Confidence: {table.confidence}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  ) : (
+                    <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
                   )}
-
-                  {/* Text Preview */}
-                  {uploadResult.parsed?.textPreview && (
-                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Text Preview:</h4>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg whitespace-pre-wrap">
-                        {uploadResult.parsed.textPreview}
-                      </p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
                   <div>
-                    <h3 className="text-lg font-bold text-red-800 dark:text-red-300">Upload Failed</h3>
-                    <p className="text-red-600 dark:text-red-400">{uploadResult.error}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      Batch Upload Complete
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {batchResults.succeeded} of {batchResults.processed} documents processed successfully
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
+
+              {/* Individual Results */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-medium text-gray-900 dark:text-white">Processing Results</h3>
+                </div>
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {batchResults.results.map((result, index) => (
+                    <div key={index} className="p-4">
+                      <div className="flex items-start gap-3">
+                        {result.success ? (
+                          <svg className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {result.fileName}
+                          </p>
+                          {result.success && result.document ? (
+                            <div className="mt-2 space-y-1">
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="font-medium">Title:</span> {result.document.title}
+                              </p>
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+                                  {result.document.documentType}
+                                </span>
+                                {result.document.meetingDate && (
+                                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+                                    {result.document.meetingDate}
+                                  </span>
+                                )}
+                                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+                                  {result.document.pages} pages
+                                </span>
+                                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+                                  {result.document.tables} tables
+                                </span>
+                                <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+                                  {result.document.chunks} chunks indexed
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                              {result.error}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
