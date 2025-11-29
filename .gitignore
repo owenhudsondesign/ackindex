@@ -56,3 +56,7 @@ apify-actors/**/__pycache__/
 
 # Additional app directories
 ackindex-app/
+
+# Google Cloud credentials
+credentials/
+*.json.key
