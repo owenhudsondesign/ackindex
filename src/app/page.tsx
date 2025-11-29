@@ -216,6 +216,10 @@ export default function Home() {
         role: 'assistant',
         content: data.response || "I apologize, but I wasn't able to generate a response.",
         citations: data.citations || [],
+        // Include verification data for report button
+        verification: data.verification,
+        stats: data.stats,
+        queryText: message, // Store the user's query for the report
       };
 
       // Replace loading message with actual response

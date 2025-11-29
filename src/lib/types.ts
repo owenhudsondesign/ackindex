@@ -11,6 +11,20 @@ export interface Citation {
   blogPostSlug?: string; // Slug for /blog/{slug} page
 }
 
+export interface VerificationResult {
+  confidence: 'high' | 'medium' | 'low';
+  isValid: boolean;
+  warnings: string[];
+  details: {
+    citationsPresent?: boolean;
+    numbersVerified?: boolean;
+    quotesVerified?: boolean;
+    noSpeculation?: boolean;
+    factsGrounded?: boolean;
+    crossModelVerified?: boolean;
+  };
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -18,6 +32,12 @@ export interface Message {
   citations?: Citation[];
   isLoading?: boolean;
   timestamp?: Date;
+  // For assistant messages - verification data for report button
+  verification?: VerificationResult;
+  stats?: {
+    avgSimilarity: number;
+  };
+  queryText?: string; // The user query that this response answers
 }
 
 export interface ChatResponse {

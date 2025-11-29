@@ -184,13 +184,15 @@ export default function ChatMessage({
         </div>
 
         {/* Confidence Badge & Actions */}
-        {!isLoading && verification && (
+        {!isLoading && (verification || queryText) && (
           <div className="mt-3 ml-1 flex items-center gap-3 flex-wrap">
-            <ConfidenceBadge
-              confidence={verification.confidence}
-              avgSimilarity={stats?.avgSimilarity}
-              warnings={verification.warnings}
-            />
+            {verification && (
+              <ConfidenceBadge
+                confidence={verification.confidence}
+                avgSimilarity={stats?.avgSimilarity}
+                warnings={verification.warnings}
+              />
+            )}
             {queryText && (
               <FlagResponseButton
                 queryText={queryText}

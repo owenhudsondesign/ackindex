@@ -43,6 +43,9 @@ export default function ChatDialogue({ messages, isVisible, onSubmit, isLoading 
               content={message.content}
               citations={message.citations}
               isLoading={message.isLoading}
+              verification={message.verification}
+              stats={message.stats}
+              queryText={message.queryText}
             />
           ))}
           <div ref={messagesEndRef} />
