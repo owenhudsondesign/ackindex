@@ -59,6 +59,18 @@ interface DayOfWeekUsage {
   unique_users: number;
 }
 
+interface MostReadBlog {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  meeting_type: string | null;
+  meeting_date: string | null;
+  published_at: string;
+  view_count: number | null;
+  thumbnail_url: string | null;
+}
+
 export default function AnalyticsPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ email: string } | null>(null);
@@ -71,6 +83,7 @@ export default function AnalyticsPage() {
   const [peakTimes, setPeakTimes] = useState<PeakUsageTime[]>([]);
   const [mostViewed, setMostViewed] = useState<MostViewedDocument[]>([]);
   const [dayOfWeek, setDayOfWeek] = useState<DayOfWeekUsage[]>([]);
+  const [mostReadBlogs, setMostReadBlogs] = useState<MostReadBlog[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -105,26 +118,28 @@ export default function AnalyticsPage() {
     try {
       setError(null);
 
-      const [overviewRes, popularRes, trendingRes, peakTimesRes, mostViewedRes, dayOfWeekRes] = await Promise.all([
+      const [overviewRes, popularRes, trendingRes, peakTimesRes, mostViewedRes, dayOfWeekRes, mostReadBlogsRes] = await Promise.all([
         fetch('/api/admin/analytics?type=overview'),
         fetch('/api/admin/analytics?type=popular&limit=10'),
         fetch('/api/admin/analytics?type=trending&limit=10'),
         fetch('/api/admin/analytics?type=peak-times&days=30'),
         fetch('/api/admin/analytics?type=most-viewed&limit=15'),
         fetch('/api/admin/analytics?type=day-of-week&days=30'),
+        fetch('/api/admin/analytics?type=most-read-blogs&limit=10'),
       ]);
 
-      if (!overviewRes.ok || !popularRes.ok || !trendingRes.ok || !peakTimesRes.ok || !mostViewedRes.ok || !dayOfWeekRes.ok) {
+      if (!overviewRes.ok || !popularRes.ok || !trendingRes.ok || !peakTimesRes.ok || !mostViewedRes.ok || !dayOfWeekRes.ok || !mostReadBlogsRes.ok) {
         throw new Error('Failed to fetch analytics');
       }
 
-      const [overviewData, popularData, trendingData, peakTimesData, mostViewedData, dayOfWeekData] = await Promise.all([
+      const [overviewData, popularData, trendingData, peakTimesData, mostViewedData, dayOfWeekData, mostReadBlogsData] = await Promise.all([
         overviewRes.json(),
         popularRes.json(),
         trendingRes.json(),
         peakTimesRes.json(),
         mostViewedRes.json(),
         dayOfWeekRes.json(),
+        mostReadBlogsRes.json(),
       ]);
 
       setOverview(overviewData.data);
@@ -133,6 +148,7 @@ export default function AnalyticsPage() {
       setPeakTimes(peakTimesData.data || []);
       setMostViewed(mostViewedData.data || []);
       setDayOfWeek(dayOfWeekData.data || []);
+      setMostReadBlogs(mostReadBlogsData.data || []);
     } catch (err) {
       console.error('Error fetching analytics:', err);
       setError('Failed to load analytics data');
@@ -474,6 +490,69 @@ export default function AnalyticsPage() {
                         </td>
                         <td className="py-3 px-4 text-xs text-gray-500 dark:text-gray-400">
                           {doc.last_viewed ? new Date(doc.last_viewed).toLocaleDateString() : 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          {/* Most Read Blogs */}
+          <Card className="p-6 mb-8">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+              Most Read Blog Posts
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Published meeting summaries ordered by view count</p>
+            {mostReadBlogs.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">No blog posts published yet</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-gray-200 dark:border-gray-700">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Rank</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Title</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Type</th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Views</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Published</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mostReadBlogs.map((blog, idx) => (
+                      <tr key={blog.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <td className="py-3 px-4">
+                          <span className="text-lg font-bold text-gray-400 dark:text-gray-500">#{idx + 1}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 max-w-md">
+                            {blog.title}
+                          </div>
+                          <a
+                            href={`/blog/${blog.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            /blog/{blog.slug}
+                          </a>
+                        </td>
+                        <td className="py-3 px-4">
+                          {blog.meeting_type && (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
+                              {blog.meeting_type}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">
+                          {blog.view_count ?? 0}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-500 dark:text-gray-400">
+                          {blog.published_at ? new Date(blog.published_at).toLocaleDateString() : 'N/A'}
                         </td>
                       </tr>
                     ))}

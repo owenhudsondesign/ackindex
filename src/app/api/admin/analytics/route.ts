@@ -10,6 +10,7 @@ import {
   getMostViewedDocuments,
   getUsageByDayOfWeek,
   getSearchEffectivenessMetrics,
+  getMostReadBlogs,
 } from '@/lib/analytics';
 import logger from '@/lib/logger';
 
@@ -72,6 +73,10 @@ export async function GET(request: NextRequest) {
 
       case 'effectiveness':
         data = await getSearchEffectivenessMetrics();
+        break;
+
+      case 'most-read-blogs':
+        data = await getMostReadBlogs(limit);
         break;
 
       default:

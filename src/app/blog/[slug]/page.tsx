@@ -11,6 +11,7 @@ import TranscriptSection from '@/components/TranscriptSection';
 import PageLayout from '@/components/PageLayout';
 import VideoPlayer from '@/components/VideoPlayer';
 import BlogContent from '@/components/BlogContent';
+import BlogViewTracker from '@/components/BlogViewTracker';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -169,6 +170,9 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <PageLayout>
+      {/* Track blog view */}
+      <BlogViewTracker slug={slug} />
+
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">

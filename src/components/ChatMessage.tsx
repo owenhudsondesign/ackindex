@@ -183,25 +183,16 @@ export default function ChatMessage({
           )}
         </div>
 
-        {/* Confidence Badge & Actions */}
-        {!isLoading && (verification || queryText) && (
-          <div className="mt-3 ml-1 flex items-center gap-3 flex-wrap">
-            {verification && (
-              <ConfidenceBadge
-                confidence={verification.confidence}
-                avgSimilarity={stats?.avgSimilarity}
-                warnings={verification.warnings}
-              />
-            )}
-            {queryText && (
-              <FlagResponseButton
-                queryText={queryText}
-                responseText={content}
-                citations={citations || []}
-                verificationResult={verification}
-                similarityScores={stats}
-              />
-            )}
+        {/* Report Button */}
+        {!isLoading && queryText && (
+          <div className="mt-3 ml-1">
+            <FlagResponseButton
+              queryText={queryText}
+              responseText={content}
+              citations={citations || []}
+              verificationResult={verification}
+              similarityScores={stats}
+            />
           </div>
         )}
 

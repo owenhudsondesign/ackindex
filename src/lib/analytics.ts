@@ -259,3 +259,68 @@ export async function getSearchEffectivenessMetrics() {
     return [];
   }
 }
+
+/**
+ * Get most read blog posts
+ * Returns published blog posts ordered by view_count (or published_at as fallback)
+ */
+export async function getMostReadBlogs(limitCount: number = 10) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('blog_posts')
+      .select(`
+        id,
+        title,
+        slug,
+        excerpt,
+        meeting_type,
+        meeting_date,
+        published_at,
+        view_count,
+        thumbnail_url
+      `)
+      .eq('status', 'published')
+      .order('view_count', { ascending: false, nullsFirst: false })
+      .order('published_at', { ascending: false })
+      .limit(limitCount);
+
+    if (error) {
+      logger.error({ err: error }, 'Failed to fetch most read blogs');
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    logger.error({ err: error }, 'Exception while fetching most read blogs');
+    return [];
+  }
+}
+
+/**
+ * Increment view count for a blog post
+ */
+export async function incrementBlogViewCount(blogId: string): Promise<boolean> {
+  try {
+    const { error } = await supabaseAdmin.rpc('increment_blog_view_count', {
+      p_blog_id: blogId,
+    });
+
+    if (error) {
+      // Fallback to direct increment if RPC doesn't exist
+      const { error: updateError } = await supabaseAdmin
+        .from('blog_posts')
+        .update({ view_count: supabaseAdmin.rpc('coalesce', { value: 'view_count', fallback: 0 }) })
+        .eq('id', blogId);
+
+      if (updateError) {
+        logger.error({ err: updateError, blogId }, 'Failed to increment blog view count');
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    logger.error({ err: error, blogId }, 'Exception while incrementing blog view count');
+    return false;
+  }
+}
