@@ -87,16 +87,70 @@ export default function AntiHallucinationDashboard() {
       startDate.setDate(now.getDate() - 30);
     }
 
-    // Load metrics
+    // Load metrics (hourly records, we'll aggregate in the UI)
     const { data: metricsData } = await supabase
       .from('hallucination_metrics')
       .select('*')
-      .is('hour', null) // Daily aggregates only
       .gte('date', startDate.toISOString().split('T')[0])
       .order('date', { ascending: false });
 
     if (metricsData) {
-      setMetrics(metricsData);
+      // Aggregate hourly records into daily totals for display
+      const dailyAggregates = metricsData.reduce((acc: Record<string, HallucinationMetrics>, row: HallucinationMetrics) => {
+        const dateKey = row.date;
+        if (!acc[dateKey]) {
+          acc[dateKey] = {
+            date: dateKey,
+            total_queries: 0,
+            queries_with_citations: 0,
+            queries_no_results: 0,
+            high_confidence_responses: 0,
+            medium_confidence_responses: 0,
+            low_confidence_responses: 0,
+            avg_similarity_score: 0,
+            verified_responses: 0,
+            blocked_responses: 0,
+            flagged_responses: 0,
+            confirmed_hallucinations: 0,
+            hallucination_rate: 0,
+            citation_completeness: 0,
+            fallback_frequency: 0,
+            cross_model_failures: 0,
+            numerical_verification_failures: 0,
+          };
+        }
+        acc[dateKey].total_queries += row.total_queries || 0;
+        acc[dateKey].queries_with_citations += row.queries_with_citations || 0;
+        acc[dateKey].queries_no_results += row.queries_no_results || 0;
+        acc[dateKey].high_confidence_responses += row.high_confidence_responses || 0;
+        acc[dateKey].medium_confidence_responses += row.medium_confidence_responses || 0;
+        acc[dateKey].low_confidence_responses += row.low_confidence_responses || 0;
+        acc[dateKey].verified_responses += row.verified_responses || 0;
+        acc[dateKey].blocked_responses += row.blocked_responses || 0;
+        acc[dateKey].flagged_responses += row.flagged_responses || 0;
+        acc[dateKey].confirmed_hallucinations += row.confirmed_hallucinations || 0;
+        acc[dateKey].cross_model_failures += row.cross_model_failures || 0;
+        acc[dateKey].numerical_verification_failures += row.numerical_verification_failures || 0;
+        // Weighted average for similarity score
+        if (row.avg_similarity_score && row.total_queries) {
+          const currentTotal = acc[dateKey].total_queries - (row.total_queries || 0);
+          const currentWeighted = acc[dateKey].avg_similarity_score * currentTotal;
+          const newWeighted = (row.avg_similarity_score || 0) * (row.total_queries || 0);
+          acc[dateKey].avg_similarity_score = (currentWeighted + newWeighted) / acc[dateKey].total_queries;
+        }
+        return acc;
+      }, {});
+
+      // Calculate derived rates
+      (Object.values(dailyAggregates) as HallucinationMetrics[]).forEach(day => {
+        if (day.total_queries > 0) {
+          day.citation_completeness = (day.queries_with_citations / day.total_queries) * 100;
+          day.fallback_frequency = (day.queries_no_results / day.total_queries) * 100;
+          day.hallucination_rate = (day.confirmed_hallucinations / day.total_queries) * 100;
+        }
+      });
+
+      setMetrics((Object.values(dailyAggregates) as HallucinationMetrics[]).sort((a, b) => b.date.localeCompare(a.date)));
     }
 
     // Load ALL flagged responses (not just pending)
