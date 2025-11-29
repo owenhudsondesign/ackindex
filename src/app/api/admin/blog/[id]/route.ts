@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient, requireAdminApi } from '@/lib/serverAdminAuth';
+import { generateSocialMediaPosts } from '@/lib/socialMediaGenerator';
 import logger from '@/lib/logger';
 
 const log = logger.child({ endpoint: '/api/admin/blog/[id]' });
@@ -92,6 +93,44 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
     }
 
+    // Generate social media posts when publishing
+    let socialPosts = null;
+    if (status === 'published') {
+      try {
+        // Fetch current post data for social generation
+        const { data: currentPost } = await supabase
+          .from('blog_posts')
+          .select('id, title, excerpt, content, slug, meeting_type, meeting_date, thumbnail_url, keywords')
+          .eq('id', id)
+          .single();
+
+        if (currentPost) {
+          // Use updated values if provided, otherwise use current values
+          const postData = {
+            id: currentPost.id,
+            title: title || currentPost.title,
+            excerpt: excerpt || currentPost.excerpt,
+            content: content || currentPost.content,
+            slug: currentPost.slug,
+            meeting_type: currentPost.meeting_type,
+            meeting_date: currentPost.meeting_date,
+            thumbnail_url: thumbnail_url || currentPost.thumbnail_url,
+            keywords: keywords || currentPost.keywords,
+          };
+
+          socialPosts = await generateSocialMediaPosts(postData);
+          updates.social_posts = {
+            ...socialPosts,
+            generated_at: new Date().toISOString(),
+          };
+          log.info({ postId: id }, 'Generated social media posts on publish');
+        }
+      } catch (socialError) {
+        log.warn({ error: socialError, postId: id }, 'Failed to generate social media posts, continuing with publish');
+        // Don't block publishing if social generation fails
+      }
+    }
+
     const { data: post, error } = await supabase
       .from('blog_posts')
       .update(updates)
@@ -108,7 +147,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     log.info({ postId: id, updates }, 'Blog post updated');
-    return NextResponse.json({ post });
+    return NextResponse.json({ post, socialPosts });
   } catch (error) {
     log.error({ error }, 'Failed to update blog post');
     return NextResponse.json(
