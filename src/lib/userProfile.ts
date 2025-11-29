@@ -157,11 +157,25 @@ export async function getUserDashboard(userId: string): Promise<UserDashboard | 
     }
 
     // Fetch language preference from email_subscribers
-    const { data: subscriber } = await supabaseAdmin
+    // Try by user_id first, then fall back to email
+    let subscriber = null;
+    const { data: subscriberByUserId } = await supabaseAdmin
       .from('email_subscribers')
       .select('preferred_language')
       .eq('user_id', userId)
       .single();
+
+    if (subscriberByUserId) {
+      subscriber = subscriberByUserId;
+    } else if (userData?.user?.email) {
+      // Fallback to email lookup
+      const { data: subscriberByEmail } = await supabaseAdmin
+        .from('email_subscribers')
+        .select('preferred_language')
+        .eq('email', userData.user.email)
+        .single();
+      subscriber = subscriberByEmail;
+    }
 
     // Build the dashboard object
     return {
