@@ -126,7 +126,7 @@ export default function NantucketPitch() {
               <h3 className="text-xl font-bold">Year 1 Total</h3>
               <p className="text-3xl font-bold">$63,000</p>
             </div>
-            <div className="flex justify-between items-center text-ack-blue/80 bg-white/10 rounded p-3">
+            <div className="flex justify-between items-center text-white/90 bg-white/10 rounded p-3">
               <span>Year 2+ (ongoing service only)</span>
               <span className="font-semibold">$33,000/year</span>
             </div>
