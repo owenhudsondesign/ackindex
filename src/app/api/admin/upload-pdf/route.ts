@@ -158,8 +158,8 @@ async function processPDFUpload(
 
     // Chunk the text
     const chunks = chunkText(parsed.text, {
-      maxTokens: 500,
-      overlap: 50,
+      maxTokens: 350,
+      overlap: 75,
       preserveParagraphs: true,
       preserveHeadings: true,
     });

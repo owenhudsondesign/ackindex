@@ -595,8 +595,8 @@ Options:
 
     // 2. Create transcript chunks from full transcript
     const transcriptChunks = chunkText(enrichedMeeting.transcript, {
-      maxTokens: 500, // Smaller chunks for transcript (better for finding specific quotes)
-      overlap: 50,
+      maxTokens: 350, // Smaller chunks for precise quote retrieval
+      overlap: 75,    // 20% overlap for context preservation
     });
 
     allChunks.push(...transcriptChunks.map((chunk, index) => ({

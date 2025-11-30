@@ -1,0 +1,94 @@
+Category,Cost Component,Unit,Unit Cost,Monthly Volume,Monthly Cost,Annual Cost,Notes,GSA Markup (15%),Contract Price (Monthly),Contract Price (Annual)
+
+INFRASTRUCTURE - FIXED COSTS,,,,,,,,,,
+Database,Supabase Pro Plan,month,$25.00,1,$25.00,$300.00,PostgreSQL + pgvector (8GB database),$3.75,$28.75,$345.00
+Hosting,Vercel Pro,month,$20.00,1,$20.00,$240.00,Next.js serverless,$3.00,$23.00,$276.00
+Caching,Upstash Redis,month,$0.00,1,$0.00,$0.00,Free tier,$0.00,$0.00,$0.00
+Monitoring,Sentry,month,$0.00,1,$0.00,$0.00,Free tier,$0.00,$0.00,$0.00
+INFRASTRUCTURE SUBTOTAL,,,,,,$45.00,$540.00,,$6.75,$51.75,$621.00
+
+STORAGE - VARIABLE COSTS,,,,,,,,,,
+Video Storage,Bunny.net Storage,GB/month,$0.005,625,$3.13,$37.50,5000 min @ 125MB/min compressed,$0.47,$3.59,$43.13
+Video Bandwidth,Bunny.net CDN,GB,$0.01,500,$5.00,$60.00,Streaming to users,$0.75,$5.75,$69.00
+STORAGE SUBTOTAL,,,,,,$8.13,$97.50,,$1.22,$9.34,$112.13
+
+TRANSCRIPTION - 5000 MIN/MONTH,,,,,,,,,,
+Primary,AssemblyAI,minute,$0.0222,5000,$111.00,$1332.00,Best quality + diarization,$16.65,$127.65,$1531.80
+Alternative,Gladia Nova-2,minute,$0.0043,5000,$21.50,$258.00,Budget option,$3.23,$24.73,$296.70
+TRANSCRIPTION (AssemblyAI),,,,,,$111.00,$1332.00,,$16.65,$127.65,$1531.80
+
+AI SERVICES - VARIABLE COSTS,,,,,,,,,,
+Embeddings (New Content),Voyage AI,per 1M tokens,$0.06,750000,$0.05,$0.54,~150 tokens/min x 5000 min,$0.01,$0.05,$0.62
+LLM Enrichment,Claude Haiku Input,per 1M tokens,$0.80,3750000,$3.00,$36.00,Summaries + metadata,$0.45,$3.45,$41.40
+LLM Enrichment,Claude Haiku Output,per 1M tokens,$4.00,500000,$2.00,$24.00,,$0.30,$2.30,$27.60
+Query Responses,Claude Haiku (80%),per query,$0.0032,4000,$12.80,$153.60,Simple questions,$1.92,$14.72,$176.64
+Query Responses,Claude Sonnet (20%),per query,$0.0180,1000,$18.00,$216.00,Complex analysis,$2.70,$20.70,$248.40
+AI SERVICES SUBTOTAL,,,,,,$35.85,$430.14,,$5.38,$41.22,$494.66
+
+MONTHLY OPERATIONS TOTAL,,,,,,$199.98,$2399.64,,$30.00,$229.98,$2759.79
+
+ONE-TIME SETUP COSTS,,,,,,,,,,
+Development,Professional Services,hours,$150.00,40,n/a,$6000.00,Integration + customization,$900.00,n/a,$6900.00
+Training,Staff Training,hours,$250.00,8,n/a,$2000.00,Admin + user training,$300.00,n/a,$2300.00
+SETUP SUBTOTAL,,,,,,n/a,$8000.00,,,n/a,$9200.00
+
+COST PER MINUTE OF FOOTAGE ANALYZED,,,,,,,,,,
+Transcription,AssemblyAI,per minute,$0.0222,,,,,,,,
+Embedding Generation,Voyage AI,per minute,$0.00001,,,~150 tokens/min,,,,,
+AI Enrichment,Claude Haiku,per minute,$0.001,,,Summary generation,,,,,
+Storage (monthly amortized),Bunny.net,per minute,$0.0006,,,125MB @ $0.005/GB,,,,,
+TOTAL COST PER MINUTE,All-in,per minute,$0.024,,,,Excluding infrastructure,,,
+WITH INFRASTRUCTURE,Fully loaded,per minute,$0.040,,,,Infrastructure / 5000 min,,,
+
+GOVERNMENT CONTRACT PRICING TIERS,,,,,,,,,,
+
+TIER: BASIC (2500 min/month),,,,,,,,,,
+Monthly Platform Fee,,,,$299.00,,$3588.00,Up to 2500 minutes/month,,,,
+Per-Minute Overage,,,,$0.15,,n/a,Beyond 2500 minutes,,,,
+Setup Fee,,,,n/a,,$9200.00,One-time,,,,
+Year 1 Total,,,,,,$12788.00,With setup,,,,
+Year 2+ Annual,,,,,,$3588.00,Operations only,,,,
+
+TIER: STANDARD (5000 min/month),,,,,,,,,,
+Monthly Platform Fee,,,,$399.00,,$4788.00,Up to 5000 minutes/month,,,,
+Per-Minute Overage,,,,$0.12,,n/a,Beyond 5000 minutes,,,,
+Setup Fee,,,,n/a,,$9200.00,One-time,,,,
+Year 1 Total,,,,,,$13988.00,With setup,,,,
+Year 2+ Annual,,,,,,$4788.00,Operations only,,,,
+
+TIER: PROFESSIONAL (10000 min/month),,,,,,,,,,
+Monthly Platform Fee,,,,$699.00,,$8388.00,Up to 10000 minutes/month,,,,
+Per-Minute Overage,,,,$0.10,,n/a,Volume discount,,,,
+Setup Fee,,,,n/a,,$9200.00,One-time,,,,
+Year 1 Total,,,,,,$17588.00,With setup,,,,
+Year 2+ Annual,,,,,,$8388.00,Operations only,,,,
+
+TIER: ENTERPRISE (25000 min/month),,,,,,,,,,
+Monthly Platform Fee,,,,$1499.00,,$17988.00,Up to 25000 minutes/month,,,,
+Per-Minute Overage,,,,$0.08,,n/a,Best rate,,,,
+Setup Fee,,,,n/a,,$9200.00,One-time,,,,
+Year 1 Total,,,,,,$27188.00,With setup,,,,
+Year 2+ Annual,,,,,,$17988.00,Operations only,,,,
+
+GRANT BUDGET TEMPLATE (3-YEAR),,,,,,,,,,
+Line Item,Year 1,Year 2,Year 3,Total,Notes,,,,,
+Platform Setup & Integration,$9200.00,$0.00,$0.00,$9200.00,One-time,,,,,
+Annual Platform Operations,$4788.00,$4788.00,$4788.00,$14364.00,5000 min/month tier,,,,,
+Contingency (10%),$1398.80,$478.80,$478.80,$2356.40,,,,,,
+GRANT TOTAL,$15386.80,$5266.80,$5266.80,$25920.40,,,,,,
+
+ROI ANALYSIS,,,,,,,,,,
+Metric,Conservative,Moderate,Optimistic,Notes,,,,,
+Staff Hours Saved/Month,20,40,80,Answering constituent inquiries,,,,,
+Hourly Staff Cost,$45,$50,$55,Including benefits,,,,,
+Monthly Labor Savings,$900,$2000,$4400,,,,,,
+Annual Labor Savings,$10800,$24000,$52800,,,,,,
+Annual Platform Cost,$4788,$4788,$4788,Standard tier,,,,,
+Net Annual Benefit,$6012,$19212,$48012,,,,,,
+ROI Percentage,126%,401%,1003%,,,,,,
+
+COMPETITIVE PRICING ANALYSIS,,,,,,,,,,
+Service,Our Price,Market Rate,Savings,Notes,,,,,
+Meeting Transcription,~$0.04/min fully loaded,$0.50-1.00/min,92-96%,Includes AI enrichment,,,,,
+Searchable Archive Platform,$399/month,$2000-5000/month,80-92%,Similar SaaS platforms,,,,,
+Per-Query AI Search,$0.04/query,$0.10-0.25/query,60-84%,Comparable RAG services,,,,,

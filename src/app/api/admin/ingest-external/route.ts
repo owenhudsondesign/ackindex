@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         const arrayBuf = await res.arrayBuffer();
         const buf = Buffer.from(arrayBuf);
         const parsed = await parsePDF(buf, f.name || url.split('/').pop() || 'document.pdf');
-        const chunks = chunkText(parsed.text, { maxTokens: 500, overlap: 50 });
+        const chunks = chunkText(parsed.text, { maxTokens: 350, overlap: 75 });
         chunks.forEach((c, idx) => {
           allChunks.push({
             ...c,

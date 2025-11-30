@@ -11,6 +11,7 @@ import { getCachedSearchQuery, setCachedSearchQuery } from './cache';
 import logger from './logger';
 import { expandQuery, detectBroadQuery, type QueryExpansionResult, type BroadQueryResult } from './queryExpansion';
 import { analyzeQuery, needsMultiPassRetrieval, multiPassRetrieval, type QueryAnalysis } from './queryAnalysis';
+import { rerankResults as cohereRerank, isRerankingAvailable } from './reranker';
 
 export interface RetrievalResult {
   id: string;
@@ -33,6 +34,7 @@ export interface RetrievalOptions {
   minSimilarity?: number;
   includeDocumentInfo?: boolean;
   searchMode?: 'semantic' | 'keyword' | 'hybrid' | 'recent';
+  useReranker?: boolean; // Use Cohere reranker for better relevance (default: true if available)
 }
 
 /**
@@ -113,7 +115,11 @@ export async function retrieveRelevantChunks(
     minSimilarity = 0.7,
     includeDocumentInfo = true,
     searchMode = 'semantic',
+    useReranker = isRerankingAvailable(), // Default to true if API key is set
   } = options;
+
+  // If using reranker, fetch more results initially for better candidate pool
+  const fetchCount = useReranker ? Math.max(maxResults * 3, 15) : maxResults;
 
   logger.info({ query, mode: searchMode }, '[Retrieval] Searching');
 
@@ -152,17 +158,23 @@ export async function retrieveRelevantChunks(
       // For recency queries, combine recent documents with semantic search
       // Pass the original query so fetchRecentContent can filter by meeting type
       const [recentResults, semanticResults] = await Promise.all([
-        fetchRecentContent(maxResults, query),
+        fetchRecentContent(fetchCount, query),
         searchMode === 'hybrid'
-          ? hybridSearch(effectiveQuery, maxResults, minSimilarity)
-          : semanticSearch(effectiveQuery, maxResults, minSimilarity, includeDocumentInfo, query)
+          ? hybridSearch(effectiveQuery, fetchCount, minSimilarity)
+          : semanticSearch(effectiveQuery, fetchCount, minSimilarity, includeDocumentInfo, query)
       ]);
 
       // Merge results, prioritizing recent content for recency queries
       // but still including semantically relevant older content
-      const merged = mergeRecentAndSemantic(recentResults, semanticResults, maxResults);
+      let merged = mergeRecentAndSemantic(recentResults, semanticResults, fetchCount);
       logger.info({ recentCount: recentResults.length, semanticCount: semanticResults.length, mergedCount: merged.length }, '[Retrieval] Merged recent and semantic results');
-      return merged;
+
+      // Apply reranking if enabled
+      if (useReranker && merged.length > maxResults) {
+        merged = await cohereRerank(query, merged, { topN: maxResults });
+      }
+
+      return merged.slice(0, maxResults);
     }
 
     // Step 4: Analyze query for compound/comparative patterns
@@ -201,13 +213,13 @@ export async function retrieveRelevantChunks(
       const synonymQuery = queryExpansion.expansions.slice(0, 3).join(' ');
 
       const [mainResults, synonymResults] = await Promise.all([
-        hybridSearch(effectiveQuery, maxResults, minSimilarity),
-        hybridSearch(synonymQuery, Math.floor(maxResults / 2), minSimilarity),
+        hybridSearch(effectiveQuery, fetchCount, minSimilarity),
+        hybridSearch(synonymQuery, Math.floor(fetchCount / 2), minSimilarity),
       ]);
 
       // Merge and deduplicate, prioritizing higher similarity scores
       const seenIds = new Set<string>();
-      const mergedResults: RetrievalResult[] = [];
+      let mergedResults: RetrievalResult[] = [];
 
       // Add main results first
       for (const result of mainResults) {
@@ -225,20 +237,39 @@ export async function retrieveRelevantChunks(
         }
       }
 
-      // Sort by similarity and limit
-      return mergedResults
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, maxResults);
+      // Sort by similarity
+      mergedResults = mergedResults.sort((a, b) => b.similarity - a.similarity);
+
+      // Apply reranking if enabled
+      if (useReranker && mergedResults.length > maxResults) {
+        mergedResults = await cohereRerank(query, mergedResults, { topN: maxResults });
+      }
+
+      return mergedResults.slice(0, maxResults);
     }
 
+    let results: RetrievalResult[];
+
     if (searchMode === 'keyword') {
-      return await keywordSearch(effectiveQuery, maxResults);
+      results = await keywordSearch(effectiveQuery, fetchCount);
     } else if (searchMode === 'hybrid') {
-      return await hybridSearch(effectiveQuery, maxResults, minSimilarity);
+      results = await hybridSearch(effectiveQuery, fetchCount, minSimilarity);
     } else {
       // Pass original query for metadata boost to use correct entity matching
-      return await semanticSearch(effectiveQuery, maxResults, minSimilarity, includeDocumentInfo, query);
+      results = await semanticSearch(effectiveQuery, fetchCount, minSimilarity, includeDocumentInfo, query);
     }
+
+    // Apply Cohere reranking if enabled
+    if (useReranker && results.length > maxResults) {
+      logger.info({
+        beforeCount: results.length,
+        targetCount: maxResults
+      }, '[Retrieval] Applying Cohere reranker');
+
+      results = await cohereRerank(query, results, { topN: maxResults });
+    }
+
+    return results.slice(0, maxResults);
   } catch (error) {
     logger.error({ error, query }, '[Retrieval] Search failed');
     throw new Error('Failed to retrieve relevant content');

@@ -77,8 +77,8 @@ export function chunkText(
   options: ChunkingOptions = {}
 ): TextChunk[] {
   const {
-    maxTokens = 500,
-    overlap = 50,
+    maxTokens = 350,   // Smaller chunks = more precise retrieval
+    overlap = 75,      // ~20% overlap for better context preservation
     preserveParagraphs = true,
     preserveHeadings = true,
   } = options;

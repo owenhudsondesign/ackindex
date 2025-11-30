@@ -405,8 +405,8 @@ ${enrichedData.topics.map((t: string) => `- ${t}`).join('\n')}
 
   // Summary chunks
   const summaryChunks = chunkText(summaryContent, {
-    maxTokens: 1000,
-    overlap: 50,
+    maxTokens: 800,   // Slightly smaller for better retrieval precision
+    overlap: 100,     // More overlap for summaries
   });
 
   allChunks.push(...summaryChunks.map((chunk, index) => ({
@@ -433,8 +433,8 @@ ${enrichedData.topics.map((t: string) => `- ${t}`).join('\n')}
 
   // Transcript chunks - with speaker and timestamp preservation
   const transcriptChunks = createTimestampedChunks(mergedTranscript.segments, {
-    maxTokens: 500,
-    overlap: 50,
+    maxTokens: 350,   // Smaller chunks for precise retrieval
+    overlap: 75,      // ~20% overlap for context preservation
   });
 
   allChunks.push(...transcriptChunks.map((chunk, index) => ({

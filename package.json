@@ -35,6 +35,7 @@
     "apify-client": "^2.19.0",
     "assemblyai": "^4.19.0",
     "bullmq": "^5.63.0",
+    "cohere-ai": "^7.20.0",
     "dotenv": "^17.2.3",
     "ioredis": "^5.8.2",
     "next": "^16.0.0",

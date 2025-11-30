@@ -167,8 +167,8 @@ async function processUrlScraping(
     for (const result of results) {
       if (result.text && result.text.length > 100) {
         const chunks = chunkText(result.text, {
-          maxTokens: 500,
-          overlap: 50,
+          maxTokens: 350,
+          overlap: 75,
         });
 
         chunks.forEach(chunk => {
@@ -197,8 +197,8 @@ async function processUrlScraping(
           const parsed = await parsePDF(pdfBuffer, pdf.filename);
 
           const pdfChunks = chunkText(parsed.text, {
-            maxTokens: 500,
-            overlap: 50,
+            maxTokens: 350,
+            overlap: 75,
           });
 
           pdfChunks.forEach(chunk => {
@@ -311,8 +311,8 @@ async function processPDFFromStorage(
 
     // Chunk the text
     const chunks = chunkText(parsed.text, {
-      maxTokens: 500,
-      overlap: 50,
+      maxTokens: 350,
+      overlap: 75,
       preserveParagraphs: true,
       preserveHeadings: true,
     });
